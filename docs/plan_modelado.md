@@ -99,3 +99,34 @@ Las funciones ya están en `src/fallas.py`. Ambas devuelven la potencia con la f
 ## 5. Lo que no se cubre todavía
 - Distinguir *soiling* de degradación, o de una falla parcial que se mantiene. Con un año de datos y sin registros de limpieza no es posible: se reporta como "pérdida gradual".
 - La causa de las pérdidas invernales de station00 y station06 (¿sombra o nieve?). Habría que validarla con el área técnica.
+
+## 6. Resultados de la etapa 2 (22/10/2026)
+
+Todos los números salen de `03_modelos`, `04_deteccion` y `05_negocio`.
+
+### Hipótesis
+
+| Condición | Resultado | ¿Cumple? |
+|---|---|---|
+| 1. Error de energía diaria < 8% (sensor de planta, evaluación ciega en may-jun 2019) | 6,04% (Random Forest, primera mirada) | ✅ |
+| 2. Precisión y recall ≥ 0,8 para caídas de 10%, 25%, 50% y 100% | 100%: 0,93 / 1,00; 50%: 0,94 / 0,95; 25%: 0,92 / 0,73; 10%: 0,68 / 0,12 | ❌ |
+| 3. Marca station09 y ULL4FV | station09 desde el 2.º día con datos; ULL4FV con alerta en 11 de 12 meses de 2025 | ✅ |
+
+**Se sostiene parcialmente:** detecta fallas grandes (≥ 50%) el mismo día y casos crónicos, pero no caídas de 10% ni suciedad gradual. El ruido diario del modelo (σ robusta de 5% a 16% según la planta) es del mismo orden que esas pérdidas.
+
+### Lo que se sumó del notebook de referencia (método, aplicado a datos reales)
+
+- **Híbrido físico + ML** (el Random Forest aprende el factor real / PVWatts): es el mejor en la validación cruzada (5,99%) y es el modelo final, en su variante con lluvia (6,05% en CV).
+- **Precipitación y `dias_desde_lluvia`** (lluvia ≥ 5 mm limpia los paneles): se agregaron a los datasets A y B. Lo esperado se calcula con la planta limpia. No mejora la CV, porque con un año la época seca coincide con el invierno.
+- **Comparación con vecinas** (índice / mediana de las plantas a < 100 km / normal de la planta): con el sensor de cada planta casi no hay error común (correlación 0,12), así que no mejora la detección. En Argentina se aplica por región y mes.
+- **Alertas combinadas** (falla grave < 0,5, CUSUM e Isolation Forest): solo sirven para caídas grandes. Con la regla h = 4σ, el CUSUM da 6-7 falsas alarmas por planta y por mes, porque el residuo está autocorrelado. Calibrado (h ≈ 40σ) casi no detecta.
+- **Valor de negocio** (`05_negocio`): USD 1.099 por MW ahorrados por cada caída de 50% y T* = 148 días con una tasa de ensuciamiento medida de 0,049%/día. El costo de limpieza es un supuesto.
+
+### Limitaciones
+
+- **Un solo año de datos.** La pérdida invernal de station06 (y en parte de station00) no se puede aprender al dejar el mes afuera: genera 59 días de alerta falsa de enero a marzo.
+- **Los resultados en may-jun del híbrido y de las variantes con lluvia no son ciegos**: se agregaron después de la primera mirada.
+- **station04:** la ficha técnica está mal. En el semáforo aparece siempre verde, porque se mide contra la planta típica.
+- **Sensor de planta caído** (station09 desde el 4/6/2019; station06 en invierno): esos días quedan sin decisión, y el modelo con Open-Meteo como respaldo tiene un error de ~10-16%.
+- **Argentina:** es una comparación mensual entre parques, no detección en tiempo real. Las coordenadas aproximadas se excluyen.
+- **Costo de limpieza y frecuencia de revisión son supuestos.** El precio es el de RenovAr Ronda 2 (solar), no el spot.

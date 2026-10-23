@@ -13,7 +13,8 @@ venv/
 .streamlit/secrets.toml
 # Cache de descargas del script (TPO_DIR=data/processed)
 data/processed/raw/
-# Modelos entrenados: se regeneran con notebooks/03_modelos (pesan ~40 MB)
+# Modelos entrenados y evaluaciones: se regeneran con notebooks/03 y 04 (los .pkl pesan ~40 MB)
 models/*.pkl
 # Material de referencia de compañeros: solo lectura, no se sube
 referencias/
+models/*.csv
