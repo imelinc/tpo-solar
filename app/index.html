@@ -110,6 +110,14 @@ button, input, select { font: inherit; color: inherit; }
 .fila.fila-c { grid-template-columns: 18px 1fr auto; }
 .mas { margin-top: 10px; width: 100%; padding: 9px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel-2); color: var(--acento); font-weight: 600; cursor: pointer; }
 .mas:hover { background: #fff; }
+.explica { background: #fff; border: 1px solid var(--borde); border-radius: 10px; padding: 0 18px; margin-bottom: 20px; }
+.explica summary { cursor: pointer; padding: 14px 0; font-weight: 700; color: var(--acento); list-style-position: inside; }
+.explica[open] summary { border-bottom: 1px solid var(--borde); margin-bottom: 4px; }
+.explica p, .explica ol { margin: 10px 0; color: var(--tinta-2); max-width: 95ch; }
+.explica ol { padding-left: 22px; }
+.explica li + li { margin-top: 6px; }
+.explica .lampara { width: 12px; height: 12px; vertical-align: -1px; }
+.explica > :last-child { margin-bottom: 16px; }
 .fila-c .nombre { display: block; font-size: 1rem; }
 .lecturas small { display: block; font-size: 0.78rem; color: var(--tenue); margin-top: 2px; }
 .vacio { padding: 18px; border: 1px solid var(--borde); border-radius: var(--radio); color: var(--tenue); background: #fff; }
@@ -299,6 +307,17 @@ input[type="range"] { width: 100%; accent-color: var(--tinta); height: 28px; }
       </div>
     </div>
     <div class="franja" id="arg-franja"></div>
+    <details class="explica">
+      <summary>¿Qué significa que un mes tenga alerta?</summary>
+      <p>Que ese mes el parque rindió claramente menos de lo que suele rendir, aun teniendo en cuenta el sol que tuvo. Se calcula en tres pasos:</p>
+      <ol>
+        <li><b>Lo esperado por el sol.</b> Con la radiación, la temperatura, la nubosidad y la lluvia del mes se calcula cuánto habría aprovechado un parque típico en ese lugar (su factor de capacidad). El rendimiento del mes es lo que generó dividido por eso.</li>
+        <li><b>Se corrige por la región.</b> Ese rendimiento se compara con el de los parques de su región en el mismo mes. Si fue un mes malo para todos (por ejemplo, más nublado de lo que capta el satélite), no cuenta contra el parque.</li>
+        <li><b>Se compara con su propio normal.</b> Cada parque tiene un nivel habitual: algunos rinden siempre más que el típico y otros menos. El resultado es el "% de lo normal": 100% significa que rindió como siempre.</li>
+      </ol>
+      <p><span class="lampara rojo" aria-hidden="true"></span> <b>Alerta</b>: rindió menos de la mitad de lo normal, o lleva varios meses seguidos por debajo de lo normal (las pérdidas se van acumulando). Por eso un parque con 95% puede estar en alerta si viene así hace meses.</p>
+      <p><span class="lampara amarillo" aria-hidden="true"></span> <b>Bajo su rango habitual</b>: ese mes quedó por debajo de sus peores meses históricos (el 10% más bajo). Es una señal más suave.</p>
+    </details>
     <div class="grilla g-arg2">
       <div class="panel">
         <h2>Lo que aprovechó cada parque contra lo normal <em>un punto por parque · tamaño = potencia</em></h2>
