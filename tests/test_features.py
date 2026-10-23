@@ -7,8 +7,8 @@ import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from src.fallas import inyectar_caida_abrupta, inyectar_soiling  # noqa: E402
-from src.deteccion import (alarmas_cusum, alarmas_umbral, calibrar, indice_relativo,  # noqa: E402
-                           residuo_diario, semaforo)
+from src.deteccion import (ajustar_h_cusum, alarmas_cusum, alarmas_umbral, calibrar,  # noqa: E402
+                           indice_relativo, residuo_diario, semaforo)
 from src.features import (agregar_dias_desde_lluvia, agregar_features_solares, agregar_features_tiempo,  # noqa: E402
                           features_escenario, filtro_rendimiento_argentina, limpiar_pvod,
                           marcar_valores_congelados)
@@ -95,6 +95,12 @@ def test_detectores():
     assert u.iloc[10] and u.sum() == 1          # la caída abrupta la ve el umbral...
     assert c.iloc[25:31].all() and not c.iloc[:10].any()  # ...la pérdida chica sostenida, el CUSUM
     assert not c.iloc[15]  # y la alarma de la caída abrupta se apaga en pocos días
+    # Ruido autocorrelado: la regla h = 4σ da muchas falsas alarmas; ajustar h las lleva al objetivo
+    rng = np.random.default_rng(1)
+    ar = pd.Series(np.convolve(rng.normal(0, 0.03, 600), np.ones(5) / 5 ** 0.5, mode="same"))
+    p0 = {"a": calibrar(ar)}
+    p1, f = ajustar_h_cusum({"a": ar}, p0, tasa_max=1 / 30)
+    assert alarmas_cusum(ar, p1["a"]).mean() <= 1 / 30 and f > 4
 
 
 def test_dias_desde_lluvia():

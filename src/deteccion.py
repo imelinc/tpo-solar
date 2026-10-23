@@ -74,6 +74,21 @@ def alarmas_cusum(r: pd.Series, p: dict) -> pd.Series:
     return pd.Series(out, index=r.index)
 
 
+def ajustar_h_cusum(series: dict, params: dict, tasa_max: float = 1 / 30,
+                    factores=tuple(range(4, 61, 2))) -> tuple[dict, int]:
+    """Sube h (en múltiplos de sigma) hasta que, en los datos sanos de calibración, la fracción de
+    períodos con alarma sea <= `tasa_max` (diario: 1/30 = una falsa alarma por planta y por mes).
+    Hace falta porque el residuo está autocorrelado (lag 1 ~ 0,4) y la regla h = 4σ supone ruido
+    independiente. `series` = {planta: residuo (sin centrar)}, `params` = {planta: calibrar(...)}."""
+    n = sum(len(r) for r in series.values())
+    for f in factores:
+        nuevos = {p: {**params[p], "h": f * params[p]["sigma"]} for p in series}
+        alarmas = sum(alarmas_cusum(r, nuevos[p]).sum() for p, r in series.items())
+        if alarmas / n <= tasa_max:
+            break
+    return {**params, **nuevos}, f
+
+
 def detectar(e: pd.DataFrame, params: dict) -> pd.DataFrame:
     """Agrega alerta_umbral y alerta_cusum por planta. `params` = {plant_id: calibrar(...)}."""
     e = e.sort_values(["plant_id", "date_local"]).copy()
@@ -114,6 +129,7 @@ def indice_relativo(e: pd.DataFrame, vecinas: dict, normal: dict | None = None) 
         vs = [v for v in vecinas.get(p, []) if v in tabla.columns]
         if vs:
             med.loc[idx] = e.loc[idx, "date_local"].map(tabla[vs].median(axis=1)).to_numpy()
+    med = med.where(med > 0.05)  # vecinas todas caídas ese día: no sirven de referencia
     e["con_vecinas"] = med.notna()
     e["indice_rel"] = e["indice"] / med.fillna(1.0)
     if normal is None:
