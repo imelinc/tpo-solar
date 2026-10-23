@@ -15,3 +15,5 @@ venv/
 data/processed/raw/
 # Modelos entrenados: se regeneran con notebooks/03_modelos (pesan ~40 MB)
 models/*.pkl
+# Material de referencia de compañeros: solo lectura, no se sube
+referencias/
