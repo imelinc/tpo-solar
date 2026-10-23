@@ -224,13 +224,44 @@ function vistaPlanta() {
 }
 
 // ------------------------------------------------------------------ 3. argentina
+const NEUTRO = "#a9b8bc";
+const colorParque = (e) => e === "verde" ? NEUTRO : COLOR[e];
+const tamMW = (mw, k = 2.2) => mw ? Math.max(7, Math.sqrt(mw) * k) : 7;
+
 function filasMes() {
   return Object.entries(D.argentina.parques).flatMap(([c, q]) => {
     const i = q.fecha.indexOf(S.mes);
-    if (i < 0 || q.fc[i] == null || q.fc_esp[i] == null) return [];
-    const estado = q.alerta[i] ? "rojo" : q.bajo_p10[i] ? "amarillo" : "verde";
-    return [{ c, nombre: nombreCorto(titulo(q.nombre)), provincia: q.provincia, lat: q.lat, lon: q.lon, fc: q.fc[i], ratio: q.fc[i] / q.fc_esp[i], estado }];
+    if (i < 0 || q.fc[i] == null || !q.rel[i]) return [];
+    const estado = q.alerta[i] && q.rel[i] < 1 ? "rojo" : q.bajo_p10[i] ? "amarillo" : "verde";
+    return [{ c, nombre: nombreCorto(titulo(q.nombre)), provincia: q.provincia, lat: q.lat, lon: q.lon, mw: q.mw,
+      fc: q.fc[i], esp: q.fc[i] / q.rel[i], ratio: q.rel[i], gwh: q.gwh[i], estado, arrastre: !!q.alerta[i] && q.rel[i] >= 1 }];
   });
+}
+
+function contextoArgentina() {
+  const n = D.argentina.nacional;
+  $("#arg-ctx-nota").textContent = `${mesLargo(n.u12.desde).toLowerCase()} a ${mesLargo(n.u12.hasta).toLowerCase()} · ${n.total_parques} parques de CAMMESA`;
+  const completos = n.anios.filter((a) => a.completo);
+  const de2020 = completos.find((a) => a.anio === 2020), ultimo = completos.at(-1);
+  $("#arg-ctx-lecturas").innerHTML = `
+    <div><span>Generado en los últimos 12 meses</span><strong>${fmt(n.u12.gwh)} GWh</strong><small>${fmt(ultimo.gwh / de2020.gwh, 1)} veces lo de 2020 (año ${ultimo.anio} contra 2020)</small></div>
+    <div><span>Parques solares que generaron</span><strong>${n.u12.parques}</strong><small>${n.anios.find((a) => a.anio === 2020).parques} en 2020</small></div>
+    <div><span>Potencia instalada</span><strong>${fmt(n.mw.total)} MW</strong><small>en los ${n.mw.con_dato} parques con dato de potencia</small></div>`;
+  const an = n.anios.filter((a) => a.anio >= 2017);
+  Plotly.react("arg-anios", [{
+    type: "bar", x: an.map((a) => a.completo ? String(a.anio) : `${a.anio}*`), y: an.map((a) => a.gwh),
+    marker: { color: an.map((a) => a.completo ? "#1f6f86" : "#9cc3cf") },
+    customdata: an.map((a) => [a.parques, a.completo ? "" : " (hasta " + mesLargo(n.u12.hasta).toLowerCase() + ")"]),
+    hovertemplate: "%{x}%{customdata[1]}: %{y:,.0f} GWh<br>%{customdata[0]} parques<extra></extra>",
+  }], base({ bargap: 0.25, xaxis: { ...EJE, type: "category", showgrid: false }, yaxis: { ...EJE } }), CONFIG);
+  const top = n.provincias.slice(0, 7), resto = n.provincias.slice(7).reduce((a, [, g]) => a + g, 0);
+  const pv = [...top, ["Otras", resto]].reverse();
+  Plotly.react("arg-provincias", [{
+    type: "bar", orientation: "h", x: pv.map(([, g]) => g), y: pv.map(([p]) => p),
+    marker: { color: pv.map(([p]) => p === "Otras" ? NEUTRO : "#1f6f86") },
+    text: pv.map(([, g]) => fmt(g)), textposition: "outside", textfont: { size: 12, color: TENUE }, cliponaxis: false,
+    hovertemplate: "%{y}: %{x:,.0f} GWh<extra></extra>",
+  }], base({ bargap: 0.3, margin: { l: 10, r: 40, t: 4, b: 10 }, xaxis: { ...EJE, showticklabels: false, showgrid: false }, yaxis: { ...EJE, showgrid: false } }), CONFIG);
 }
 
 function vistaArgentina() {
@@ -241,6 +272,7 @@ function vistaArgentina() {
     const mover = (k) => { const i = D.argentina.meses.indexOf(S.mes) + k; if (D.argentina.meses[i]) { S.mes = D.argentina.meses[i]; vistaArgentina(); } };
     $("#mes-ant").addEventListener("click", () => mover(-1));
     $("#mes-sig").addEventListener("click", () => mover(1));
+    contextoArgentina();
   }
   sel.value = S.mes;
   const im = D.argentina.meses.indexOf(S.mes);
@@ -248,61 +280,84 @@ function vistaArgentina() {
 
   const filas = filasMes();
   const alertas = filas.filter((f) => f.estado === "rojo"), bajos = filas.filter((f) => f.estado === "amarillo");
-  const peor = [...(alertas.length ? alertas : filas)].sort((a, b) => a.ratio - b.ratio)[0];
-  const h1 = alertas.length
-    ? `En ${mesLargo(S.mes).toLowerCase()}, ${alertas.length} de ${filas.length} parques rinden por debajo de lo esperado`
-    : `En ${mesLargo(S.mes).toLowerCase()}, ningún parque tiene alerta`;
-  $("#arg-franja").innerHTML = `${lampara(alertas.length ? "rojo" : "verde")}<div><h1>${h1}</h1>
-    <p>${bajos.length ? `Otros ${bajos.length} están por debajo de su rango habitual. ` : ""}${peor ? `El que más se aleja: <b>${peor.nombre}</b> (${peor.provincia}), que generó ${pct(peor.ratio)} de lo esperado para el sol que tuvo.` : ""}</p></div>
-    <div class="cifra"><strong>${alertas.length + bajos.length}</strong><span>parques para revisar</span></div>`;
+  const arrastre = filas.filter((f) => f.arrastre);
+  const revisar = [...alertas, ...bajos].sort((a, b) => (a.estado === b.estado ? 0 : a.estado === "rojo" ? -1 : 1) || a.ratio - b.ratio);
+  const mes = mesLargo(S.mes).toLowerCase();
+  const perdido = revisar.reduce((a, f) => a + Math.max(f.esp - f.fc, 0) / f.fc * (f.gwh || 0), 0);
+  $("#arg-franja").innerHTML = revisar.length
+    ? `${lampara(alertas.length ? "rojo" : "amarillo")}<div><h1>En ${mes}, ${revisar.length} de ${filas.length} parques rindieron menos de lo normal</h1>
+       <p>${alertas.length} con alerta y ${bajos.length} por debajo de su rango habitual. El que más se aleja es <b>${revisar[0].nombre}</b> (${revisar[0].provincia}): rindió ${pct(revisar[0].ratio)} de lo normal.</p></div>
+       <div class="cifra"><strong>${fmt(perdido * 1000)} MWh</strong><span>dejaron de generar esos parques</span></div>`
+    : `${lampara("verde")}<div><h1>En ${mes}, los ${filas.length} parques rindieron lo esperado para su sol</h1><p>Ninguno con alerta ni por debajo de su rango habitual.</p></div><div></div>`;
 
-  const capas = [["verde", 8, 0.7, "#7d9199"], ["amarillo", 13, 1, COLOR.amarillo], ["rojo", 14, 1, COLOR.rojo]].map(([e, size, op, color]) => {
+  // dispersión: lo que debía (x) contra lo que aprovechó (y); la diagonal es "rindió lo esperado"
+  const orden = [...filas].sort((a, b) => (a.estado === "verde") - (b.estado === "verde")).reverse();
+  const tope = Math.max(...filas.map((f) => Math.max(f.fc, f.esp))) * 1.08;
+  Plotly.react("arg-dispersion", [
+    { type: "scatter", mode: "lines", x: [0, tope], y: [0, tope], line: { color: TENUE, width: 1.5 }, hoverinfo: "skip" },
+    { type: "scatter", mode: "markers", x: orden.map((f) => f.esp), y: orden.map((f) => f.fc),
+      marker: { size: orden.map((f) => tamMW(f.mw)), color: orden.map((f) => colorParque(f.estado)), opacity: orden.map((f) => f.estado === "verde" ? 0.75 : 1),
+        line: { width: 2, color: "#ffffff" } },
+      customdata: orden.map((f) => [f.c, f.nombre, f.provincia, f.mw == null ? "s/d" : fmt(f.mw), f.ratio * 100]),
+      hovertemplate: "<b>%{customdata[1]}</b> · %{customdata[2]}<br>Aprovechó %{y:.0%} · debía %{x:.0%}<br>Rindió %{customdata[4]:.0f}% de lo normal · %{customdata[3]} MW<extra></extra>" },
+  ], base({
+    margin: { l: 10, r: 16, t: 10, b: 10 },
+    annotations: [{ x: tope * 0.9, y: tope * 0.9, text: "rindió lo normal", showarrow: false, textangle: -38, font: { size: 13, color: TENUE }, yshift: 12 }],
+    xaxis: { ...EJE, range: [0, tope], tickformat: ".0%", title: { text: "lo normal para el parque con ese sol", font: { color: TENUE, size: 13 } } },
+    yaxis: { ...EJE, range: [0, tope], tickformat: ".0%", scaleanchor: "x", title: { text: "lo que aprovechó", font: { color: TENUE, size: 13 } } },
+  }), CONFIG);
+
+  const MAX = 6, visibles = S.verTodos ? revisar : revisar.slice(0, MAX);
+  $("#arg-revisar").innerHTML = revisar.length ? visibles.map((f) => `<button class="fila fila-c" data-c="${f.c}">${lampara(f.estado)}
+      <span class="que"><b class="nombre">${f.nombre}</b><small>${f.provincia}${f.mw ? ` · ${fmt(f.mw)} MW` : ""} · ${f.estado === "rojo" ? "alerta" : "bajo su rango habitual"}</small></span>
+      <span class="plata">${pct(f.ratio)}<small>de lo normal</small></span></button>`).join("")
+      + (revisar.length > MAX ? `<button class="mas" id="arg-mas">${S.verTodos ? "Ver menos" : `Ver los ${revisar.length}`}</button>` : "")
+      + (arrastre.length ? `<p class="nota">Con alerta de meses anteriores pero que este mes ya rindieron lo normal: ${arrastre.map((f) => f.nombre).join(", ")}.</p>` : "")
+    : `<p class="vacio">Este mes ningún parque rindió por debajo de lo esperado. Probá con otro mes o mirá la historia de Ullúm 4 en 2025.</p>`;
+  $("#arg-mas")?.addEventListener("click", () => { S.verTodos = !S.verTodos; vistaArgentina(); });
+  $("#arg-revisar").querySelectorAll("[data-c]").forEach((b) => b.addEventListener("click", () => elegirParque(b.dataset.c)));
+
+  const capas = ["verde", "amarillo", "rojo"].map((e) => {
     const fs = filas.filter((f) => f.estado === e);
     return { type: "scattergeo", lon: fs.map((f) => f.lon), lat: fs.map((f) => f.lat), mode: "markers",
-      marker: { size, color, opacity: op, line: { width: e === "verde" ? 0 : 2, color: "#ffffff" } },
+      marker: { size: fs.map((f) => tamMW(f.mw, 1.6)), color: e === "verde" ? "#7d9199" : COLOR[e], opacity: e === "verde" ? 0.7 : 1, line: { width: e === "verde" ? 0 : 2, color: "#ffffff" } },
       customdata: fs.map((f) => [f.c, f.nombre, f.provincia, f.ratio * 100]),
-      hovertemplate: "<b>%{customdata[1]}</b><br>%{customdata[2]}<br>Generó %{customdata[3]:.0f}% de lo esperado<extra></extra>" };
+      hovertemplate: "<b>%{customdata[1]}</b><br>%{customdata[2]}<br>Rindió %{customdata[3]:.0f}% de lo normal<extra></extra>" };
   });
   Plotly.react("arg-mapa", capas, base({ geo: { ...GEO, scope: "south america", lonaxis: { range: [-73.5, -53] }, lataxis: { range: [-55.5, -21.5] } } }), CONFIG);
 
-  const rk = [...filas].sort((a, b) => a.fc - b.fc);
-  const alto = Math.max(320, rk.length * 21 + 50);
-  $("#arg-ranking").style.height = alto + "px";
-  Plotly.react("arg-ranking", [{
-    type: "bar", orientation: "h", x: rk.map((f) => f.fc), y: rk.map((f) => f.c),
-    marker: { color: rk.map((f) => f.estado === "verde" ? "#a9b8bc" : COLOR[f.estado]) },
-    customdata: rk.map((f) => [f.c, f.nombre, f.provincia, f.ratio * 100]),
-    hovertemplate: "<b>%{customdata[1]}</b> · %{customdata[2]}<br>Factor de capacidad %{x:.1%}<br>Generó %{customdata[3]:.0f}% de lo esperado<extra></extra>",
-  }], base({
-    bargap: 0.25, margin: { l: 10, r: 16, t: 4, b: 10 },
-    xaxis: { ...EJE, tickformat: ".0%", side: "top" },
-    yaxis: { ...EJE, tickfont: { size: 12, color: TENUE }, showgrid: false, tickvals: rk.map((f) => f.c), ticktext: rk.map((f) => corto(nombreCorto(f.nombre))) },
-  }), CONFIG);
-
-  for (const id of ["arg-mapa", "arg-ranking"]) {
+  for (const id of ["arg-mapa", "arg-dispersion"]) {
     const el = document.getElementById(id);
     el.removeAllListeners?.("plotly_click");
-    el.on("plotly_click", (ev) => { S.parque = ev.points[0].customdata[0]; historiaParque(); });
+    el.on("plotly_click", (ev) => { const c = ev.points[0].customdata?.[0]; if (c) elegirParque(c); });
   }
   historiaParque();
+}
+
+function elegirParque(c) {
+  S.parque = c;
+  historiaParque();
+  $("#arg-historia").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function historiaParque() {
   const q = D.argentina.parques[S.parque];
   if (!q) return;
-  const ult = q.alerta.slice(-12).reduce((a, b) => a + b, 0);
-  $("#arg-historia-titulo").innerHTML = `<p class="grupo-titulo" style="text-transform:none;letter-spacing:0;font-size:1.05rem">
-    <b style="color:${TINTA};font-size:1.15rem">${nombreCorto(titulo(q.nombre))}</b>&nbsp;· ${q.provincia} · alerta en ${ult} de sus últimos 12 meses con dato</p>`;
-  const al = q.fecha.map((f, i) => i).filter((i) => q.alerta[i]);
+  const ult = q.alerta.slice(-12).filter((a, k) => a && q.rel[q.rel.length - 12 + k] < 1).length;
+  const datos = [q.provincia, q.mw ? `${fmt(q.mw)} MW` : null, q.contrato ? `contrato ${q.contrato}` : null].filter(Boolean).join(" · ");
+  $("#arg-historia-titulo").innerHTML = `<h3 style="margin:0;font-size:1.3rem;letter-spacing:-0.015em">${nombreCorto(titulo(q.nombre))}</h3>
+    <p class="nota" style="margin:2px 0 6px">${datos} · alerta en ${ult} de sus últimos 12 meses con dato</p>`;
+  const al = q.fecha.map((f, i) => i).filter((i) => q.alerta[i] && q.rel[i] < 1);
+  const debia = q.fc.map((v, i) => (v != null && q.rel[i]) ? v / q.rel[i] : null);
   Plotly.react("arg-historia", [
-    { type: "scatter", mode: "lines", x: q.fecha, y: q.fc_esp, name: "Esperado para el sol que tuvo", line: { color: "#9aabb0", width: 2.5 },
-      hovertemplate: "Esperado %{y:.1%}<extra></extra>" },
-    { type: "scatter", mode: "lines+markers", x: q.fecha, y: q.fc, name: "Real", line: { color: TINTA, width: 2 }, marker: { size: 4 },
-      hovertemplate: "Real %{y:.1%}<extra></extra>" },
+    { type: "scatter", mode: "lines", x: q.fecha, y: debia, name: "Lo normal para el parque con ese sol", line: { color: "#9aabb0", width: 2.5 },
+      hovertemplate: "Debía %{y:.1%}<extra></extra>" },
+    { type: "scatter", mode: "lines+markers", x: q.fecha, y: q.fc, name: "Lo que aprovechó", line: { color: TINTA, width: 2 }, marker: { size: 4 },
+      hovertemplate: "Aprovechó %{y:.1%}<extra></extra>" },
     { type: "scatter", mode: "markers", x: al.map((i) => q.fecha[i]), y: al.map((i) => q.fc[i]), name: "Mes con alerta",
       marker: { color: COLOR.rojo, size: 10, line: { width: 2, color: "#fff" } }, hoverinfo: "skip" },
   ], base({
-    showlegend: true, legend: { orientation: "h", y: 1.12, x: 0, font: { size: 13, color: TENUE } }, hovermode: "x unified",
+    showlegend: true, legend: { orientation: "h", y: 1.1, x: 0, font: { size: 13, color: TENUE } }, hovermode: "x unified",
     margin: { l: 10, r: 16, t: 30, b: 10 },
     xaxis: { ...EJE, type: "date", hoverformat: "%B %Y", showgrid: false },
     yaxis: { ...EJE, tickformat: ".0%", title: { text: "factor de capacidad", font: { color: TENUE, size: 13 } }, rangemode: "tozero" },

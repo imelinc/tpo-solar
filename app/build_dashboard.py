@@ -61,16 +61,38 @@ def flota():
 
 
 def argentina():
-    b = pd.read_parquet(DATA_PROCESSED / "app_argentina.parquet").sort_values(["central", "fecha"])
+    """Parques comparables (app_argentina, de 04_deteccion) y contexto nacional con los 97 parques de CAMMESA."""
+    todos = pd.read_parquet(DATA_PROCESSED / "dataset_B_argentina_mensual.parquet")
+    todos["fecha"] = pd.to_datetime(todos["fecha"])
+    b = pd.read_parquet(DATA_PROCESSED / "app_argentina.parquet").merge(
+        todos[["central", "fecha", "om_ghi_kwh_m2_mes", "tipo_contrato"]], on=["central", "fecha"], how="left")
+    b = b.sort_values(["central", "fecha"])
     b["fecha"] = b["fecha"].dt.strftime("%Y-%m")
     parques = {}
     for c, g in b.groupby("central"):
+        pot = g["potencia_mw"].dropna()
         parques[c] = {"nombre": g["central_descripcion"].iloc[0], "provincia": g["provincia"].iloc[0].title(),
                       "region": g["region"].iloc[0].title(), "lat": round(float(g["lat"].iloc[0]), 4),
-                      "lon": round(float(g["lon"].iloc[0]), 4), "fecha": g["fecha"].tolist(),
+                      "lon": round(float(g["lon"].iloc[0]), 4), "contrato": g["tipo_contrato"].dropna().iloc[-1] if g["tipo_contrato"].notna().any() else None,
+                      "mw": round(float(pot.iloc[-1]), 1) if len(pot) else None, "fecha": g["fecha"].tolist(),
                       "fc": col(g["factor_capacidad"]), "fc_esp": col(g["fc_esp"]), "rel": col(g["indice_rel"]),
+                      "ghi": col(g["om_ghi_kwh_m2_mes"], 1), "gwh": col(g["energia_gwh"]),
                       "alerta": col(g["alerta"]), "bajo_p10": col(g["bajo_p10"])}
-    return {"parques": parques, "meses": sorted(b["fecha"].unique())}
+    fin = todos["fecha"].max()
+    u12 = todos[todos["fecha"] > fin - pd.DateOffset(months=12)]
+    ult = todos[todos["fecha"] == fin]
+    anios = todos.groupby("anio").agg(gwh=("energia_gwh", "sum"), parques=("central", "nunique"), meses=("mes", "nunique"))
+    nacional = {
+        "anios": [{"anio": int(a), "gwh": round(float(r.gwh), 1), "parques": int(r.parques), "completo": bool(r.meses == 12)}
+                  for a, r in anios.iterrows()],
+        "u12": {"gwh": round(float(u12["energia_gwh"].sum())), "parques": int(u12["central"].nunique()),
+                "desde": (fin - pd.DateOffset(months=11)).strftime("%Y-%m"), "hasta": fin.strftime("%Y-%m")},
+        "provincias": [[k.title(), round(float(v), 1)] for k, v in
+                       u12.groupby("provincia")["energia_gwh"].sum().sort_values(ascending=False).items() if v > 0.5],
+        "mw": {"total": round(float(ult["potencia_mw"].sum())), "con_dato": int(ult["potencia_mw"].notna().sum()), "parques": len(ult)},
+        "total_parques": int(todos["central"].nunique()),
+    }
+    return {"parques": parques, "meses": sorted(b["fecha"].unique()), "nacional": nacional}
 
 
 def main():

@@ -93,7 +93,7 @@ Precio: USD 42,84/MWh (RenovAr Ronda 2, 2017), **como ilustración** del valor e
 
 1. **Flota hoy** (40 s): fecha 10/5/2019. Leer la franja de arriba: "1 planta necesita un técnico hoy", station09 pierde USD 2.300 por día. Mostrar station04 en **gris** (la ficha dice 20 MW y mide 24,8 MW) y pasar el mouse por la lista para que se ilumine en el mapa.
 2. **Una planta** (60 s): clic en "Ver planta" de station09, últimos 3 meses. Azul = lo que generó, rojo = lo que dejó de generar, línea = lo que debía generar. Abajo, las filas de avisos. Cambiar a station06 con fecha en marzo: aviso de **baja confianza**.
-3. **Argentina** (30 s): leer en voz alta el aviso de arriba (**comparación mensual**, no tiempo real). Bajar a la historia de Ullúm 4 (ULL4FV) en 2025.
+3. **Argentina** (30 s): leer en voz alta el aviso de arriba (**comparación mensual**, no tiempo real). Una frase de contexto: la solar ya genera unos 6.100 GWh por año, casi 4 veces lo de 2020. En el gráfico de puntos, los que quedan debajo de la diagonal rindieron menos de lo normal. Cerrar con la historia de Ullúm 4 (ULL4FV) en 2025.
 4. **Limpieza y plata** (35 s): mover el costo de limpieza de 800 a 1.600 y mostrar cómo cambia la franja ("Conviene limpiar cada … días"). Cerrar con el caso station09.
 
 Plan B si algo falla: capturas del dashboard y los gráficos de `03`, `04` (5.2 y 6.1) y `05`, ya abiertas en otra pestaña. No intentar arreglar la app en vivo: pasar al plan B a los 15 segundos.

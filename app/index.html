@@ -105,6 +105,14 @@ button, input, select { font: inherit; color: inherit; }
 .grilla { display: grid; gap: 20px; }
 .g-flota { grid-template-columns: 5fr 7fr; }
 .g-arg { grid-template-columns: 5fr 7fr; }
+.g-arg2 { grid-template-columns: 7fr 5fr; }
+.contexto { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.fila.fila-c { grid-template-columns: 18px 1fr auto; }
+.mas { margin-top: 10px; width: 100%; padding: 9px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel-2); color: var(--acento); font-weight: 600; cursor: pointer; }
+.mas:hover { background: #fff; }
+.fila-c .nombre { display: block; font-size: 1rem; }
+.lecturas small { display: block; font-size: 0.78rem; color: var(--tenue); margin-top: 2px; }
+.vacio { padding: 18px; border: 1px solid var(--borde); border-radius: var(--radio); color: var(--tenue); background: #fff; }
 .g-neg { grid-template-columns: 4fr 8fr; }
 .panel {
   background: var(--panel); border: 1px solid var(--borde); border-radius: 10px;
@@ -192,7 +200,7 @@ input[type="range"] { width: 100%; accent-color: var(--tinta); height: 28px; }
 @media (max-width: 1100px) {
   .cabecera { grid-template-columns: 1fr; gap: 14px; }
   .vistas { justify-self: start; flex-wrap: wrap; }
-  .g-flota, .g-arg, .g-neg, .caso { grid-template-columns: 1fr; }
+  .g-flota, .g-arg, .g-arg2, .g-neg, .caso, .contexto { grid-template-columns: 1fr; }
   .franja { grid-template-columns: auto 1fr; }
   .franja .cifra { grid-column: 1 / -1; text-align: left; }
 }
@@ -270,9 +278,20 @@ input[type="range"] { width: 100%; accent-color: var(--tinta); height: 28px; }
     <div class="aviso">
       <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="none" stroke="#0b6d80" stroke-width="1.8"/><path d="M11 6.5v6M11 15.2v.3" stroke="#0b6d80" stroke-width="2" stroke-linecap="round"/></svg>
       <div><strong>Comparación mes a mes entre parques de CAMMESA. No es una alarma en tiempo real.</strong>
-      Cada parque se compara con lo que genera un parque típico con el mismo sol y clima, y con su región ese mes. Sirve para elegir qué parques revisar, no para avisar el mismo día.</div>
+      CAMMESA publica la generación de cada parque una vez por mes. Sirve para elegir qué parques revisar, no para avisar el mismo día.</div>
     </div>
-    <div class="controles">
+
+    <div class="panel">
+      <h2>La energía solar en Argentina <em id="arg-ctx-nota"></em></h2>
+      <div class="lecturas" id="arg-ctx-lecturas"></div>
+      <div class="contexto">
+        <div><p class="rotulo">Energía generada por año (GWh)</p><div id="arg-anios" class="grafico" style="height:250px"></div></div>
+        <div><p class="rotulo">Dónde se generó en los últimos 12 meses (GWh)</p><div id="arg-provincias" class="grafico" style="height:250px"></div></div>
+      </div>
+    </div>
+
+    <div class="controles" style="margin-top:26px">
+      <span class="rotulo" style="margin:0">Mes analizado</span>
       <div class="mes">
         <button id="mes-ant" aria-label="Mes anterior"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2 4 7l5 5" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>
         <select id="mes" aria-label="Mes"></select>
@@ -280,20 +299,32 @@ input[type="range"] { width: 100%; accent-color: var(--tinta); height: 28px; }
       </div>
     </div>
     <div class="franja" id="arg-franja"></div>
-    <div class="grilla g-arg">
-      <div class="panel" style="align-self:start;position:sticky;top:16px">
-        <h2>Parques solares con dato ese mes</h2>
-        <div id="arg-mapa" class="grafico" style="height:560px"></div>
+    <div class="grilla g-arg2">
+      <div class="panel">
+        <h2>Lo que aprovechó cada parque contra lo normal <em>un punto por parque · tamaño = potencia</em></h2>
+        <div class="leyenda">
+          <span><span class="lampara rojo" style="width:11px;height:11px;margin-right:6px"></span>Rinde por debajo de lo normal (alerta)</span>
+          <span><span class="lampara amarillo" style="width:11px;height:11px;margin-right:6px"></span>Por debajo de su rango habitual</span>
+          <span><span class="lampara" style="--c:#a9b8bc;width:11px;height:11px;margin-right:6px"></span>Normal</span>
+        </div>
+        <div id="arg-dispersion" class="grafico" style="height:470px"></div>
+        <p class="nota">"Lo normal" es lo que genera un parque típico con el mismo sol, temperatura y lluvia, ajustado por cómo rinde siempre ese parque y por cómo le fue a su región ese mes. Sobre la diagonal, el parque rindió lo de siempre; cuanto más abajo, más energía dejó de generar. Hacé clic en un punto para ver su historia.</p>
       </div>
       <div class="panel">
-        <h2>Ranking del mes <em>factor de capacidad: cuánto de su potencia aprovechó en promedio</em></h2>
-        <div id="arg-ranking" class="grafico"></div>
+        <h2>Para revisar este mes</h2>
+        <div id="arg-revisar"></div>
       </div>
     </div>
-    <div class="panel" style="margin-top:20px">
-      <h2>Historia de un parque <em>hacé clic en un parque del mapa o del ranking</em></h2>
-      <div id="arg-historia-titulo"></div>
-      <div id="arg-historia" class="grafico" style="height:320px"></div>
+    <div class="grilla g-arg" style="margin-top:20px">
+      <div class="panel">
+        <h2>Dónde están <em>tamaño = potencia</em></h2>
+        <div id="arg-mapa" class="grafico" style="height:470px"></div>
+      </div>
+      <div class="panel">
+        <h2>Historia de un parque <em>clic en cualquier parque</em></h2>
+        <div id="arg-historia-titulo"></div>
+        <div id="arg-historia" class="grafico" style="height:360px"></div>
+      </div>
     </div>
   </section>
 
