@@ -13,7 +13,7 @@ from src.features import (agregar_dias_desde_lluvia, agregar_features_solares, a
                           features_escenario, filtro_rendimiento_argentina, limpiar_pvod,
                           marcar_valores_congelados)
 from src.modelos import ModeloPotencia, metricas  # noqa: E402
-from src.negocio import t_optimo_limpieza  # noqa: E402
+from src.negocio import ahorro_anual_limpieza, t_optimo_limpieza  # noqa: E402
 
 
 def test_tiempo():
@@ -157,6 +157,12 @@ def test_t_optimo_y_semaforo():
     s = semaforo(e, "2019-01-03", precio_usd_mwh=50).set_index("plant_id")
     assert s["estado"].tolist() == ["verde", "amarillo", "rojo"]
     assert np.isclose(s.loc["c", "perdida_usd_dia"], 10 / 3 * 50)
+    # Capacidad no confiable: gris aunque rinda raro, sin USD; baja confianza se informa sin borrar la alerta
+    e["baja_confianza"] = e["plant_id"] == "c"
+    s = semaforo(e, "2019-01-03", precio_usd_mwh=50, no_confiables=["b"]).set_index("plant_id")
+    assert s["estado"].tolist() == ["verde", "gris", "rojo"] and np.isnan(s.loc["b", "perdida_usd_dia"])
+    assert s.loc["c", "baja_confianza"] and "baja confianza" in s.loc["c", "accion"]
+    assert ahorro_anual_limpieza(800, 40, 5, 0.002) > 0 and ahorro_anual_limpieza(800, 40, 5, 0) == 0
 
 
 def test_filtro_argentina():

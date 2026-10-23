@@ -12,12 +12,15 @@ COSTO_LIMPIEZA_USD_MW: SUPUESTO, sin fuente argentina. Se toma USD 800 por MW po
   Reemplazar por una cotización real antes de usar los resultados.
 
 DIAS_REVISION_MANUAL: SUPUESTO. Hoy alguien mira los números una vez por mes.
+
+T_BASE_LIMPIEZA_DIAS: SUPUESTO. Línea base del ahorro por limpieza óptima: hoy se limpia una vez por año.
 """
 import numpy as np
 
 PRECIO_USD_MWH = 42.84
 COSTO_LIMPIEZA_USD_MW = 800.0
 DIAS_REVISION_MANUAL = 30
+T_BASE_LIMPIEZA_DIAS = 365
 
 
 def t_optimo_limpieza(costo_usd_mw: float, precio_usd_mwh: float, energia_mwh_dia_mw: float, tasa_dia: float) -> float:
@@ -35,3 +38,13 @@ def costo_anual_limpieza(t_dias, costo_usd_mw: float, precio_usd_mwh: float, ene
     """Costo anual por MW (limpiezas + energía perdida por suciedad) si se limpia cada t días."""
     t = np.asarray(t_dias, dtype=float)
     return 365 * (costo_usd_mw / t + precio_usd_mwh * energia_mwh_dia_mw * tasa_dia * t / 2)
+
+
+def ahorro_anual_limpieza(costo_usd_mw: float, precio_usd_mwh: float, energia_mwh_dia_mw: float, tasa_dia: float,
+                          t_base_dias: float = T_BASE_LIMPIEZA_DIAS) -> float:
+    """Ahorro anual por MW de limpiar cada T* días en lugar de cada `t_base_dias` (>= 0, porque T* es el mínimo)."""
+    t = t_optimo_limpieza(costo_usd_mw, precio_usd_mwh, energia_mwh_dia_mw, tasa_dia)
+    if not np.isfinite(t):
+        return 0.0
+    args = (costo_usd_mw, precio_usd_mwh, energia_mwh_dia_mw, tasa_dia)
+    return float(costo_anual_limpieza(t_base_dias, *args) - costo_anual_limpieza(t, *args))
