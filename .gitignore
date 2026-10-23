@@ -18,3 +18,5 @@ models/*.pkl
 # Material de referencia de compañeros: solo lectura, no se sube
 referencias/
 models/*.csv
+# Archivos de trabajo de la herramienta de diseño (Impeccable): no son parte del proyecto
+.impeccable/
