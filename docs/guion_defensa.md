@@ -1,37 +1,42 @@
 # Guion de la defensa (15 minutos)
 
-Los números salen de `03_modelos`, `04_deteccion` y `05_negocio`. El dashboard se abre antes de empezar
-(`streamlit run app/app.py`) y anda sin internet.
+Los números salen de `03_modelos`, `04_deteccion` y `05_negocio`. El dashboard se abre **antes de empezar**
+(`streamlit run app/app.py` desde la raíz del repo), ya en la pantalla de Resumen de flota con fecha 10/5/2019, y anda sin internet.
+
+**Objetivo: terminar en 13:45** y dejar 1:15 de margen para los cambios de orador, alguna pregunta en el medio o un problema con la demo. Si a las 7:00 no arrancaron el bloque 5, recorten el bloque 5 a lo marcado como *(imprescindible)*.
 
 | Bloque | Tiempo | Acumulado |
 |---|---|---|
 | 1. Problema de negocio | 1:30 | 1:30 |
-| 2. Datos | 1:30 | 3:00 |
-| 3. Hipótesis con umbrales | 1:30 | 4:30 |
-| 4. Modelos | 2:00 | 6:30 |
-| 5. Detector: umbral vs. CUSUM | 2:00 | 8:30 |
-| 6. Resultados contra la hipótesis | 1:30 | 10:00 |
-| 7. Valor en USD | 1:30 | 11:30 |
-| 8. Demo del dashboard | 2:30 | 14:00 |
-| 9. Limitaciones y cierre | 1:00 | 15:00 |
+| 2. Datos | 1:15 | 2:45 |
+| 3. Hipótesis con umbrales | 1:15 | 4:00 |
+| 4. Modelos | 1:45 | 5:45 |
+| 5. Detector: umbral vs. CUSUM | 1:30 | 7:15 |
+| 6. Resultados contra la hipótesis | 1:30 | 8:45 |
+| 7. Valor en USD | 1:15 | 10:00 |
+| 8. Demo del dashboard | 2:45 | 12:45 |
+| 9. Limitaciones y cierre | 1:00 | 13:45 |
+| *Margen* | *1:15* | *15:00* |
+
+Reparto sugerido: cada integrante toma bloques seguidos (por ejemplo 1-3, 4-6, 7-9) para que haya solo dos cambios de orador. Quien hace la demo no habla en el bloque anterior, así ya tiene la app en pantalla.
 
 ---
 
 ## 1. Problema de negocio (0:00 – 1:30)
 
 - Una planta solar que rinde de menos no avisa: sigue generando, solo que menos. Hoy alguien mira los números **una vez por mes**.
-- Una falla que aparece un día cualquiera se descubre, en promedio, 15 días después. Esa energía no se recupera.
+- Con revisión mensual, una falla que aparece un día cualquiera se descubre en promedio unos 15 días después. Esa energía no se recupera.
 - **Pregunta:** ¿podemos saber, cada día, cuánto *debería* haber generado la planta según el clima, y avisar cuando genera menos?
 - Mensaje: "no queremos predecir el clima, queremos saber cuánto se perdió y cuándo mandar a alguien".
 
-## 2. Datos (1:30 – 3:00)
+## 2. Datos (1:30 – 2:45)
 
-- **PVOD:** 10 plantas en Hebei (China), jul-2018 a jun-2019, cada 15 minutos (se usa horario): potencia, irradiancia del sensor de la planta y ficha técnica.
-- **Open-Meteo:** irradiancia satelital, temperatura y lluvia, para las plantas sin sensor y para `dias_desde_lluvia`.
-- **Argentina:** generación mensual de los parques solares de CAMMESA + clima de Open-Meteo en sus coordenadas.
-- Hallazgos del EDA que condicionan todo: un solo año, sensores con problemas (station09 desde junio de 2019, station06 en invierno), station04 con la ficha mal.
+- **PVOD:** 10 plantas reales en Hebei (China), jul-2018 a jun-2019, potencia, irradiancia del sensor de la planta y ficha técnica (usamos datos horarios).
+- **Open-Meteo:** irradiancia satelital, temperatura y lluvia (para `dias_desde_lluvia` y para plantas sin sensor).
+- **Argentina:** generación mensual de los parques solares de CAMMESA + clima de Open-Meteo.
+- Lo que condiciona todo: un solo año, sensores caídos (station09 desde junio, station06 en invierno) y station04 con la ficha mal.
 
-## 3. Hipótesis con umbrales (3:00 – 4:30)
+## 3. Hipótesis con umbrales (2:45 – 4:00)
 
 > La potencia esperada se puede estimar con el clima con un error chico; si ese error es menor que las pérdidas que nos interesan, comparar real vs. esperado detecta fallas y cuantifica la energía perdida.
 
@@ -41,11 +46,11 @@ Umbrales **fijados antes de mirar los meses reservados** (mayo y junio de 2019):
 2. Precisión y recall **≥ 0,8** por día para caídas de 10%, 25%, 50% y 100%.
 3. Marca los casos reales: **station09** y **ULL4FV** (Argentina, 2025).
 
-Por qué 8% y no 5%: en la validación cruzada ningún modelo bajó de 6%, y 8% queda por debajo de la pérdida más chica que queríamos detectar.
+(El "por qué 8% y no 5%" va a preguntas, no se dice acá salvo que pregunten.)
 
-## 4. Modelos (4:30 – 6:30)
+## 4. Modelos (4:00 – 5:45)
 
-Validación cruzada dejando un mes entero afuera (jul-2018 a abr-2019), error de energía diaria:
+Validación cruzada dejando un mes entero afuera, error de energía diaria:
 
 | Modelo | Sensor de planta | Open-Meteo |
 |---|---|---|
@@ -55,20 +60,18 @@ Validación cruzada dejando un mes entero afuera (jul-2018 a abr-2019), error de
 | XGBoost | 6,4% | 17,0% |
 | **Híbrido física + RF** | **6,0%** | — |
 
-- **Por qué el híbrido:** la física da la forma (irradiancia y temperatura) y el Random Forest solo corrige el factor real/físico (nivel y estación de cada planta). Tiene menos para aprender, se despliega sin dependencias extra y permite calcular lo esperado **con la planta limpia** (`dias_desde_lluvia = 0`), así el residuo es pérdida.
-- **Número principal: 6,04%** de error en mayo-junio (evaluación ciega). El híbrido final da 5,04% en esos meses, pero se agregó después de mirarlos: no lo usamos como resultado.
+- **Por qué el híbrido:** la física da la forma y el Random Forest solo corrige el factor real/físico de cada planta. Además permite calcular lo esperado **con la planta limpia** (`dias_desde_lluvia = 0`), así el residuo es pérdida.
+- **Número principal: 6,04%** de error en mayo-junio (evaluación ciega).
 - Con Open-Meteo el error es ~16%: la detección fina **necesita el sensor en la planta**.
 
-## 5. Detector: umbral vs. CUSUM (6:30 – 8:30)
+## 5. Detector: umbral vs. CUSUM (5:45 – 7:15)
 
-- **Residuo diario** = (real − esperado) / esperado. Días muy nublados y días con el sensor caído quedan **sin decisión**.
-- **Umbral:** alerta si el residuo cae debajo de mediana − 3σ robusta de la planta. 0,17 falsas alarmas por planta y por mes.
-- **CUSUM:** acumula los días malos; en teoría detecta antes las pérdidas chicas y sostenidas.
-- **Por qué falla el CUSUM acá:** supone ruido independiente día a día, pero el residuo está **autocorrelado** (lag 1 ≈ 0,4: un día malo viene con otros, el nivel cambia de un mes a otro). Con la regla de libro (h = 4σ) da **6-7 falsas alarmas por planta y por mes**. Para bajarlas a 1 por mes hubo que subir h a ~40σ, y ahí ya casi no detecta.
-- Comparar con las plantas vecinas tampoco ayudó: con el sensor propio casi no hay error común entre plantas (correlación 0,12).
-- Elegido: **umbral sobre el residuo propio**.
+- *(imprescindible)* **Residuo diario** = (real − esperado) / esperado. Alerta si cae debajo de mediana − 3σ robusta de la planta: **0,17 falsas alarmas por planta y por mes**.
+- *(imprescindible)* **Por qué no CUSUM:** supone ruido independiente, pero nuestro residuo está **autocorrelado** (lag 1 ≈ 0,4). Con la regla de libro daba **6-7 falsas alarmas por planta y por mes**; calibrado para 1 por mes, casi no detecta.
+- Días muy nublados o con el sensor caído quedan **sin decisión**.
+- (Vecinas e Isolation Forest: solo si preguntan.)
 
-## 6. Resultados contra la hipótesis (8:30 – 10:00)
+## 6. Resultados contra la hipótesis (7:15 – 8:45)
 
 | Condición | Resultado | ¿Cumple? |
 |---|---|---|
@@ -76,29 +79,29 @@ Validación cruzada dejando un mes entero afuera (jul-2018 a abr-2019), error de
 | 2. P y R ≥ 0,8 | ≥ 50%: sí (P ≥ 0,93, R ≥ 0,95); 25%: R 0,73; 10%: R 0,12 | ❌ |
 | 3. Casos reales | station09 desde su 2.º día; ULL4FV 11 de 12 meses de 2025 | ✅ |
 
-**Se sostiene parcialmente.** Sirve para pérdidas **≥ 50%** (el mismo día) y para **casos crónicos** (station09, ULL4FV). Las caídas de **25% quedan en el límite** (recall 0,73). **No detecta caídas de 10% día a día**, porque el error diario del modelo (5% a 16% según la planta) es del mismo orden que la pérdida. La suciedad gradual tampoco se ve con una alerta diaria: se maneja con limpieza programada.
+**Se sostiene parcialmente.** Sirve para pérdidas **≥ 50%** (el mismo día) y para **casos crónicos**. Las caídas de **25% quedan en el límite**. **No detecta caídas de 10% día a día**, porque el error diario del modelo (5% a 16% según la planta) es del mismo orden que la pérdida. La suciedad gradual se maneja con limpieza programada, no con una alerta diaria.
 
-## 7. Valor en USD (10:00 – 11:30)
+## 7. Valor en USD (8:45 – 10:00)
 
-Precio: USD 42,84/MWh (RenovAr Ronda 2, 2017), **como ilustración** del valor en un parque argentino, no como el ingreso real de las plantas chinas.
+Precio: USD 42,84/MWh (RenovAr Ronda 2, 2017), **como ilustración** del valor en un parque argentino.
 
-- **Ahorro por falla** frente a revisar cada 30 días: una caída de 50% se atiende en 1,4 días en vez de 16 → **USD 1.099 por MW**. Un apagón total: USD 2.141 por MW.
-- **station09:** el caso que más plata pierde (≈ 4.700 MWh, unos USD 200 mil en días con alerta). No se ve si se compara la planta solo con su mes anterior.
-- **Limpieza:** con la tasa de ensuciamiento medida (0,049%/día) y USD 800/MW por limpieza (**supuesto**), conviene limpiar cada **~148 días**. La tabla de sensibilidad (05) muestra cuánto cambia con el costo: el dato que más falta es una cotización real.
+- **Ahorro por falla** frente a revisar cada 30 días: una caída de 50% se atiende en 1,4 días en vez de 16 → **USD 1.099 por MW**; un apagón total, USD 2.141 por MW.
+- **station09:** ≈ 4.700 MWh, unos **USD 200 mil en los días con alerta**. (Es el mismo número que muestra el dashboard: usar siempre este.)
+- **Limpieza:** con la tasa medida (0,049%/día) y USD 800/MW por limpieza (**supuesto**), conviene limpiar cada **~148 días**. Esto se muestra en vivo en la demo, no hace falta detallar la tabla acá.
 
-## 8. Demo del dashboard (11:30 – 14:00)
+## 8. Demo del dashboard (10:00 – 12:45)
 
-1. **Resumen de flota** (40 s): fecha 10/5/2019. station09 en rojo, station04 en **gris** (capacidad no confiable: la ficha dice 20 MW y mide 24,8 MW). KPIs de energía perdida.
-2. **Detalle de planta** (50 s): station09, abril a junio. Barras real vs. línea esperada, alertas marcadas y los días sin decisión desde el 4/6 (sensor caído). Cambiar a station06 en enero-marzo: alertas de **baja confianza** (pérdida invernal que el modelo no aprende).
-3. **Argentina** (30 s): aclarar en voz alta que es **comparación mensual**, no tiempo real. Historia de ULL4FV en 2025.
-4. **Negocio** (30 s): mover el costo de limpieza de 800 a 1.600 y mostrar cómo cambia T*.
+1. **Resumen de flota** (40 s): fecha 10/5/2019. station09 en rojo, station04 en **gris** (la ficha dice 20 MW y mide 24,8 MW). KPIs de energía perdida.
+2. **Detalle de planta** (60 s): station09, abril a junio. Real vs. esperada, alertas y los días sin decisión desde el 4/6. Cambiar a station06 en enero-marzo: alertas de **baja confianza**.
+3. **Argentina** (30 s): decir en voz alta que es **comparación mensual**, no tiempo real. Historia de ULL4FV en 2025.
+4. **Negocio** (35 s): mover el costo de limpieza de 800 a 1.600 y mostrar cómo cambia T*.
 
-Plan B si algo falla: capturas del dashboard y los gráficos de `03`, `04` (5.2 y 6.1) y `05`.
+Plan B si algo falla: capturas del dashboard y los gráficos de `03`, `04` (5.2 y 6.1) y `05`, ya abiertas en otra pestaña. No intentar arreglar la app en vivo: pasar al plan B a los 15 segundos.
 
-## 9. Limitaciones y cierre (14:00 – 15:00)
+## 9. Limitaciones y cierre (12:45 – 13:45)
 
 - Un solo año de datos: la estación se confunde con la suciedad y con las pérdidas invernales.
-- Sensores de planta caídos: esos días no se decide; el respaldo satelital tiene ~16% de error.
+- Sensores caídos: esos días no se decide; el respaldo satelital tiene ~16% de error.
 - Costo de limpieza y frecuencia de revisión son supuestos; el precio es ilustrativo.
 - **Cierre:** "Con un sensor en la planta, el sistema avisa el mismo día cuando se pierde la mitad o más, y encuentra las plantas que rinden mal siempre. Para pérdidas chicas, el próximo paso es más historia y registros de limpieza."
 
@@ -120,3 +123,15 @@ Plan B si algo falla: capturas del dashboard y los gráficos de `03`, `04` (5.2 
 
 5. **¿Esto sirve para Argentina?**
    Con datos mensuales de CAMMESA solo se puede comparar parques entre sí por mes (marcó ULL4FV en 2025). Para alertas diarias hace falta la potencia horaria y un sensor de irradiancia en cada parque.
+
+6. **En el notebook 04, station09 pierde ~10.150 MWh (USD 435 mil). ¿Por qué en la presentación dicen 200 mil?**
+   Son dos medidas distintas: 10.150 MWh es todo lo que rindió de menos frente a una planta típica en el período; 4.700 MWh es solo la pérdida en los días en que el sistema dio alerta. En la presentación usamos la más conservadora.
+
+7. **¿Por qué el historial de ULL4FV tiene alertas en 2019–2020?**
+   Muy probablemente corresponden al arranque del parque (puesta en marcha con capacidad todavía incompleta), que con datos mensuales se ve como bajo rendimiento. El caso que evaluamos es 2025. **Pendiente antes de la defensa: confirmar la fecha de habilitación comercial de ULL4FV en CAMMESA.**
+
+8. **¿Por qué usaron plantas chinas y no argentinas para el detector?**
+   Porque no hay datos horarios públicos de parques argentinos con sensor de irradiancia. PVOD es un dataset abierto de plantas reales con ese nivel de detalle; para Argentina hicimos lo que permiten los datos mensuales.
+
+9. **¿Comparten métricas la regresión y la clasificación?**
+   No. Nuestro modelo de potencia es una regresión y se evalúa con error de energía (tipo MAE/RMSE relativo); el detector es una clasificación (falla / no falla) y se evalúa con precisión y recall.
