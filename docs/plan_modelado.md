@@ -6,13 +6,26 @@ Propuesta para `03_modelos` y `04_deteccion`, basada en lo que encontró `02_eda
 
 > **La potencia que una planta debería generar se puede estimar con el clima (irradiancia y temperatura) con un error chico. Si ese error es bastante menor que las pérdidas que nos interesan, comparar lo real con lo esperado permite detectar fallas abruptas y pérdida gradual por soiling, y cuantificar la energía perdida.**
 
-Para que sea medible, la hipótesis se considera **sostenida** si se cumplen tres condiciones:
+### Umbral fijado (22/10/2026, antes de mirar mayo y junio de 2019)
 
-1. El modelo de potencia esperada, evaluado en meses que no vio, tiene un error mucho menor que una caída del 10%. El umbral concreto se fija con la línea base, antes de mirar los resultados del detector.
-2. Sobre fallas sintéticas, el detector encuentra las caídas abruptas de 10% o más con *recall* alto y pocas falsas alarmas en días sanos.
-3. El detector marca los casos reales que vimos en el EDA: station09 (bajo rendimiento crónico que se recupera en escalones), los apagones con sol y ULL4FV durante 2025.
+La hipótesis se considera **sostenida** si se cumplen las tres condiciones. Se evalúan **una sola vez**, en los meses reservados (mayo y junio de 2019), con el modelo y el detector elegidos en validación cruzada:
 
-Si (1) no se cumple con irradiancia externa pero sí con el sensor de planta, la conclusión cambia a "la detección requiere sensor en sitio". Ese también es un resultado válido para la gerencia.
+1. **Error de energía diaria < 8%** con el escenario de sensor de planta (LMD). La métrica es `Σ|E_real,d − E_esperada,d| / Σ E_real,d` sobre todos los días-planta (`src/modelos.metricas`).
+2. **Precisión y recall ≥ 0,8 por día** para las caídas abruptas sintéticas de 10%, 25%, 50% y 100%. Se evalúa **cada nivel por separado**, juntando las duraciones de 1, 3 y 7 días, todas las plantas de prueba y las semillas. El recall se calcula sobre los días con decisión. Los días muy nublados (energía esperada < 25% del p90 de la planta) quedan sin decisión, y se informa qué porcentaje representan.
+3. El detector marca los casos reales: el período de bajo rendimiento de station09 y ULL4FV en 2025 (este último en la comparación mensual de Argentina).
+
+**Por qué 8% y no 5%.** El objetivo original era 5%, pero en la validación cruzada por mes (jul-2018 a abr-2019, 8 plantas de entrenamiento) ningún modelo baja de 6%:
+
+| Escenario | Física | Ridge | Random Forest | XGBoost |
+|---|---|---|---|---|
+| Sensor de planta (LMD) | 13,6% | 8,0% | 6,5% | 6,4% |
+| Open-Meteo | 22,3% | 17,1% | 16,4% | 17,0% |
+
+El piso viene del dato: una sola medición de irradiancia por planta, promedios horarios y sensores con problemas (A.7 del EDA). Exigir 5% sería exigir algo que los datos no permiten. Se fija **8%** por dos razones: (a) queda por debajo de la menor pérdida que queremos detectar (10%), así que una caída sostenida de 10% se separa del error típico de un día; (b) deja margen sobre el 6,4% de la validación cruzada para meses que el modelo no vio. Mayo y junio son además de los más nublados del período (A.5).
+
+**Open-Meteo no entra en el criterio:** con ~16-17% de error diario no alcanza para detectar caídas de 10% día a día. Se informa como escenario de respaldo, y la conclusión para la gerencia es que **la detección fina requiere el sensor en la planta**.
+
+**Regla de elección del modelo (fijada antes del holdout):** gana el de menor error de energía diaria en la validación cruzada. Si la diferencia con el siguiente es menor a 0,5 puntos, se elige el más simple de desplegar en el dashboard offline (sin dependencias extra y con el archivo más chico).
 
 ## 2. Features (`src/features.py`)
 
