@@ -11,3 +11,5 @@ venv/
 .DS_Store
 # Streamlit
 .streamlit/secrets.toml
+# Cache de descargas del script (TPO_DIR=data/processed)
+data/processed/raw/
