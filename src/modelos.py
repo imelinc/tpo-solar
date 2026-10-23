@@ -9,11 +9,11 @@ from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from src.features import agregar_features_tiempo, features_escenario, limpiar_pvod
+from src.features import agregar_dias_desde_lluvia, agregar_features_tiempo, features_escenario, limpiar_pvod
 
 FEATURES = ["poa", "temp_celda", "kt", "frac_difusa", "sol_zenit_deg", "sol_azimut_deg",
-            "hora_sin", "hora_cos", "doy_sin", "doy_cos"]
-TIPOS = ["fisico", "ridge", "rf", "xgb"]
+            "hora_sin", "hora_cos", "doy_sin", "doy_cos", "dias_desde_lluvia"]
+TIPOS = ["fisico", "ridge", "rf", "xgb", "hibrido"]
 # Plantas fuera del entrenamiento (ver docs/plan_modelado.md):
 #   station04: ficha imposible (25,7 MW con 20,06 MWp de módulos).
 #   station09: bajo rendimiento real -> caso de prueba del detector, no "normal".
@@ -26,6 +26,10 @@ def preparar(df: pd.DataFrame, escenario: str) -> pd.DataFrame:
     d = limpiar_pvod(df)
     d = features_escenario(d, escenario)
     d = agregar_features_tiempo(d, "timestamp_local_utc8")
+    if "om_precipitacion_mm" in d:
+        d = agregar_dias_desde_lluvia(d).set_index(d.index)
+    else:  # datasets anteriores a la precipitación: sin efecto de la suciedad
+        d["dias_desde_lluvia"] = 0.0
     d = d[d["is_daylight"] == 1].copy()
     d["mes_id"] = d["timestamp_local_utc8"].dt.to_period("M").astype(str)
     # Apagón: mucho sol y casi nada de potencia (A.8 del EDA). Es falla, no comportamiento normal.
@@ -40,19 +44,22 @@ def filas_entrenamiento(d: pd.DataFrame) -> pd.Series:
 class ModeloPotencia:
     """Predice `pvod_power_norm` (potencia / capacidad) en horas de sol.
 
-    tipo: "fisico" (PVWatts de pvlib con un k por planta), "ridge", "rf" o "xgb".
+    tipo: "fisico" (PVWatts de pvlib con un k por planta), "ridge", "rf", "xgb" o "hibrido"
+    (físico + ML: un Random Forest aprende el factor real / físico y se multiplica por PVWatts).
     con_planta=True agrega la planta como variable (aprende el nivel y la estacionalidad de
     cada una). Con False es un modelo "planta típica", para plantas que no estuvieron en el
     entrenamiento (station09).
     """
 
-    def __init__(self, tipo: str, escenario: str, con_planta: bool = True, semilla: int = 0):
+    def __init__(self, tipo: str, escenario: str, con_planta: bool = True, con_lluvia: bool = True, semilla: int = 0):
         if tipo not in TIPOS:
             raise ValueError(f"tipo debe ser uno de {TIPOS}")
         self.tipo, self.escenario, self.con_planta, self.semilla = tipo, escenario, con_planta, semilla
+        self.con_lluvia = con_lluvia
+        self.features = FEATURES if con_lluvia else [f for f in FEATURES if f != "dias_desde_lluvia"]
 
     def _matriz(self, d):
-        X = d[FEATURES].fillna(0).astype(float)
+        X = d[self.features].fillna(0).astype(float)
         if self.con_planta:
             dummies = pd.get_dummies(d["plant_id"]).reindex(columns=self.plantas_, fill_value=0).astype(float)
             X = pd.concat([X, dummies.add_prefix("p_")], axis=1)
@@ -80,7 +87,7 @@ class ModeloPotencia:
             return self
         if self.tipo == "ridge":
             self.est_ = make_pipeline(StandardScaler(), Ridge(alpha=1.0))
-        elif self.tipo == "rf":
+        elif self.tipo in ("rf", "hibrido"):
             self.est_ = RandomForestRegressor(n_estimators=150, min_samples_leaf=5, max_features=0.5,
                                               n_jobs=-1, random_state=self.semilla)
         else:
@@ -88,10 +95,21 @@ class ModeloPotencia:
             self.est_ = XGBRegressor(n_estimators=500, learning_rate=0.05, max_depth=6, subsample=0.8,
                                      colsample_bytree=0.8, n_jobs=-1, random_state=self.semilla)
         self.columnas_ = list(self._matriz(d).columns)
+        if self.tipo == "hibrido":
+            fis = self._pvwatts(d)
+            ok = fis > 0.05  # el factor no tiene sentido con el sol casi nulo
+            factor = np.clip(y[ok] / fis[ok], 0, 1.5)
+            # pesan más las horas con más energía, como en el método de referencia
+            self.est_.fit(self._matriz(d[ok])[self.columnas_], factor, sample_weight=fis[ok])
+            return self
         self.est_.fit(self._matriz(d)[self.columnas_], y)
         return self
 
-    def predict(self, d: pd.DataFrame) -> np.ndarray:
+    def predict(self, d: pd.DataFrame, limpia: bool = False) -> np.ndarray:
+        """limpia=True: potencia esperada con la planta recién lavada (dias_desde_lluvia = 0),
+        así el residuo incluye la pérdida por suciedad."""
+        if limpia:
+            d = d.assign(dias_desde_lluvia=0.0)
         if self.tipo == "fisico":
             if self.con_planta:
                 k = d["plant_id"].map(self.k_)
@@ -104,15 +122,18 @@ class ModeloPotencia:
             if self.con_planta and not set(d["plant_id"]) <= set(self.plantas_):
                 raise ValueError("Plantas sin entrenar; usar un modelo con con_planta=False")
             yhat = self.est_.predict(self._matriz(d)[self.columnas_])
+            if self.tipo == "hibrido":
+                yhat = self._pvwatts(d) * np.clip(yhat, 0, 1.5)
         return np.clip(yhat, 0, None)
 
 
-def cv_por_mes(d: pd.DataFrame, tipo: str, escenario: str, con_planta: bool = True) -> pd.Series:
-    """Predicciones fuera de muestra dejando un mes calendario entero afuera en cada vuelta."""
+def cv_por_mes(d: pd.DataFrame, tipo: str, escenario: str, limpia: bool = False, **kw) -> pd.Series:
+    """Predicciones fuera de muestra dejando un mes calendario entero afuera en cada vuelta.
+    `kw` se pasa a ModeloPotencia (con_planta, con_lluvia)."""
     oof = pd.Series(np.nan, index=d.index)
     for tr, te in LeaveOneGroupOut().split(d, groups=d["mes_id"]):
-        m = ModeloPotencia(tipo, escenario, con_planta).fit(d.iloc[tr])
-        oof.iloc[te] = m.predict(d.iloc[te])
+        m = ModeloPotencia(tipo, escenario, **kw).fit(d.iloc[tr])
+        oof.iloc[te] = m.predict(d.iloc[te], limpia=limpia)
     return oof
 
 

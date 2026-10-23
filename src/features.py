@@ -8,6 +8,8 @@ PARQUES_AMPLIADOS = ["CUM2FV", "PINFFV", "VANGFV"]
 VENTANA_GRV = ("2022-01-01", "2025-09-01")
 COORDS_CONFIABLES = ["SE_CAMMESA_via_WRI", "osm_parque", "WikiSolar_via_GPPD_aprox",
                      "osm_localidad_inferida_del_nombre"]
+MM_LLUVIA_LIMPIA = 5     # mm/día: una lluvia así lava los paneles (mismo valor que build_datasets)
+DIAS_LLUVIA_MAX = 60     # tope de dias_desde_lluvia (y valor antes de la primera lluvia registrada)
 AZIMUT_GRADOS = {"north": 0, "northeast": 45, "east": 90, "southeast": 135,
                  "south": 180, "southwest": 225, "west": 270, "northwest": 315}
 
@@ -109,6 +111,20 @@ def features_escenario(df: pd.DataFrame, escenario: str) -> pd.DataFrame:
     df["kt"] = (poa / cs.where(cs > 50)).clip(upper=3)
     df["frac_difusa"] = frac.clip(0, 1)
     return df
+
+
+def agregar_dias_desde_lluvia(df: pd.DataFrame, lluvia: str = "om_precipitacion_mm",
+                              fecha: str = "date_local", grupo: str = "plant_id") -> pd.DataFrame:
+    """Días desde la última lluvia >= 5 mm (0 el mismo día de la lluvia), por planta.
+    Antes de la primera lluvia registrada no se sabe: se usa el tope (60 días)."""
+    df = df.copy()
+    dia = df.groupby([grupo, fecha])[lluvia].sum(min_count=1).reset_index().sort_values([grupo, fecha])
+    lavado = dia[lluvia] >= MM_LLUVIA_LIMPIA
+    n = dia.groupby(grupo).cumcount()
+    ultimo = n.where(lavado).groupby(dia[grupo]).ffill()
+    dia["dias_desde_lluvia"] = (n - ultimo).fillna(DIAS_LLUVIA_MAX).clip(upper=DIAS_LLUVIA_MAX)
+    # ponytail: cuenta días con dato, no días calendario; con huecos de 1-11 días la diferencia es chica.
+    return df.merge(dia[[grupo, fecha, "dias_desde_lluvia"]], on=[grupo, fecha], how="left")
 
 
 def limpiar_pvod(df: pd.DataFrame) -> pd.DataFrame:
