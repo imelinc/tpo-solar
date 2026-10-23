@@ -49,12 +49,16 @@ def argentina():
     return pd.read_parquet(DATA_PROCESSED / "app_argentina.parquet")
 
 
-def mapa(df, color, texto, titulo, **kw):
-    """Puntos sobre lon/lat sin mapa base: los mapas con fondo bajan teselas de internet y la app tiene que andar offline."""
-    fig = px.scatter(df, x="lon", y="lat", color=color, text=texto, title=titulo, height=420, **kw)
-    fig.update_traces(marker_size=14, textposition="top center")
-    fig.update_yaxes(scaleanchor="x", scaleratio=1, title="latitud")
-    fig.update_xaxes(title="longitud")
+TOPOJSON = {"config": {"topojsonURL": "app/static/"}}  # topojson de plotly guardado en el repo: el mapa anda offline
+
+
+def mapa(df, color, texto, titulo, scope, lon, lat, **kw):
+    """Mapa con fondo (costas y países) dibujado con el topojson de app/static (asia_50m, south-america_50m)."""
+    fig = px.scatter_geo(df, lat="lat", lon="lon", color=color, text=texto, title=titulo, height=420, scope=scope, **kw)
+    fig.update_traces(marker_size=12, textposition="top center", textfont_color="#333")
+    fig.update_geos(resolution=50, lonaxis_range=lon, lataxis_range=lat, showcountries=True, showland=True, landcolor="#f2efe6",
+                    showocean=True, oceancolor="#dcebf5", showlakes=False)
+    fig.update_layout(margin=dict(l=0, r=0, t=40, b=0))
     return fig
 
 
@@ -83,8 +87,8 @@ with t_resumen:
     m = plantas()[["plant_id", "plant_lat", "plant_lon", "plant_capacity_mw"]].rename(columns={"plant_lat": "lat", "plant_lon": "lon"})
     m = m.merge(s, on="plant_id", how="left")
     a, b = st.columns([2, 3])
-    a.plotly_chart(mapa(m, "estado", "plant_id", f"Semáforo al {fecha} (Hebei, China)", color_discrete_map=COLORES,
-                        hover_data=["accion", "plant_capacity_mw"]), use_container_width=True)
+    a.plotly_chart(mapa(m, "estado", "plant_id", f"Semáforo al {fecha} (Hebei, China)", "asia", (110, 122), (34, 42), color_discrete_map=COLORES,
+                        hover_data=["accion", "plant_capacity_mw"]), use_container_width=True, **TOPOJSON)
     b.dataframe(s[["plant_id", "estado", "accion", "alerta", "rendimiento_vs_vecinas", "perdida_usd_dia", "modelo"]]
                 .style.format({"rendimiento_vs_vecinas": "{:.2f}", "perdida_usd_dia": "{:,.0f}"}, na_rep="—"),
                 hide_index=True, use_container_width=True)
@@ -150,10 +154,10 @@ with t_arg:
     k[2].metric("Bajo su percentil 10 histórico", int(bm["bajo_p10"].sum()))
     a, b = st.columns([2, 3])
     a.plotly_chart(mapa(bm.assign(estado=np.where(bm["alerta"], "alerta", np.where(bm["bajo_p10"], "bajo su p10", "normal"))),
-                        "estado", None, f"Parques solares {mes:%Y-%m}",
+                        "estado", None, f"Parques solares {mes:%Y-%m}", "south america", (-75, -52), (-56, -21),
                         color_discrete_map={"alerta": "#d62728", "bajo su p10": "#e6b800", "normal": "#2ca02c"},
                         hover_data=["central", "central_descripcion", "factor_capacidad", "indice_rel"]),
-                   use_container_width=True)
+                   use_container_width=True, **TOPOJSON)
     b.dataframe(bm[["ranking", "central", "central_descripcion", "provincia", "factor_capacidad", "fc_esp", "indice_rel",
                     "alerta", "bajo_p10"]].style.format({"factor_capacidad": "{:.3f}", "fc_esp": "{:.3f}", "indice_rel": "{:.2f}"}),
                 hide_index=True, use_container_width=True, height=420)

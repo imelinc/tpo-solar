@@ -32,7 +32,7 @@ streamlit run app/app.py
 Arranca con un clon limpio + `pip install -r requirements.txt`, sin internet y sin los `.pkl` de `models/` (no están en git):
 lee las tablas precalculadas de `data/processed/` (`app_diario.parquet`, `app_horario.parquet`, `app_argentina.parquet`),
 que genera `notebooks/04_deteccion.ipynb` (sección 8 y sección 7). Si cambian el modelo o el detector, hay que volver a correr
-03 → 04 y commitear esas tablas. Pantallas: resumen de flota (semáforo), detalle de planta, Argentina (comparación mensual) y negocio.
+03 → 04 y commitear esas tablas. Los mapas usan el topojson de Plotly guardado en `app/static/` (servido gracias a `.streamlit/config.toml`), así que también se ven sin internet: por eso hay que correr el comando desde la raíz del repo. Pantallas: resumen de flota (semáforo), detalle de planta, Argentina (comparación mensual) y negocio.
 
 **Colab:** abrir el notebook desde GitHub (Archivo → Abrir notebook → GitHub). La primera celda clona el repo e instala todo. Para guardar: Archivo → Guardar una copia en GitHub.
 
