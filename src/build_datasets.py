@@ -40,8 +40,12 @@ ERB_XLSX = RAW / "cammesa" / "Energía Renovables - Base de Datos 2026-09.xlsx"
 GRV_XLSX = RAW / "cammesa" / "Generación Renovable Variable - Base de Datos 2025-09.xlsx"
 
 OM_HOURLY_VARS = ["shortwave_radiation", "direct_radiation", "diffuse_radiation", "temperature_2m",
-                  "cloud_cover", "relative_humidity_2m", "wind_speed_10m"]
-OM_RAD_VARS = ["shortwave_radiation", "direct_radiation", "diffuse_radiation"]  # promedio de la hora PREVIA
+                  "cloud_cover", "relative_humidity_2m", "wind_speed_10m", "precipitation"]
+# Promedio (radiación) o suma (precipitación) de la hora PREVIA: se corren -1 h al alinear.
+OM_RAD_VARS = ["shortwave_radiation", "direct_radiation", "diffuse_radiation", "precipitation"]
+OM_DAILY_VARS = ["shortwave_radiation_sum", "temperature_2m_mean", "temperature_2m_max", "cloud_cover_mean",
+                 "sunshine_duration", "precipitation_sum"]
+MM_LLUVIA_LIMPIA = 5  # mm/día: umbral de lluvia que se considera que limpia los paneles
 NASA_VARS = ["ALLSKY_SFC_SW_DWN", "T2M"]
 
 
@@ -146,7 +150,7 @@ def add_time_features(df, ts_col, lat, lon, interval_minutes):
 
 def fetch_openmeteo_hourly(pid, lat, lon, start, end):
     f = RAW / "openmeteo_A" / f"{pid}.json"
-    if not f.exists():
+    if not f.exists() or any(v not in json.loads(f.read_text())["hourly"] for v in OM_HOURLY_VARS):
         log(f"  Open-Meteo horario {pid}")
         r = get("https://archive-api.open-meteo.com/v1/archive", params=dict(
             latitude=lat, longitude=lon, start_date=start, end_date=end,
@@ -237,7 +241,7 @@ def build_A():
             om_al[v] = (om[v] + om[v].shift(-1)) / 2
         om_al["wind_speed_10m"] = om_al["wind_speed_10m"] / 3.6   # km/h -> m/s
         om_al.columns = ["om_" + c for c in om_al.columns]
-        om_al = om_al.rename(columns={"om_wind_speed_10m": "om_wind_speed_10m_ms"})
+        om_al = om_al.rename(columns={"om_wind_speed_10m": "om_wind_speed_10m_ms", "om_precipitation": "om_precipitacion_mm"})
         # NASA POWER: se determina empíricamente el corrimiento contra la irradiancia medida en planta
         meas = g.set_index("timestamp_utc")["pvod_lmd_totalirrad"]
         lag_n, res_n = best_lag(meas, nasa["ALLSKY_SFC_SW_DWN"])
@@ -448,11 +452,11 @@ def geocode_parks(b, gg):
 
 def fetch_openmeteo_daily(key, lat, lon, start, end):
     f = RAW / "openmeteo_B" / f"{key}_{start}_{end}.json"
-    if not f.exists():
+    if not f.exists() or any(v not in json.loads(f.read_text())["daily"] for v in OM_DAILY_VARS):
         log(f"  Open-Meteo diario {key} {start}..{end}")
         r = get("https://archive-api.open-meteo.com/v1/archive", params=dict(
             latitude=round(lat, 4), longitude=round(lon, 4), start_date=start, end_date=end,
-            daily="shortwave_radiation_sum,temperature_2m_mean,temperature_2m_max,cloud_cover_mean,sunshine_duration",
+            daily=",".join(OM_DAILY_VARS),
             timezone="America/Argentina/Buenos_Aires"))
         f.write_text(r.text)
         time.sleep(3)
@@ -505,6 +509,8 @@ def build_B():
             om_temp_media_c=("temperature_2m_mean", "mean"), om_temp_max_media_c=("temperature_2m_max", "mean"),
             om_nubosidad_media_pct=("cloud_cover_mean", "mean"),
             om_horas_sol_mes=("sunshine_duration", lambda s: s.sum(min_count=1) / 3600),
+            om_precip_mm_mes=("precipitation_sum", lambda s: s.sum(min_count=1)),
+            om_dias_lluvia_5mm=("precipitation_sum", lambda s: (s >= MM_LLUVIA_LIMPIA).sum()),
             om_dias_con_dato=("shortwave_radiation_sum", "count")).reset_index()
         m["loc_key"] = key
         om_rows.append(m)
@@ -519,7 +525,8 @@ def build_B():
             "energia_gwh", "energia_mwh", "potencia_mw", "potencia_source", "grv_mes_en_ensayo",
             "grv_generacion_neta_mwh", "grv_factor_carga", "factor_capacidad", "rendimiento_especifico_kwh_kw",
             "performance_ratio_aprox", "om_ghi_kwh_m2_mes", "om_ghi_kwh_m2_dia_prom", "om_temp_media_c",
-            "om_temp_max_media_c", "om_nubosidad_media_pct", "om_horas_sol_mes", "om_dias_con_dato"]
+            "om_temp_max_media_c", "om_nubosidad_media_pct", "om_horas_sol_mes", "om_precip_mm_mes",
+            "om_dias_lluvia_5mm", "om_dias_con_dato"]
     b = b[cols].sort_values(["central", "fecha"]).reset_index(drop=True)
     for c in b.select_dtypes("float").columns:
         if c not in ("lat", "lon"):
@@ -576,6 +583,52 @@ def report(a15, ah, lag_info, dups, b, coords):
     log("\n".join(L[:12]))
 
 
+def agregar_precipitacion():
+    """Suma la precipitación de Open-Meteo a los datasets ya armados SIN rehacer el resto
+    (no vuelve a bajar PVOD ni CAMMESA). Usa las mismas ubicaciones, fechas y alineación
+    que build_A y build_B. Uso: TPO_DIR=data/processed python src/build_datasets.py precipitacion"""
+    log("== Precipitación Open-Meteo -> datasets A (horario) y B (mensual)")
+    ah = pd.read_parquet(BASE / "dataset_A_pvod_hourly.parquet").drop(columns=["om_precipitacion_mm"], errors="ignore")
+    partes = []
+    for pid, g in ah.groupby("plant_id", sort=True):
+        start = (g.timestamp_utc.min() - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+        end = (g.timestamp_utc.max() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+        om = fetch_openmeteo_hourly(pid, g.plant_lat.iloc[0], g.plant_lon.iloc[0], start, end).set_index("time")
+        partes.append(g.join(om["precipitation"].shift(-1).rename("om_precipitacion_mm"), on="timestamp_utc"))
+    ah = pd.concat(partes, ignore_index=True)
+    cols = list(ah.columns[:-1])
+    cols.insert(cols.index("om_diffuse_radiation") + 1, "om_precipitacion_mm")
+    ah = ah[cols]
+    ah.to_csv(BASE / "dataset_A_pvod_hourly.csv", index=False)
+    ah.to_parquet(BASE / "dataset_A_pvod_hourly.parquet", index=False)
+
+    b = pd.read_parquet(BASE / "dataset_B_argentina_mensual.parquet").drop(
+        columns=["om_precip_mm_mes", "om_dias_lluvia_5mm"], errors="ignore")
+    b["loc_key"] = b.lat.round(2).astype(str) + "_" + b.lon.round(2).astype(str)
+    today = pd.Timestamp.now(tz="America/Argentina/Buenos_Aires").tz_localize(None).normalize()
+    filas = []
+    for key, g in b.dropna(subset=["lat"]).groupby("loc_key"):
+        start = pd.to_datetime(g.fecha).min()
+        end = min(pd.to_datetime(g.fecha).max() + pd.offsets.MonthEnd(0), today - pd.Timedelta(days=6))
+        d = fetch_openmeteo_daily(key, g.lat.iloc[0], g.lon.iloc[0], start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+        d["fecha"] = d.time.dt.strftime("%Y-%m-01")
+        m = d.groupby("fecha").agg(om_precip_mm_mes=("precipitation_sum", lambda s: s.sum(min_count=1)),
+                                   om_dias_lluvia_5mm=("precipitation_sum", lambda s: (s >= MM_LLUVIA_LIMPIA).sum()),
+                                   n=("precipitation_sum", "count")).reset_index()
+        m["loc_key"] = key
+        filas.append(m)
+    pm = pd.concat(filas, ignore_index=True)
+    b = b.merge(pm, on=["loc_key", "fecha"], how="left")
+    b.loc[b.n < b.dias_mes, "om_precip_mm_mes"] = np.nan  # mes incompleto, igual que la irradiación
+    cols = [c for c in b.columns if c not in ("loc_key", "n", "om_precip_mm_mes", "om_dias_lluvia_5mm")]
+    i = cols.index("om_horas_sol_mes") + 1
+    b = b[cols[:i] + ["om_precip_mm_mes", "om_dias_lluvia_5mm"] + cols[i:]]
+    b.to_csv(BASE / "dataset_B_argentina_mensual.csv", index=False)
+    b.to_parquet(BASE / "dataset_B_argentina_mensual.parquet", index=False)
+    log(f"A: {ah.om_precipitacion_mm.notna().mean():.1%} horas con precipitación | "
+        f"B: {b.om_precip_mm_mes.notna().mean():.1%} meses con precipitación")
+
+
 def main():
     a15, ah, lag_info, dups = build_A()
     a15.to_csv(BASE / "dataset_A_pvod_15min.csv", index=False)
@@ -596,5 +649,7 @@ def main():
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "A":
         build_A()
+    elif len(sys.argv) > 1 and sys.argv[1] == "precipitacion":
+        agregar_precipitacion()
     else:
         main()

@@ -8,6 +8,10 @@ PARQUES_AMPLIADOS = ["CUM2FV", "PINFFV", "VANGFV"]
 VENTANA_GRV = ("2022-01-01", "2025-09-01")
 COORDS_CONFIABLES = ["SE_CAMMESA_via_WRI", "osm_parque", "WikiSolar_via_GPPD_aprox",
                      "osm_localidad_inferida_del_nombre"]
+MM_LLUVIA_LIMPIA = 5     # mm/día: una lluvia así lava los paneles (mismo valor que build_datasets)
+DIAS_LLUVIA_MAX = 60     # tope de dias_desde_lluvia (y valor antes de la primera lluvia registrada)
+AZIMUT_GRADOS = {"north": 0, "northeast": 45, "east": 90, "southeast": 135,
+                 "south": 180, "southwest": 225, "west": 270, "northwest": 315}
 
 
 def agregar_features_tiempo(df: pd.DataFrame, col: str = "timestamp") -> pd.DataFrame:
@@ -47,6 +51,11 @@ def agregar_features_solares(df: pd.DataFrame, ghi: str = "om_shortwave_radiatio
     de planta ya mide en el plano inclinado; usarlo directo como irradiancia POA.
     """
     df = df.copy()
+    az_txt = df["plant_array_azimuth"]
+    azimut = pd.to_numeric(az_txt, errors="coerce").fillna(
+        az_txt.astype(str).str.lower().str.replace(" ", "").map(AZIMUT_GRADOS)).to_numpy(float)
+    if np.isnan(azimut).any():
+        raise ValueError(f"Azimut no reconocido: {sorted(az_txt[np.isnan(azimut)].astype(str).unique())}")
     # La etiqueta H representa [H, H+1): la posición solar se calcula en la mitad de la hora.
     t = pd.DatetimeIndex(df["timestamp_utc"]).tz_localize("UTC") + pd.Timedelta(minutes=30)
     pos = pvlib.solarposition.get_solarposition(t, df["plant_lat"].to_numpy(), df["plant_lon"].to_numpy())
@@ -56,11 +65,15 @@ def agregar_features_solares(df: pd.DataFrame, ghi: str = "om_shortwave_radiatio
     d = np.minimum(df[dhi].clip(lower=0).to_numpy(), g)
     # DNI a partir de GHI y difusa; se anula con el sol muy bajo para no dividir por ~0.
     dni = np.where(cos_z > 0.087, (g - d) / np.maximum(cos_z, 0.087), 0.0)
+    tilt = df["plant_array_tilt_deg"].to_numpy()
     poa = pvlib.irradiance.get_total_irradiance(
-        surface_tilt=df["plant_array_tilt_deg"].to_numpy(), surface_azimuth=180,  # todas miran al sur
+        surface_tilt=tilt, surface_azimuth=azimut,
         solar_zenith=zen, solar_azimuth=pos["azimuth"].to_numpy(), dni=dni, ghi=g, dhi=d)
     with np.errstate(divide="ignore", invalid="ignore"):  # de noche el airmass es NaN
         cs = pvlib.clearsky.ineichen(zen, pvlib.atmosphere.get_relative_airmass(zen), linke_turbidity=3)
+        cs_poa = pvlib.irradiance.get_total_irradiance(
+            surface_tilt=tilt, surface_azimuth=azimut, solar_zenith=zen, solar_azimuth=pos["azimuth"].to_numpy(),
+            dni=np.nan_to_num(cs["dni"]), ghi=np.nan_to_num(cs["ghi"]), dhi=np.nan_to_num(cs["dhi"]))["poa_global"]
     # ponytail: Linke turbidity fija (3); usar pvlib.clearsky.lookup_linke_turbidity si hace falta precisión.
 
     df["sol_zenit_deg"] = zen
@@ -69,7 +82,49 @@ def agregar_features_solares(df: pd.DataFrame, ghi: str = "om_shortwave_radiatio
     df[f"{prefijo}_kt_cielo_claro"] = np.where(cs["ghi"] > 50, g / np.where(cs["ghi"] > 50, cs["ghi"], 1), np.nan)
     df[f"{prefijo}_temp_celda"] = pvlib.temperature.faiman(df[f"{prefijo}_poa"], df[temp], df[viento])
     df[f"{prefijo}_frac_difusa"] = np.where(g > 10, d / np.where(g > 10, g, 1), np.nan)
+    df["poa_cielo_claro"] = np.nan_to_num(np.asarray(cs_poa, dtype=float))
     return df
+
+
+def features_escenario(df: pd.DataFrame, escenario: str) -> pd.DataFrame:
+    """Columnas comunes `poa`, `temp_celda`, `kt` y `frac_difusa` según la fuente de irradiancia.
+
+    - "lmd": sensor de planta. Ya mide en el plano del panel, así que se usa TAL CUAL.
+    - "om": Open-Meteo. Es horizontal, así que se usa la transposición de pvlib con la
+      inclinación y el azimut de cada planta (`om_poa`, de agregar_features_solares).
+    `kt` = POA / POA de cielo claro (en el mismo plano), indicador de nubosidad.
+    """
+    df = df if "om_poa" in df else agregar_features_solares(df)
+    df = df.copy()
+    if escenario == "lmd":
+        poa = df["pvod_lmd_totalirrad"].clip(lower=0)
+        frac = df["pvod_lmd_diffuseirrad"].clip(lower=0) / poa.where(poa > 10)
+        temp, viento = df["pvod_lmd_temperature"], df["pvod_lmd_windspeed"]
+    elif escenario == "om":
+        poa, frac = df["om_poa"], df["om_frac_difusa"]
+        temp, viento = df["om_temperature_2m"], df["om_wind_speed_10m_ms"]
+    else:
+        raise ValueError(f"escenario debe ser 'lmd' u 'om', no {escenario!r}")
+    cs = df["poa_cielo_claro"]
+    df["poa"] = poa
+    df["temp_celda"] = pvlib.temperature.faiman(poa, temp, viento)
+    df["kt"] = (poa / cs.where(cs > 50)).clip(upper=3)
+    df["frac_difusa"] = frac.clip(0, 1)
+    return df
+
+
+def agregar_dias_desde_lluvia(df: pd.DataFrame, lluvia: str = "om_precipitacion_mm",
+                              fecha: str = "date_local", grupo: str = "plant_id") -> pd.DataFrame:
+    """Días desde la última lluvia >= 5 mm (0 el mismo día de la lluvia), por planta.
+    Antes de la primera lluvia registrada no se sabe: se usa el tope (60 días)."""
+    df = df.copy()
+    dia = df.groupby([grupo, fecha])[lluvia].sum(min_count=1).reset_index().sort_values([grupo, fecha])
+    lavado = dia[lluvia] >= MM_LLUVIA_LIMPIA
+    n = dia.groupby(grupo).cumcount()
+    ultimo = n.where(lavado).groupby(dia[grupo]).ffill()
+    dia["dias_desde_lluvia"] = (n - ultimo).fillna(DIAS_LLUVIA_MAX).clip(upper=DIAS_LLUVIA_MAX)
+    # ponytail: cuenta días con dato, no días calendario; con huecos de 1-11 días la diferencia es chica.
+    return df.merge(dia[[grupo, fecha, "dias_desde_lluvia"]], on=[grupo, fecha], how="left")
 
 
 def limpiar_pvod(df: pd.DataFrame) -> pd.DataFrame:

@@ -2,6 +2,8 @@
 
 Objetivo del TPO: **predecir cuánta energía debería generar una planta solar según el clima y detectar cuándo genera de menos** (falla, suciedad, recorte).
 
+La precipitación (`om_precipitacion_mm` en A; `om_precip_mm_mes` y `om_dias_lluvia_5mm` en B) se agregó el 22/10/2026 con `TPO_DIR=data/processed python src/build_datasets.py precipitacion`, que solo baja la lluvia de Open-Meteo y la une a los datasets ya armados, sin tocar el resto de las columnas. Una corrida completa del script ya la incluye.
+
 Todo se arma con `build_datasets.py` (corre en Colab: `pip install pandas pyarrow openpyxl requests py7zr tabulate`). Las descargas se guardan en `raw/` y no se vuelven a pedir si ya están.
 
 | Archivo | Qué es | Granularidad |
@@ -67,6 +69,7 @@ Todo se arma con `build_datasets.py` (corre en Colab: `pip install pandas pyarro
 | om_cloud_cover | Nubosidad total | %, Open-Meteo |
 | om_relative_humidity_2m | Humedad relativa a 2 m | %, Open-Meteo |
 | om_wind_speed_10m_ms | Viento a 10 m (convertido de km/h) | m/s, Open-Meteo |
+| om_precipitacion_mm | Precipitación de la hora (suma). Como la radiación, el valor de Open-Meteo con etiqueta T es la suma de la hora anterior, así que se corrió 1 hora hacia atrás. Se usa para `dias_desde_lluvia` (lluvia ≥ 5 mm en el día = paneles lavados). | mm, Open-Meteo |
 | nasa_ALLSKY_SFC_SW_DWN | GHI en superficie (cielo real) | W/m², NASA POWER |
 | nasa_T2M | Temperatura a 2 m | °C, NASA POWER |
 
@@ -77,7 +80,7 @@ Todo se arma con `build_datasets.py` (corre en Colab: `pip install pandas pyarro
   - NASA POWER usa una grilla de alrededor de 0,5° × 0,625° (unos 50 km), así que es mucho más gruesa.
 - **Por tiempo:** se pidió todo en UTC. Convención final: la etiqueta H representa el intervalo [H, H+1).
   - **PVOD:** se promedian los 4 registros de 15 min de esa hora.
-  - **Open-Meteo radiación:** el valor con etiqueta T es el promedio de la hora anterior (T-1 a T), así que se corrió 1 hora hacia atrás.
+  - **Open-Meteo radiación y precipitación:** el valor con etiqueta T es el promedio (radiación) o la suma (precipitación) de la hora anterior (T-1 a T), así que se corrió 1 hora hacia atrás.
   - **Open-Meteo temp, humedad, nubes y viento:** son valores instantáneos, así que se tomó el promedio entre H y H+1.
   - **NASA POWER:** se verificó empíricamente que el corrimiento de 0 h maximiza la correlación con la GHI medida en planta en las 10 plantas, así que se usa sin correr.
 - **Verificación:** el reporte de calidad muestra, para cada planta, el corrimiento óptimo (Open-Meteo crudo = -1 h, como se esperaba; NASA = 0 h). Tras la alineación, la correlación entre la potencia y la GHI externa queda entre 0,93 y 0,98.
@@ -120,6 +123,8 @@ Todo se arma con `build_datasets.py` (corre en Colab: `pip install pandas pyarro
 | om_temp_media_c, om_temp_max_media_c | Temperatura media y promedio de las máximas diarias | °C |
 | om_nubosidad_media_pct | Nubosidad media | % |
 | om_horas_sol_mes | Horas de sol del mes (`sunshine_duration`) | h |
+| om_precip_mm_mes | Precipitación del mes (suma de `precipitation_sum` diario). Es NaN si faltan días. | mm |
+| om_dias_lluvia_5mm | Días del mes con 5 mm o más de lluvia (los que lavan los paneles) | conteo |
 | om_dias_con_dato | Días con dato de Open-Meteo en el mes | conteo |
 
 ### `coord_source` (precisión de coordenadas)
