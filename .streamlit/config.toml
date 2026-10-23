@@ -1,3 +1,0 @@
-[server]
-# Sirve app/static/ en /app/static/: el topojson de los mapas (la app no baja nada de internet)
-enableStaticServing = true

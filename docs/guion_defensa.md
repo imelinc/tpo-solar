@@ -1,7 +1,7 @@
 # Guion de la defensa (15 minutos)
 
 Los números salen de `03_modelos`, `04_deteccion` y `05_negocio`. El dashboard se abre **antes de empezar**
-(`streamlit run app/app.py` desde la raíz del repo), ya en la pantalla de Resumen de flota con fecha 10/5/2019, y anda sin internet.
+(doble clic en `app/index.html`), ya en la vista **Flota hoy** con fecha 10/5/2019, y anda sin internet.
 
 **Objetivo: terminar en 13:45** y dejar 1:15 de margen para los cambios de orador, alguna pregunta en el medio o un problema con la demo. Si a las 7:00 no arrancaron el bloque 5, recorten el bloque 5 a lo marcado como *(imprescindible)*.
 
@@ -91,10 +91,10 @@ Precio: USD 42,84/MWh (RenovAr Ronda 2, 2017), **como ilustración** del valor e
 
 ## 8. Demo del dashboard (10:00 – 12:45)
 
-1. **Resumen de flota** (40 s): fecha 10/5/2019. station09 en rojo, station04 en **gris** (la ficha dice 20 MW y mide 24,8 MW). KPIs de energía perdida.
-2. **Detalle de planta** (60 s): station09, abril a junio. Real vs. esperada, alertas y los días sin decisión desde el 4/6. Cambiar a station06 en enero-marzo: alertas de **baja confianza**.
-3. **Argentina** (30 s): decir en voz alta que es **comparación mensual**, no tiempo real. Historia de ULL4FV en 2025.
-4. **Negocio** (35 s): mover el costo de limpieza de 800 a 1.600 y mostrar cómo cambia T*.
+1. **Flota hoy** (40 s): fecha 10/5/2019. Leer la franja de arriba: "1 planta necesita un técnico hoy", station09 pierde USD 2.300 por día. Mostrar station04 en **gris** (la ficha dice 20 MW y mide 24,8 MW) y pasar el mouse por la lista para que se ilumine en el mapa.
+2. **Una planta** (60 s): clic en "Ver planta" de station09, últimos 3 meses. Azul = lo que generó, rojo = lo que dejó de generar, línea = lo que debía generar. Abajo, las filas de avisos. Cambiar a station06 con fecha en marzo: aviso de **baja confianza**.
+3. **Argentina** (30 s): leer en voz alta el aviso de arriba (**comparación mensual**, no tiempo real). Bajar a la historia de Ullúm 4 (ULL4FV) en 2025.
+4. **Limpieza y plata** (35 s): mover el costo de limpieza de 800 a 1.600 y mostrar cómo cambia la franja ("Conviene limpiar cada … días"). Cerrar con el caso station09.
 
 Plan B si algo falla: capturas del dashboard y los gráficos de `03`, `04` (5.2 y 6.1) y `05`, ya abiertas en otra pestaña. No intentar arreglar la app en vivo: pasar al plan B a los 15 segundos.
 

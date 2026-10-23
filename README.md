@@ -10,7 +10,7 @@ data/processed/    parquet limpios y unidos (los leen modelos y app)
 notebooks/         un notebook por etapa (01 descarga → 04 detección)
 src/               funciones reutilizables (config, features)
 models/            modelo entrenado (.pkl)
-app/               dashboard en Streamlit
+app/               dashboard (página HTML que se abre sin servidor)
 ```
 
 ## Cómo correrlo
@@ -20,19 +20,22 @@ app/               dashboard en Streamlit
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 nbstripout --install          # borra salidas de notebooks al commitear
-streamlit run app/app.py
+open app/index.html           # dashboard
 ```
 
 ### Dashboard
 
+Doble clic en `app/index.html` (o arrastrarlo al navegador). No necesita servidor, Python ni internet: los datos van
+precalculados en `app/datos.js` y los mapas en `app/geo.js`. Vistas: flota hoy (semáforo), una planta, Argentina
+(comparación mensual) y limpieza y plata (calculadora).
+
+Si cambian el modelo o el detector, regenerarlo así: correr `03_modelos` → `04_deteccion` (dejan `data/processed/app_*.parquet`) y después
+
 ```bash
-streamlit run app/app.py
+python app/build_dashboard.py
 ```
 
-Arranca con un clon limpio + `pip install -r requirements.txt`, sin internet y sin los `.pkl` de `models/` (no están en git):
-lee las tablas precalculadas de `data/processed/` (`app_diario.parquet`, `app_horario.parquet`, `app_argentina.parquet`),
-que genera `notebooks/04_deteccion.ipynb` (sección 8 y sección 7). Si cambian el modelo o el detector, hay que volver a correr
-03 → 04 y commitear esas tablas. Los mapas usan el topojson de Plotly guardado en `app/static/` (servido gracias a `.streamlit/config.toml`), así que también se ven sin internet: por eso hay que correr el comando desde la raíz del repo. Pantallas: resumen de flota (semáforo), detalle de planta, Argentina (comparación mensual) y negocio.
+Commitear `app/datos.js` junto con las tablas. Plotly.js (`app/vendor/`) se copió del paquete `plotly` de `requirements.txt`.
 
 **Colab:** abrir el notebook desde GitHub (Archivo → Abrir notebook → GitHub). La primera celda clona el repo e instala todo. Para guardar: Archivo → Guardar una copia en GitHub.
 
