@@ -6,7 +6,9 @@ Dos familias de detectores (se comparan en 04_deteccion):
   la mediana de las plantas cercanas del mismo día y por el "normal" de cada planta, con
   alerta de falla grave (< 0,5), CUSUM e Isolation Forest.
 Las funciones `serie_planta`, `diario_flota` y `semaforo_flota` son las que usa el dashboard:
-leen solo data/processed y models/ (sin APIs).
+leen solo data/processed y models/ (sin APIs). Con `precalculado=True` (o si no está
+models/modelo_potencia.pkl) leen las tablas que deja `guardar_precalculado` en data/processed,
+así la app arranca con un clon limpio sin los .pkl.
 """
 import joblib
 import numpy as np
@@ -21,6 +23,10 @@ MIN_FRAC_ESPERADA = 0.25  # días con menos del 25% de la energía de un día cl
 MIN_FRAC_SENSOR = 0.3     # sensor de planta < 30% de la irradiancia satelital del día: sensor caído
 UMBRAL_GRAVE = 0.5        # índice relativo < 0,5: falla grave (la planta rinde menos de la mitad)
 FEATS_ISO = ["indice", "indice_rel", "cambio"]
+FACTOR_PICO = 1.1         # potencia pico real > 1,1 × nominal (o × DC de la ficha): capacidad no confiable
+BAJA_CONFIANZA = {"station06": (1, 2, 3)}  # meses con pérdida invernal que el modelo no aprende (59 días de alerta falsa)
+PRECALC_DIARIO = DATA_PROCESSED / "app_diario.parquet"
+PRECALC_HORARIO = DATA_PROCESSED / "app_horario.parquet"
 
 
 # ----------------------------------------------------------------------------- residuo propio
@@ -185,10 +191,24 @@ def _esperado(d: pd.DataFrame, meta: dict, limpia: bool) -> pd.Series:
     return out
 
 
-def diario_flota(desde: str, hasta: str, plantas=None) -> pd.DataFrame:
+def _usar_precalculado(precalculado) -> bool:
+    return not (MODELS / "modelo_potencia.pkl").exists() if precalculado is None else precalculado
+
+
+def diario_flota(desde: str, hasta: str, plantas=None, precalculado: bool | None = None) -> pd.DataFrame:
     """Tabla diaria de toda la flota (o de `plantas`): energía real y esperada con la planta
     limpia (MWh), residuo, índice relativo a las vecinas y alertas. Las vecinas siempre se
-    calculan con la flota completa, aunque se pida una sola planta."""
+    calculan con la flota completa, aunque se pida una sola planta. `baja_confianza` marca los
+    días de BAJA_CONFIANZA (las alertas se mantienen, pero se leen con cuidado).
+    Con `precalculado`, filtra la tabla guardada (el CUSUM trae la historia desde el inicio)."""
+    if _usar_precalculado(precalculado):
+        e = pd.read_parquet(PRECALC_DIARIO)
+        e = e[e["date_local"].astype(str).between(desde, hasta)]
+        if e.empty:
+            raise ValueError(f"Sin datos entre {desde} y {hasta}")
+        if plantas is not None:
+            e = e[e["plant_id"].isin(plantas)]
+        return e.reset_index(drop=True)
     meta, det = _cargar()
     A = pd.read_parquet(DATA_PROCESSED / "dataset_A_pvod_hourly.parquet")
     A = A[A["date_local"].astype(str).between(desde, hasta)]
@@ -207,36 +227,71 @@ def diario_flota(desde: str, hasta: str, plantas=None) -> pd.DataFrame:
     e["energia_real_mwh"] = e["e_real"] * e["cap_mw"]
     e["energia_esperada_mwh"] = e["e_esp"] * e["cap_mw"]
     e["perdida_mwh"] = (-e["residuo"] * e["cap_mw"]).clip(lower=0).where(e["residuo_rel"].notna(), 0.0)
+    mes = pd.to_datetime(e["date_local"].astype(str)).dt.month
+    e["baja_confianza"] = [m in BAJA_CONFIANZA.get(p, ()) for p, m in zip(e["plant_id"], mes)]
     if plantas is not None:
         e = e[e["plant_id"].isin(plantas)]
     return e.reset_index(drop=True)
 
 
-def serie_planta(planta: str, desde: str, hasta: str):
+def _horario(d: pd.DataFrame, meta: dict) -> pd.DataFrame:
+    esp = _esperado(d, meta, limpia=True)
+    h = pd.DataFrame({"plant_id": d["plant_id"], "date_local": d["date_local"].astype(str),
+                      "timestamp": d["timestamp_local_utc8"], "real_mw": d["pvod_power"],
+                      "esperado_mw": esp * d["plant_capacity_mw"], "residuo_norm": d["pvod_power_norm"] - esp,
+                      "dato_congelado": d["dato_congelado"]})
+    h["residuo_mw"] = h["real_mw"] - h["esperado_mw"]
+    return h.reset_index(drop=True)
+
+
+def serie_planta(planta: str, desde: str, hasta: str, precalculado: bool | None = None):
     """Para el dashboard: lo real, lo esperado, el residuo y las alertas de una planta.
     Devuelve (horario, diario):
     - horario: timestamp, real y esperado (MW, con la planta limpia) y residuo (MW y fracción de capacidad)
     - diario: energía real y esperada (MWh), pérdida, índice relativo y alertas (diario_flota)"""
+    pre = _usar_precalculado(precalculado)
+    if pre:
+        h = pd.read_parquet(PRECALC_HORARIO)
+        horario = h[(h["plant_id"] == planta) & h["date_local"].between(desde, hasta)].reset_index(drop=True)
+    else:
+        meta, _ = _cargar()
+        A = pd.read_parquet(DATA_PROCESSED / "dataset_A_pvod_hourly.parquet")
+        A = A[(A["plant_id"] == planta) & A["date_local"].astype(str).between(desde, hasta)]
+        horario = _horario(preparar(A, meta["escenario"]), meta) if not A.empty else A
+    if horario.empty:
+        raise ValueError(f"Sin datos para {planta} entre {desde} y {hasta}")
+    return horario, diario_flota(desde, hasta, plantas=[planta], precalculado=pre)
+
+
+def guardar_precalculado(desde: str = "2018-07-01", hasta: str = "2019-06-13"):
+    """Corre el modelo y el detector una vez y guarda en data/processed lo que muestra el dashboard
+    (PRECALC_DIARIO y PRECALC_HORARIO, unos pocos MB). Se llama al final de 04_deteccion."""
     meta, _ = _cargar()
     A = pd.read_parquet(DATA_PROCESSED / "dataset_A_pvod_hourly.parquet")
-    A = A[(A["plant_id"] == planta) & A["date_local"].astype(str).between(desde, hasta)]
-    if A.empty:
-        raise ValueError(f"Sin datos para {planta} entre {desde} y {hasta}")
-    d = preparar(A, meta["escenario"])
-    esp = _esperado(d, meta, limpia=True)
-    cap = d["plant_capacity_mw"].iloc[0]
-    horario = pd.DataFrame({"timestamp": d["timestamp_local_utc8"], "real_mw": d["pvod_power"],
-                            "esperado_mw": esp * cap, "residuo_norm": d["pvod_power_norm"] - esp,
-                            "dato_congelado": d["dato_congelado"]})
-    horario["residuo_mw"] = horario["real_mw"] - horario["esperado_mw"]
-    return horario.reset_index(drop=True), diario_flota(desde, hasta, plantas=[planta])
+    A = A[A["date_local"].astype(str).between(desde, hasta)]
+    _horario(preparar(A, meta["escenario"]), meta).to_parquet(PRECALC_HORARIO, index=False)
+    e = diario_flota(desde, hasta, precalculado=False)
+    e.assign(date_local=e["date_local"].astype(str)).to_parquet(PRECALC_DIARIO, index=False)
 
 
-def semaforo(e: pd.DataFrame, fecha: str, precio_usd_mwh: float = PRECIO_USD_MWH, dias: int = 3) -> pd.DataFrame:
+def capacidad_no_confiable() -> list:
+    """Plantas cuya potencia pico real (p99,9 horario) supera FACTOR_PICO × la capacidad nominal
+    o × la potencia DC de la ficha (Pmax del módulo × cantidad): la ficha no cierra con lo medido
+    y la normalización por capacidad no sirve (station04: pico de 24,8 MW con 20 MW nominales)."""
+    m = pd.read_csv(DATA_PROCESSED / "pvod_plantas_metadata.csv").set_index("plant_id")
+    dc = m["plant_module_info"].str.extract(r"Pmax:\s*(\d+)")[0].astype(float) * m["plant_panel_number"] / 1e6
+    pico = pd.read_parquet(DATA_PROCESSED / "dataset_A_pvod_hourly.parquet").groupby("plant_id")["pvod_power"].quantile(0.999)
+    ref = np.fmin(m["plant_capacity_mw"], dc).reindex(pico.index)
+    return sorted(pico.index[pico > FACTOR_PICO * ref])
+
+
+def semaforo(e: pd.DataFrame, fecha: str, precio_usd_mwh: float = PRECIO_USD_MWH, dias: int = 3,
+             no_confiables=()) -> pd.DataFrame:
     """Estado de cada planta a `fecha` a partir de la tabla de diario_flota (últimos 7 días).
+    Gris: planta en `no_confiables` (capacidad no confiable) -> corregir la ficha antes de evaluarla.
     Rojo: falla grave hoy o rendimiento relativo de los últimos `dias` < 0,8 -> visita técnica hoy.
     Amarillo: cualquier otra alerta hoy o rendimiento < 0,95 -> revisar esta semana.
-    Verde: nada. Pérdida en USD/día = promedio de los últimos `dias` × precio."""
+    Verde: nada. Pérdida en USD/día = promedio de los últimos `dias` × precio (NaN en gris)."""
     fecha = str(fecha)
     ult = e[(e["date_local"].astype(str) <= fecha)
             & (e["date_local"].astype(str) > str((pd.Timestamp(fecha) - pd.Timedelta(days=7)).date()))]
@@ -245,7 +300,9 @@ def semaforo(e: pd.DataFrame, fecha: str, precio_usd_mwh: float = PRECIO_USD_MWH
         hoy = g.iloc[-1]
         rend = g["indice_rel"].dropna().tail(dias).mean()
         alerta = hoy["tipo_alerta"] if hoy["alerta"] else ""
-        if alerta == "Falla grave" or rend < 0.8:
+        if p in no_confiables:
+            color, accion = "gris", "Capacidad no confiable: corregir la ficha técnica"
+        elif alerta == "Falla grave" or rend < 0.8:
             color, accion = "rojo", "Visita técnica hoy"
         elif alerta or rend < 0.95:
             color, accion = "amarillo", "Revisar esta semana"
@@ -253,14 +310,18 @@ def semaforo(e: pd.DataFrame, fecha: str, precio_usd_mwh: float = PRECIO_USD_MWH
             color, accion = "verde", "Nada"
         if g["falla_sensor"].tail(dias).any():
             accion += " (sensor de irradiancia caído: revisar el piranómetro)"
+        baja = bool(hoy.get("baja_confianza", False))
+        if baja and color in ("amarillo", "rojo"):
+            accion += " (baja confianza: pérdida invernal conocida)"
         filas.append({"plant_id": p, "fecha_dato": hoy["date_local"], "estado": color, "accion": accion,
                       "alerta": alerta or "—", "rendimiento_vs_vecinas": rend,
-                      "perdida_usd_dia": g["perdida_mwh"].tail(dias).mean() * precio_usd_mwh,
-                      "modelo": hoy["modelo"]})
+                      "perdida_usd_dia": np.nan if color == "gris" else g["perdida_mwh"].tail(dias).mean() * precio_usd_mwh,
+                      "baja_confianza": baja, "modelo": hoy["modelo"]})
     return pd.DataFrame(filas)
 
 
-def semaforo_flota(fecha: str, precio_usd_mwh: float = PRECIO_USD_MWH) -> pd.DataFrame:
-    """Semáforo de la flota para una fecha (verde, amarillo o rojo, con acción y USD/día)."""
+def semaforo_flota(fecha: str, precio_usd_mwh: float = PRECIO_USD_MWH, precalculado: bool | None = None) -> pd.DataFrame:
+    """Semáforo de la flota para una fecha (verde, amarillo, rojo o gris, con acción y USD/día)."""
     desde = str((pd.Timestamp(fecha) - pd.Timedelta(days=60)).date())  # historia para el CUSUM
-    return semaforo(diario_flota(desde, str(fecha)), fecha, precio_usd_mwh)
+    return semaforo(diario_flota(desde, str(fecha), precalculado=precalculado), fecha, precio_usd_mwh,
+                    no_confiables=capacidad_no_confiable())

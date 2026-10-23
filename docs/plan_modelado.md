@@ -108,11 +108,20 @@ Todos los números salen de `03_modelos`, `04_deteccion` y `05_negocio`.
 
 | Condición | Resultado | ¿Cumple? |
 |---|---|---|
-| 1. Error de energía diaria < 8% (sensor de planta, evaluación ciega en may-jun 2019) | 6,04% (Random Forest, primera mirada) | ✅ |
-| 2. Precisión y recall ≥ 0,8 para caídas de 10%, 25%, 50% y 100% | 100%: 0,93 / 1,00; 50%: 0,94 / 0,95; 25%: 0,92 / 0,73; 10%: 0,68 / 0,12 | ❌ |
+| 1. Error de energía diaria < 8% (sensor de planta, evaluación ciega en may-jun 2019) | **6,04%** (Random Forest, evaluación ciega) | ✅ |
+| 2. Precisión y recall ≥ 0,8 para caídas de 10%, 25%, 50% y 100% | 100%: 0,93 / 1,00; 50%: 0,94 / 0,95; 25%: 0,92 / 0,73 (en el límite); 10%: 0,68 / 0,12 | ❌ |
 | 3. Marca station09 y ULL4FV | station09 desde el 2.º día con datos; ULL4FV con alerta en 11 de 12 meses de 2025 | ✅ |
 
-**Se sostiene parcialmente:** detecta fallas grandes (≥ 50%) el mismo día y casos crónicos, pero no caídas de 10% ni suciedad gradual. El ruido diario del modelo (σ robusta de 5% a 16% según la planta) es del mismo orden que esas pérdidas.
+**La hipótesis se sostiene parcialmente.** Se confirma para fallas grandes y casos crónicos, y se refuta para pérdidas chicas:
+
+- **Pérdidas ≥ 50%:** el detector las encuentra el mismo día (precisión ≥ 0,93, recall ≥ 0,95).
+- **Casos crónicos:** marca station09 (desde su segundo día con datos) y ULL4FV (11 de 12 meses de 2025).
+- **Caídas de 25%:** quedan en el límite (recall 0,73: se escapa 1 de cada 4 días).
+- **Caídas de 10% día a día (y suciedad gradual):** no las detecta (recall 0,12), porque el error diario del modelo (5% a 16% según la planta) es del mismo orden que la pérdida.
+
+Frente a la hipótesis de la sección 1: la parte "detectar fallas abruptas" se sostiene para caídas grandes; la parte "pérdida gradual por soiling" no se sostiene con un detector diario, y se trata con limpieza programada (`05_negocio`).
+
+> **Número principal: 6,04%** de error de energía diaria (evaluación ciega). *Nota:* el modelo final (híbrido con lluvia) da 5,04% en los mismos meses, pero no es una evaluación ciega, así que no se reporta como resultado.
 
 ### Lo que se sumó del notebook de referencia (método, aplicado a datos reales)
 
@@ -124,9 +133,9 @@ Todos los números salen de `03_modelos`, `04_deteccion` y `05_negocio`.
 
 ### Limitaciones
 
-- **Un solo año de datos.** La pérdida invernal de station06 (y en parte de station00) no se puede aprender al dejar el mes afuera: genera 59 días de alerta falsa de enero a marzo.
+- **Un solo año de datos.** La pérdida invernal de station06 (y en parte de station00) no se puede aprender al dejar el mes afuera: genera 59 días de alerta falsa de enero a marzo. En el dashboard, esos días de station06 se marcan como **baja confianza** (la alerta no se borra).
 - **Los resultados en may-jun del híbrido y de las variantes con lluvia no son ciegos**: se agregaron después de la primera mirada.
-- **station04:** la ficha técnica está mal. En el semáforo aparece siempre verde, porque se mide contra la planta típica.
+- **station04:** la ficha técnica está mal (pico real de 24,8 MW con 20 MW nominales). En el semáforo sale en **gris, "capacidad no confiable"** (regla: pico real > 1,1 × la capacidad nominal o la potencia DC de la ficha), en lugar de verde.
 - **Sensor de planta caído** (station09 desde el 4/6/2019; station06 en invierno): esos días quedan sin decisión, y el modelo con Open-Meteo como respaldo tiene un error de ~10-16%.
 - **Argentina:** es una comparación mensual entre parques, no detección en tiempo real. Las coordenadas aproximadas se excluyen.
-- **Costo de limpieza y frecuencia de revisión son supuestos.** El precio es el de RenovAr Ronda 2 (solar), no el spot.
+- **Costo de limpieza y frecuencia de revisión son supuestos.** El precio es el de RenovAr Ronda 2 (solar, 2017), no el spot, y se aplica a plantas chinas como ilustración del valor en contexto argentino, no como su ingreso real.

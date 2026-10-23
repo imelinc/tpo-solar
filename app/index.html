@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rendimiento de la flota solar</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f2a36'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%23f5b82e' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+:root {
+  --suelo: #e4e8e6;          /* baldosas del tablero */
+  --panel: #f8f9f8;
+  --panel-2: #eef1f0;
+  --borde: #c9d1cf;
+  --tinta: #0f2a36;          /* azul petróleo */
+  --tinta-2: #34505c;
+  --tenue: #566b74;
+  --franja: #0f2a36;
+  --franja-texto: #f3f6f5;
+  --franja-tenue: #b5c7cd;
+  --acento: #0b6d80;
+  --verde: #129a3c;
+  --ambar: #f2a900;
+  --rojo: #d03b3b;
+  --gris: #8b979c;
+  --real: #1f6f86;
+  --perdida: #e2735f;
+  --radio: 6px;
+  --sombra: 0 1px 2px rgba(15, 42, 54, 0.06), 0 8px 24px -16px rgba(15, 42, 54, 0.25);
+  --fuente: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { font-size: 17px; }
+body {
+  margin: 0;
+  font-family: var(--fuente);
+  color: var(--tinta);
+  background: var(--suelo);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: #f5d77e; color: var(--tinta); }
+:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; border-radius: 4px; }
+button, input, select { font: inherit; color: inherit; }
+
+.tablero { max-width: 1440px; margin: 0 auto; padding: 20px 32px 40px; }
+
+/* ---------------------------------------------------------------- cabecera */
+.cabecera {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px;
+  padding-bottom: 18px; border-bottom: 1px solid var(--borde); margin-bottom: 20px;
+}
+.marca { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+.marca svg { flex: none; }
+.marca strong { display: block; font-size: 1.15rem; letter-spacing: -0.01em; }
+.marca span { display: block; font-size: 0.8rem; color: var(--tenue); }
+.vistas { display: flex; gap: 4px; justify-self: center; background: var(--panel-2); border: 1px solid var(--borde); border-radius: 8px; padding: 4px; }
+.vistas a {
+  padding: 8px 16px; border-radius: 5px; text-decoration: none; color: var(--tinta-2);
+  font-weight: 600; font-size: 0.92rem; white-space: nowrap; transition: background 150ms ease-out, color 150ms ease-out;
+}
+.vistas a:hover { background: #fff; color: var(--tinta); }
+.vistas a[aria-current="page"] { background: var(--tinta); color: #fff; }
+.dia { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--tenue); }
+.dia input {
+  border: 1px solid var(--borde); background: #fff; border-radius: 6px; padding: 7px 10px;
+  font-variant-numeric: tabular-nums; color: var(--tinta); font-weight: 600;
+}
+.dia[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- franja de decisión */
+.franja {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center;
+  background: var(--franja); color: var(--franja-texto); border-radius: 10px;
+  padding: 22px 28px; margin-bottom: 20px; box-shadow: var(--sombra);
+}
+.franja h1 { margin: 0; font-size: 1.95rem; line-height: 1.15; letter-spacing: -0.02em; text-wrap: balance; font-weight: 700; }
+.franja p { margin: 6px 0 0; color: var(--franja-tenue); font-size: 1.02rem; max-width: 72ch; }
+.franja p b { color: var(--franja-texto); font-weight: 600; }
+.franja .cifra { text-align: right; }
+.franja .cifra strong { display: block; font-size: 2.6rem; line-height: 1; letter-spacing: -0.03em; }
+.franja .cifra span { display: block; font-size: 0.85rem; color: var(--franja-tenue); margin-top: 6px; }
+.franja .lampara { width: 34px; height: 34px; }
+
+/* ---------------------------------------------------------------- lámparas y sellos */
+.lampara {
+  --c: var(--gris);
+  width: 16px; height: 16px; border-radius: 50%; flex: none; display: inline-block;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 55%, #fff) 0 18%, var(--c) 60%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent), inset 0 -2px 3px rgba(0, 0, 0, 0.18);
+}
+.lampara.verde { --c: var(--verde); }
+.lampara.amarillo { --c: var(--ambar); }
+.lampara.rojo { --c: var(--rojo); }
+.lampara.gris { --c: var(--gris); }
+.sello {
+  display: inline-block; border: 1.5px solid currentColor; border-radius: 4px; padding: 1px 7px;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+  color: var(--tinta-2);
+}
+.sello.supuesto { color: #8a5a00; }
+.sello.medido { color: var(--acento); }
+
+/* ---------------------------------------------------------------- paneles */
+.grilla { display: grid; gap: 20px; }
+.g-flota { grid-template-columns: 5fr 7fr; }
+.g-arg { grid-template-columns: 5fr 7fr; }
+.g-arg2 { grid-template-columns: 7fr 5fr; }
+.contexto { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.fila.fila-c { grid-template-columns: 18px 1fr auto; }
+.mas { margin-top: 10px; width: 100%; padding: 9px; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel-2); color: var(--acento); font-weight: 600; cursor: pointer; }
+.mas:hover { background: #fff; }
+.explica { background: #fff; border: 1px solid var(--borde); border-radius: 10px; padding: 0 18px; margin-bottom: 20px; }
+.explica summary { cursor: pointer; padding: 14px 0; font-weight: 700; color: var(--acento); list-style-position: inside; }
+.explica[open] summary { border-bottom: 1px solid var(--borde); margin-bottom: 4px; }
+.explica p, .explica ol { margin: 10px 0; color: var(--tinta-2); max-width: 95ch; }
+.explica ol { padding-left: 22px; }
+.explica li + li { margin-top: 6px; }
+.explica .lampara { width: 12px; height: 12px; vertical-align: -1px; }
+.explica > :last-child { margin-bottom: 16px; }
+.fila-c .nombre { display: block; font-size: 1rem; }
+.lecturas small { display: block; font-size: 0.78rem; color: var(--tenue); margin-top: 2px; }
+.vacio { padding: 18px; border: 1px solid var(--borde); border-radius: var(--radio); color: var(--tenue); background: #fff; }
+.g-neg { grid-template-columns: 4fr 8fr; }
+.panel {
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 10px;
+  padding: 18px 20px; min-width: 0;
+}
+.panel > h2, .rotulo {
+  margin: 0 0 12px; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tenue);
+}
+.panel > h2 { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.panel > h2 em { font-style: normal; letter-spacing: 0.02em; text-transform: none; font-weight: 500; font-size: 0.82rem; }
+.nota { font-size: 0.85rem; color: var(--tenue); margin: 10px 0 0; max-width: 90ch; }
+.grafico { width: 100%; }
+
+/* ---------------------------------------------------------------- lista de lámparas (flota) */
+.grupo + .grupo { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--borde); }
+.grupo-titulo { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tinta-2); }
+.grupo-titulo b { font-variant-numeric: tabular-nums; color: var(--tenue); font-weight: 600; }
+.fila {
+  display: grid; grid-template-columns: 22px minmax(110px, 1.1fr) 2.4fr auto auto; gap: 14px; align-items: center;
+  width: 100%; text-align: left; background: #fff; border: 1px solid var(--borde); border-radius: var(--radio);
+  padding: 12px 14px; cursor: pointer; transition: border-color 150ms ease-out, box-shadow 150ms ease-out, opacity 150ms ease-out;
+}
+.fila + .fila { margin-top: 8px; }
+.fila:hover { border-color: var(--tinta-2); box-shadow: var(--sombra); }
+.fila .nombre { font-weight: 700; font-size: 1.05rem; }
+.fila .que { font-size: 0.95rem; color: var(--tinta-2); }
+.fila .que small { display: block; color: var(--tenue); font-size: 0.8rem; margin-top: 2px; }
+.fila .plata { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fila .plata small { display: block; font-weight: 500; color: var(--tenue); font-size: 0.75rem; }
+.fila .ir { color: var(--acento); font-weight: 600; font-size: 0.88rem; white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 999px;
+  background: #fff; border: 1px solid var(--borde); cursor: pointer; font-weight: 600; font-size: 0.85rem;
+  transition: border-color 150ms ease-out, background 150ms ease-out;
+}
+.chip:hover { border-color: var(--tinta-2); }
+.chip[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+.chip .lampara { width: 12px; height: 12px; }
+.atenuado .fila:not(.foco), .atenuado .chip:not(.foco) { opacity: 0.45; }
+
+/* ---------------------------------------------------------------- controles */
+.controles { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; margin-bottom: 16px; }
+.segmentos { display: inline-flex; border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; background: #fff; }
+.segmentos button { border: 0; background: none; padding: 7px 14px; cursor: pointer; font-weight: 600; font-size: 0.88rem; color: var(--tinta-2); }
+.segmentos button + button { border-left: 1px solid var(--borde); }
+.segmentos button[aria-pressed="true"] { background: var(--tinta); color: #fff; }
+.mes { display: inline-flex; align-items: center; gap: 8px; }
+.mes button { border: 1px solid var(--borde); background: #fff; border-radius: 6px; width: 36px; height: 36px; cursor: pointer; display: grid; place-items: center; }
+.mes button:disabled { opacity: 0.35; cursor: default; }
+.mes select { border: 1px solid var(--borde); background: #fff; border-radius: 6px; padding: 7px 10px; font-weight: 600; min-width: 190px; }
+
+/* ---------------------------------------------------------------- aviso (Argentina, baja confianza) */
+.aviso {
+  display: flex; gap: 14px; align-items: flex-start; background: #fff; border: 1px solid var(--borde);
+  border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; font-size: 0.95rem;
+}
+.aviso svg { flex: none; margin-top: 2px; }
+.aviso strong { display: block; }
+
+/* ---------------------------------------------------------------- leyenda */
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.85rem; color: var(--tinta-2); margin-bottom: 4px; }
+.leyenda i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: baseline; }
+.leyenda i.linea { height: 3px; border-radius: 0; vertical-align: middle; }
+
+/* ---------------------------------------------------------------- negocio */
+.deslizador + .deslizador { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--borde); }
+.deslizador label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-weight: 600; }
+.deslizador output { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.deslizador p { margin: 4px 0 10px; font-size: 0.82rem; color: var(--tenue); }
+input[type="range"] { width: 100%; accent-color: var(--tinta); height: 28px; }
+.lecturas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--borde); border-radius: 8px; background: #fff; margin-bottom: 14px; }
+.lecturas div { padding: 14px 16px; }
+.lecturas div + div { border-left: 1px solid var(--borde); }
+.lecturas span { display: block; font-size: 0.8rem; color: var(--tenue); }
+.lecturas strong { display: block; font-size: 1.7rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; margin-top: 2px; }
+.caso { display: grid; grid-template-columns: 5fr 7fr; gap: 24px; align-items: start; }
+.caso h3 { margin: 0 0 8px; font-size: 1.45rem; letter-spacing: -0.015em; line-height: 1.2; text-wrap: balance; }
+.caso p { margin: 0 0 10px; color: var(--tinta-2); }
+
+.pie { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--borde); font-size: 0.8rem; color: var(--tenue); display: flex; flex-wrap: wrap; gap: 6px 22px; }
+
+.vista[hidden] { display: none; }
+
+@media (max-width: 1100px) {
+  .cabecera { grid-template-columns: 1fr; gap: 14px; }
+  .vistas { justify-self: start; flex-wrap: wrap; }
+  .g-flota, .g-arg, .g-arg2, .g-neg, .caso, .contexto { grid-template-columns: 1fr; }
+  .franja { grid-template-columns: auto 1fr; }
+  .franja .cifra { grid-column: 1 / -1; text-align: left; }
+}
+@media (max-width: 640px) {
+  .tablero { padding: 14px 16px 32px; }
+  .franja h1 { font-size: 1.45rem; }
+  .fila { grid-template-columns: 18px 1fr auto; }
+  .fila .que { grid-column: 2 / -1; }
+  .fila .ir { display: none; }
+  .lecturas { grid-template-columns: 1fr; }
+  .lecturas div + div { border-left: 0; border-top: 1px solid var(--borde); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="tablero">
+  <header class="cabecera">
+    <a class="marca" href="#flota">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+        <rect width="40" height="40" rx="8" fill="#0f2a36"/>
+        <path d="M8 29h24M11 29l3-9h12l3 9M17 20l-1 9M23 20l1 9M12.5 24.5h15" stroke="#b5c7cd" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
+        <circle cx="27" cy="12" r="4" fill="#f2a900"/>
+      </svg>
+      <div><strong>Rendimiento de la flota solar</strong><span>Lo que generó cada planta contra lo que debía generar con ese clima</span></div>
+    </a>
+    <nav class="vistas" aria-label="Vistas">
+      <a href="#flota">Flota hoy</a>
+      <a href="#planta">Una planta</a>
+      <a href="#argentina">Argentina</a>
+      <a href="#negocio">Limpieza y plata</a>
+    </nav>
+    <label class="dia" id="control-dia">Día del tablero
+      <input type="date" id="fecha">
+    </label>
+  </header>
+
+  <!-- ============================================================ FLOTA -->
+  <section class="vista" id="v-flota" aria-label="Flota hoy">
+    <div class="franja" id="flota-franja"></div>
+    <div class="grilla g-flota">
+      <div class="panel">
+        <h2>Ubicación de las plantas <em>Hebei, China</em></h2>
+        <div id="flota-mapa" class="grafico" style="height:430px"></div>
+        <p class="nota">Pasá el mouse sobre una planta de la lista para ubicarla en el mapa.</p>
+      </div>
+      <div class="panel" id="flota-lista"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ PLANTA -->
+  <section class="vista" id="v-planta" aria-label="Una planta" hidden>
+    <div class="controles">
+      <div class="chips" id="planta-chips" role="group" aria-label="Planta"></div>
+      <div class="segmentos" id="planta-periodo" role="group" aria-label="Período">
+        <button data-dias="30">Último mes</button><button data-dias="90">Últimos 3 meses</button><button data-dias="400">Todo el año</button>
+      </div>
+    </div>
+    <div class="franja" id="planta-franja"></div>
+    <div id="planta-aviso"></div>
+    <div class="panel">
+      <h2>Energía de cada día <em id="planta-rango"></em></h2>
+      <div class="leyenda">
+        <span><i style="background:var(--real)"></i>Lo que generó</span>
+        <span><i style="background:var(--perdida)"></i>Lo que dejó de generar (pérdida estimada)</span>
+        <span><i class="linea" style="background:var(--tinta)"></i>Lo que debía generar con ese clima y la planta limpia</span>
+      </div>
+      <div id="planta-grafico" class="grafico" style="height:520px"></div>
+      <p class="nota">Las filas de abajo marcan los días con aviso. "Sin decisión" son días en que el sensor de sol de la planta no funcionaba: no se puede saber cuánto debía generar, así que no se juzga.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ ARGENTINA -->
+  <section class="vista" id="v-argentina" aria-label="Argentina" hidden>
+    <div class="aviso">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="none" stroke="#0b6d80" stroke-width="1.8"/><path d="M11 6.5v6M11 15.2v.3" stroke="#0b6d80" stroke-width="2" stroke-linecap="round"/></svg>
+      <div><strong>Comparación mes a mes entre parques de CAMMESA. No es una alarma en tiempo real.</strong>
+      CAMMESA publica la generación de cada parque una vez por mes. Sirve para elegir qué parques revisar, no para avisar el mismo día.</div>
+    </div>
+
+    <div class="panel">
+      <h2>La energía solar en Argentina <em id="arg-ctx-nota"></em></h2>
+      <div class="lecturas" id="arg-ctx-lecturas"></div>
+      <div class="contexto">
+        <div><p class="rotulo">Energía generada por año (GWh)</p><div id="arg-anios" class="grafico" style="height:250px"></div></div>
+        <div><p class="rotulo">Dónde se generó en los últimos 12 meses (GWh)</p><div id="arg-provincias" class="grafico" style="height:250px"></div></div>
+      </div>
+    </div>
+
+    <div class="controles" style="margin-top:26px">
+      <span class="rotulo" style="margin:0">Mes analizado</span>
+      <div class="mes">
+        <button id="mes-ant" aria-label="Mes anterior"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2 4 7l5 5" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>
+        <select id="mes" aria-label="Mes"></select>
+        <button id="mes-sig" aria-label="Mes siguiente"><svg width="14" height="14" viewBox="0 0 14 14"><path d="m5 2 5 5-5 5" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>
+      </div>
+    </div>
+    <div class="franja" id="arg-franja"></div>
+    <details class="explica">
+      <summary>¿Qué significa que un mes tenga alerta?</summary>
+      <p>Que ese mes el parque rindió claramente menos de lo que suele rendir, aun teniendo en cuenta el sol que tuvo. Se calcula en tres pasos:</p>
+      <ol>
+        <li><b>Lo esperado por el sol.</b> Con la radiación, la temperatura, la nubosidad y la lluvia del mes se calcula cuánto habría aprovechado un parque típico en ese lugar (su factor de capacidad). El rendimiento del mes es lo que generó dividido por eso.</li>
+        <li><b>Se corrige por la región.</b> Ese rendimiento se compara con el de los parques de su región en el mismo mes. Si fue un mes malo para todos (por ejemplo, más nublado de lo que capta el satélite), no cuenta contra el parque.</li>
+        <li><b>Se compara con su propio normal.</b> Cada parque tiene un nivel habitual: algunos rinden siempre más que el típico y otros menos. El resultado es el "% de lo normal": 100% significa que rindió como siempre.</li>
+      </ol>
+      <p><span class="lampara rojo" aria-hidden="true"></span> <b>Alerta</b>: rindió menos de la mitad de lo normal, o lleva varios meses seguidos por debajo de lo normal (las pérdidas se van acumulando). Por eso un parque con 95% puede estar en alerta si viene así hace meses.</p>
+      <p><span class="lampara amarillo" aria-hidden="true"></span> <b>Bajo su rango habitual</b>: ese mes quedó por debajo de sus peores meses históricos (el 10% más bajo). Es una señal más suave.</p>
+    </details>
+    <div class="grilla g-arg2">
+      <div class="panel">
+        <h2>Lo que aprovechó cada parque contra lo normal <em>un punto por parque · tamaño = potencia</em></h2>
+        <div class="leyenda">
+          <span><span class="lampara rojo" style="width:11px;height:11px;margin-right:6px"></span>Rinde por debajo de lo normal (alerta)</span>
+          <span><span class="lampara amarillo" style="width:11px;height:11px;margin-right:6px"></span>Por debajo de su rango habitual</span>
+          <span><span class="lampara" style="--c:#a9b8bc;width:11px;height:11px;margin-right:6px"></span>Normal</span>
+        </div>
+        <div id="arg-dispersion" class="grafico" style="height:470px"></div>
+        <p class="nota">"Lo normal" es lo que genera un parque típico con el mismo sol, temperatura y lluvia, ajustado por cómo rinde siempre ese parque y por cómo le fue a su región ese mes. Sobre la diagonal, el parque rindió lo de siempre; cuanto más abajo, más energía dejó de generar. Hacé clic en un punto para ver su historia.</p>
+      </div>
+      <div class="panel">
+        <h2>Para revisar este mes</h2>
+        <div id="arg-revisar"></div>
+      </div>
+    </div>
+    <div class="grilla g-arg" style="margin-top:20px">
+      <div class="panel">
+        <h2>Dónde están <em>tamaño = potencia</em></h2>
+        <div id="arg-mapa" class="grafico" style="height:470px"></div>
+      </div>
+      <div class="panel">
+        <h2>Historia de un parque <em>clic en cualquier parque</em></h2>
+        <div id="arg-historia-titulo"></div>
+        <div id="arg-historia" class="grafico" style="height:360px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ NEGOCIO -->
+  <section class="vista" id="v-negocio" aria-label="Limpieza y plata" hidden>
+    <div class="franja" id="neg-franja"></div>
+    <div class="grilla g-neg">
+      <div class="panel">
+        <h2>Supuestos <em>movelos para ver qué cambia</em></h2>
+        <div class="deslizador">
+          <label for="costo">Costo de limpiar 1 MW <output id="costo-v"></output></label>
+          <p><span class="sello supuesto">Supuesto</span> Sin cotización argentina todavía. Base: USD 800.</p>
+          <input type="range" id="costo" min="200" max="2000" step="50">
+        </div>
+        <div class="deslizador">
+          <label for="precio">Precio por MWh <output id="precio-v"></output></label>
+          <p><span class="sello">Referencia</span> RenovAr Ronda 2 (2017), usado como ilustración: no es el ingreso real de estas plantas.</p>
+          <input type="range" id="precio" min="20" max="120" step="0.5">
+        </div>
+        <div class="deslizador">
+          <label for="tasa">Cuánto se ensucia por día <output id="tasa-v"></output></label>
+          <p id="tasa-nota"></p>
+          <input type="range" id="tasa" min="0.01" max="0.2" step="0.001">
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Cada cuántos días conviene limpiar</h2>
+        <div class="lecturas">
+          <div><span>Limpiar cada</span><strong id="l-t"></strong></div>
+          <div><span>Ahorro por MW al año</span><strong id="l-ahorro"></strong></div>
+          <div><span>Costo anual en el óptimo, por MW</span><strong id="l-costo"></strong></div>
+        </div>
+        <div id="neg-curva" class="grafico" style="height:330px"></div>
+        <p class="nota">Limpiar seguido cuesta plata; no limpiar hace perder energía por suciedad. El punto más bajo de la curva es el intervalo que minimiza la suma. El ahorro se compara contra limpiar una vez por año (también un supuesto).</p>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:20px">
+      <div class="caso">
+        <div>
+          <span class="rotulo">Caso real</span>
+          <h3 id="caso-titulo"></h3>
+          <p id="caso-texto"></p>
+          <p class="nota">Una planta que rinde mal siempre no se nota si se la compara con su propio mes anterior: hay que compararla con lo que debería generar. Pérdida contada solo en días con alerta del detector.</p>
+        </div>
+        <div><div id="caso-grafico" class="grafico" style="height:280px"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="pie">
+    <span>Error típico del modelo: <b>6,04%</b> de la energía de un día (evaluación ciega, may-jun 2019).</span>
+    <span>Detecta pérdidas de 50% o más el mismo día y plantas que rinden mal siempre; no detecta caídas de 10% día a día.</span>
+    <span>Datos: PVOD (10 plantas, Hebei, 2018-2019) y CAMMESA. Funciona sin internet.</span>
+  </footer>
+</div>
+
+<script src="vendor/plotly-2.35.2.min.js"></script>
+<script src="geo.js"></script>
+<script src="datos.js"></script>
+<script src="tablero.js"></script>
+</body>
+</html>
