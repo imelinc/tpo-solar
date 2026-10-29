@@ -1,0 +1,7 @@
+{
+  "name": "tpo-solar-defensa",
+  "private": true,
+  "description": "Pruebas de DOM del dashboard estático; la app no requiere Node para abrirse.",
+  "scripts": {"test:dashboard": "node tests/dashboard.cjs"},
+  "devDependencies": {"jsdom": "26.1.0"}
+}

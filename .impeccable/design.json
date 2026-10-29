@@ -1,0 +1,419 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T11:47:33.025708+00:00",
+  "title": "Design System: Solar / Datos",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "ground",
+        "tonalRamp": [
+          "oklch(15% 0.0025 228.78)",
+          "oklch(26% 0.0025 228.78)",
+          "oklch(38% 0.0025 228.78)",
+          "oklch(49% 0.0025 228.78)",
+          "oklch(61% 0.0025 228.78)",
+          "oklch(72% 0.0025 228.78)",
+          "oklch(84% 0.0025 228.78)",
+          "oklch(95% 0.0025 228.78)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "surface",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(26% 0.0000 89.88)",
+          "oklch(38% 0.0000 89.88)",
+          "oklch(49% 0.0000 89.88)",
+          "oklch(61% 0.0000 89.88)",
+          "oklch(72% 0.0000 89.88)",
+          "oklch(84% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "raised",
+        "tonalRamp": [
+          "oklch(15% 0.0035 219.53)",
+          "oklch(26% 0.0035 219.53)",
+          "oklch(38% 0.0035 219.53)",
+          "oklch(49% 0.0035 219.53)",
+          "oklch(61% 0.0035 219.53)",
+          "oklch(72% 0.0035 219.53)",
+          "oklch(84% 0.0035 219.53)",
+          "oklch(95% 0.0035 219.53)"
+        ]
+      },
+      "active": {
+        "role": "neutral",
+        "displayName": "active",
+        "tonalRamp": [
+          "oklch(15% 0.0070 219.56)",
+          "oklch(26% 0.0070 219.56)",
+          "oklch(38% 0.0070 219.56)",
+          "oklch(49% 0.0070 219.56)",
+          "oklch(61% 0.0070 219.56)",
+          "oklch(72% 0.0070 219.56)",
+          "oklch(84% 0.0070 219.56)",
+          "oklch(95% 0.0070 219.56)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "border",
+        "tonalRamp": [
+          "oklch(15% 0.0086 225.09)",
+          "oklch(26% 0.0086 225.09)",
+          "oklch(38% 0.0086 225.09)",
+          "oklch(49% 0.0086 225.09)",
+          "oklch(61% 0.0086 225.09)",
+          "oklch(72% 0.0086 225.09)",
+          "oklch(84% 0.0086 225.09)",
+          "oklch(95% 0.0086 225.09)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "rule",
+        "tonalRamp": [
+          "oklch(15% 0.0051 228.82)",
+          "oklch(26% 0.0051 228.82)",
+          "oklch(38% 0.0051 228.82)",
+          "oklch(49% 0.0051 228.82)",
+          "oklch(61% 0.0051 228.82)",
+          "oklch(72% 0.0051 228.82)",
+          "oklch(84% 0.0051 228.82)",
+          "oklch(95% 0.0051 228.82)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "text",
+        "tonalRamp": [
+          "oklch(15% 0.0235 235.92)",
+          "oklch(26% 0.0235 235.92)",
+          "oklch(38% 0.0235 235.92)",
+          "oklch(49% 0.0235 235.92)",
+          "oklch(61% 0.0235 235.92)",
+          "oklch(72% 0.0235 235.92)",
+          "oklch(84% 0.0235 235.92)",
+          "oklch(95% 0.0235 235.92)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "muted",
+        "tonalRamp": [
+          "oklch(15% 0.0262 233.87)",
+          "oklch(26% 0.0262 233.87)",
+          "oklch(38% 0.0262 233.87)",
+          "oklch(49% 0.0262 233.87)",
+          "oklch(61% 0.0262 233.87)",
+          "oklch(72% 0.0262 233.87)",
+          "oklch(84% 0.0262 233.87)",
+          "oklch(95% 0.0262 233.87)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "accent",
+        "tonalRamp": [
+          "oklch(15% 0.0842 179.93)",
+          "oklch(26% 0.0842 179.93)",
+          "oklch(38% 0.0842 179.93)",
+          "oklch(49% 0.0842 179.93)",
+          "oklch(61% 0.0842 179.93)",
+          "oklch(72% 0.0842 179.93)",
+          "oklch(84% 0.0842 179.93)",
+          "oklch(95% 0.0842 179.93)"
+        ]
+      },
+      "positive": {
+        "role": "neutral",
+        "displayName": "positive",
+        "tonalRamp": [
+          "oklch(15% 0.0954 163.53)",
+          "oklch(26% 0.0954 163.53)",
+          "oklch(38% 0.0954 163.53)",
+          "oklch(49% 0.0954 163.53)",
+          "oklch(61% 0.0954 163.53)",
+          "oklch(72% 0.0954 163.53)",
+          "oklch(84% 0.0954 163.53)",
+          "oklch(95% 0.0954 163.53)"
+        ]
+      },
+      "negative": {
+        "role": "neutral",
+        "displayName": "negative",
+        "tonalRamp": [
+          "oklch(15% 0.1669 21.28)",
+          "oklch(26% 0.1669 21.28)",
+          "oklch(38% 0.1669 21.28)",
+          "oklch(49% 0.1669 21.28)",
+          "oklch(61% 0.1669 21.28)",
+          "oklch(72% 0.1669 21.28)",
+          "oklch(84% 0.1669 21.28)",
+          "oklch(95% 0.1669 21.28)"
+        ]
+      },
+      "warning": {
+        "role": "neutral",
+        "displayName": "warning",
+        "tonalRamp": [
+          "oklch(15% 0.0933 71.03)",
+          "oklch(26% 0.0933 71.03)",
+          "oklch(38% 0.0933 71.03)",
+          "oklch(49% 0.0933 71.03)",
+          "oklch(61% 0.0933 71.03)",
+          "oklch(72% 0.0933 71.03)",
+          "oklch(84% 0.0933 71.03)",
+          "oklch(95% 0.0933 71.03)"
+        ]
+      },
+      "secondary-data": {
+        "role": "secondary",
+        "displayName": "secondary-data",
+        "tonalRamp": [
+          "oklch(15% 0.1348 254.16)",
+          "oklch(26% 0.1348 254.16)",
+          "oklch(38% 0.1348 254.16)",
+          "oklch(49% 0.1348 254.16)",
+          "oklch(61% 0.1348 254.16)",
+          "oklch(72% 0.1348 254.16)",
+          "oklch(84% 0.1348 254.16)",
+          "oklch(95% 0.1348 254.16)"
+        ]
+      },
+      "reference-data": {
+        "role": "secondary",
+        "displayName": "reference-data",
+        "tonalRamp": [
+          "oklch(15% 0.0294 229.36)",
+          "oklch(26% 0.0294 229.36)",
+          "oklch(38% 0.0294 229.36)",
+          "oklch(49% 0.0294 229.36)",
+          "oklch(61% 0.0294 229.36)",
+          "oklch(72% 0.0294 229.36)",
+          "oklch(84% 0.0294 229.36)",
+          "oklch(95% 0.0294 229.36)"
+        ]
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "field-border",
+        "tonalRamp": [
+          "oklch(15% 0.0201 225.77)",
+          "oklch(26% 0.0201 225.77)",
+          "oklch(38% 0.0201 225.77)",
+          "oklch(49% 0.0201 225.77)",
+          "oklch(61% 0.0201 225.77)",
+          "oklch(72% 0.0201 225.77)",
+          "oklch(84% 0.0201 225.77)",
+          "oklch(95% 0.0201 225.77)"
+        ]
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "focus",
+        "tonalRamp": [
+          "oklch(15% 0.0819 223.56)",
+          "oklch(26% 0.0819 223.56)",
+          "oklch(38% 0.0819 223.56)",
+          "oklch(49% 0.0819 223.56)",
+          "oklch(61% 0.0819 223.56)",
+          "oklch(72% 0.0819 223.56)",
+          "oklch(84% 0.0819 223.56)",
+          "oklch(95% 0.0819 223.56)"
+        ]
+      },
+      "evidence": {
+        "role": "neutral",
+        "displayName": "evidence",
+        "tonalRamp": [
+          "oklch(15% 0.0069 219.56)",
+          "oklch(26% 0.0069 219.56)",
+          "oklch(38% 0.0069 219.56)",
+          "oklch(49% 0.0069 219.56)",
+          "oklch(61% 0.0069 219.56)",
+          "oklch(72% 0.0069 219.56)",
+          "oklch(84% 0.0069 219.56)",
+          "oklch(95% 0.0069 219.56)"
+        ]
+      },
+      "evidence-text": {
+        "role": "neutral",
+        "displayName": "evidence-text",
+        "tonalRamp": [
+          "oklch(15% 0.0590 222.58)",
+          "oklch(26% 0.0590 222.58)",
+          "oklch(38% 0.0590 222.58)",
+          "oklch(49% 0.0590 222.58)",
+          "oklch(61% 0.0590 222.58)",
+          "oklch(72% 0.0590 222.58)",
+          "oklch(84% 0.0590 222.58)",
+          "oklch(95% 0.0590 222.58)"
+        ]
+      },
+      "matrix": {
+        "role": "neutral",
+        "displayName": "matrix",
+        "tonalRamp": [
+          "oklch(15% 0.0086 205.89)",
+          "oklch(26% 0.0086 205.89)",
+          "oklch(38% 0.0086 205.89)",
+          "oklch(49% 0.0086 205.89)",
+          "oklch(61% 0.0086 205.89)",
+          "oklch(72% 0.0086 205.89)",
+          "oklch(84% 0.0086 205.89)",
+          "oklch(95% 0.0086 205.89)"
+        ]
+      },
+      "matrix-error": {
+        "role": "neutral",
+        "displayName": "matrix-error",
+        "tonalRamp": [
+          "oklch(15% 0.0119 17.36)",
+          "oklch(26% 0.0119 17.36)",
+          "oklch(38% 0.0119 17.36)",
+          "oklch(49% 0.0119 17.36)",
+          "oklch(61% 0.0119 17.36)",
+          "oklch(72% 0.0119 17.36)",
+          "oklch(84% 0.0119 17.36)",
+          "oklch(95% 0.0119 17.36)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Título principal",
+        "purpose": "Cabecera de vista."
+      },
+      "metric": {
+        "displayName": "Cifra de métrica",
+        "purpose": "Resultados tabulares de lectura rápida."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "view-opacity",
+        "value": "opacity .75 → 1; 160ms cubic-bezier(.23,1,.32,1)",
+        "purpose": "Cambio de vista; excluye teclado reciente y movimiento reducido."
+      },
+      {
+        "name": "press",
+        "value": "scale(.98); 120ms cubic-bezier(.23,1,.32,1)",
+        "purpose": "Presión de botón; sin transform con movimiento reducido."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide",
+        "value": "1600px"
+      },
+      {
+        "name": "compact",
+        "value": "1100px"
+      },
+      {
+        "name": "horizontal-nav",
+        "value": "850px"
+      },
+      {
+        "name": "mobile",
+        "value": "640px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón discreto",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Acciones auxiliares y navegación entre vistas.",
+      "html": "<button class=\"ds-button\" type=\"button\">Ver comparación completa →</button>",
+      "css": ".ds-button{font:13px/1.5 Plex,\"Helvetica Neue\",sans-serif;color:var(--text,#18252d);background:var(--raised,#f5f8f9);border:0;border-radius:6px;padding:8px 12px;min-height:36px;cursor:pointer}.ds-button:focus-visible{outline:3px solid var(--focus,#347e97);outline-offset:3px}@media(hover:hover) and (pointer:fine){.ds-button:hover{background:var(--active,#e7edef)}}.ds-button:active{transform:scale(.98);transition:transform 120ms cubic-bezier(.23,1,.32,1)}.ds-button:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button:active{transform:none;transition:none}}"
+    },
+    {
+      "name": "Selector nativo",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Filtro con etiqueta y foco visible.",
+      "html": "<label class=\"ds-field\">Comparar en<select><option>Validación · selección</option><option>Prueba · retrospectiva</option></select></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;font:12px/1.5 Plex,\"Helvetica Neue\",sans-serif;color:var(--muted,#52636d)}.ds-field select{font:14px/1.5 Plex,\"Helvetica Neue\",sans-serif;color:var(--text,#18252d);background:var(--surface,#fff);border:1px solid var(--field-border,#b9c9d0);border-radius:6px;padding:7px 30px 7px 11px;min-height:38px}.ds-field select:focus-visible{outline:3px solid var(--focus,#347e97);outline-offset:3px}"
+    },
+    {
+      "name": "Navegación activa",
+      "kind": "nav",
+      "refersTo": "nav-active",
+      "description": "Selección semántica de una vista.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#resumen\" aria-current=\"page\">Resumen</a><a href=\"#datos\">Datos</a></nav>",
+      "css": ".ds-nav{display:flex;flex-direction:column;gap:7px;font:15px/1.5 Plex,\"Helvetica Neue\",sans-serif}.ds-nav a{padding:10px 14px;min-height:43px;border-radius:6px;text-decoration:none;color:var(--muted,#52636d)}.ds-nav a[aria-current=page]{background:var(--active,#e7edef);color:var(--text,#18252d);font-weight:500}.ds-nav a:focus-visible{outline:3px solid var(--focus,#347e97);outline-offset:3px}@media(hover:hover) and (pointer:fine){.ds-nav a:hover{background:var(--active,#e7edef)}}"
+    },
+    {
+      "name": "Etiqueta de alcance",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "Contexto breve, sin affordance de botón.",
+      "html": "<span class=\"ds-tag\">Análisis retrospectivo</span>",
+      "css": ".ds-tag{display:inline-block;font:12px/1.5 Plex,\"Helvetica Neue\",sans-serif;color:var(--muted,#52636d);background:var(--raised,#f5f8f9);padding:5px 9px;border-radius:4px}"
+    },
+    {
+      "name": "Panel de evidencia",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Contenedor plano con título y contexto.",
+      "html": "<section class=\"ds-panel\"><h2>Comparar modelos</h2><p>China · RMSE de validación, abril 2019</p></section>",
+      "css": ".ds-panel{font:15px/1.5 Plex,\"Helvetica Neue\",sans-serif;color:var(--text,#18252d);background:var(--surface,#fff);border:1px solid var(--border,#e3eaed);border-radius:8px;padding:21px 22px}.ds-panel h2{font-size:17px;line-height:1.35;font-weight:500;margin:0}.ds-panel p{font-size:13px;color:var(--muted,#52636d);margin:5px 0 0}"
+    },
+    {
+      "name": "Celda de matriz",
+      "kind": "custom",
+      "refersTo": "matrix-cell",
+      "description": "Conteo ilustrativo con sigla y significado; no dato de producción.",
+      "html": "<div class=\"ds-matrix\"><strong>42</strong><span>TP · Verdaderos positivos</span></div>",
+      "css": ".ds-matrix{font:15px/1.5 Plex,\"Helvetica Neue\",sans-serif;color:var(--text,#18252d);background:var(--matrix,#edf5f6);border-radius:5px;padding:18px 15px;min-height:112px;display:flex;flex-direction:column;justify-content:center;font-variant-numeric:tabular-nums}.ds-matrix strong{font-size:30px;font-weight:400;line-height:1.2}.ds-matrix span{font-size:12px;color:var(--muted,#52636d);margin-top:6px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Laboratorio comparativo",
+    "overview": "Laboratorio comparativo organiza el análisis como una hoja de trabajo clara, minimalista y sobria. El marco frío y la hoja blanca sostienen la información; la jerarquía depende de tipografía, alineación y espacio. El color identifica datos y estados.\n\nLos controles son discretos y familiares. La evidencia conserva el modelo, las métricas, la unidad y el alcance junto a la lectura; los estados desconocidos se expresan con texto. La precisión visual acompaña la precisión de las cifras.",
+    "keyCharacteristics": [
+      "Hoja enmarcada sobre fondo frío.",
+      "Tipografía Plex local y cifras tabulares.",
+      "Paneles planos con bordes suaves.",
+      "Color funcional para series, selección y estados."
+    ],
+    "rules": [
+      {
+        "name": "The Color With Evidence Rule",
+        "body": "Todo estado debe llevar texto o etiqueta además del color.",
+        "section": "colors"
+      },
+      {
+        "name": "The Stable Numbers Rule",
+        "body": "Las cifras conservan alineación tabular y se actualizan sin contadores animados.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Sheet Rule",
+        "body": "Los paneles se distinguen por borde, espacio y tono; no por elevación decorativa.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do conservar modelo, unidad y alcance junto a las métricas.",
+      "Do acompañar el color de estados con texto y etiquetas.",
+      "Do mantener las cifras tabulares y las tablas desplazables dentro de su contenedor.",
+      "Do respetar el foco visible, los controles nativos y movimiento reducido."
+    ],
+    "donts": [
+      "Don't añadir sombras a los paneles ni animación de cifras.",
+      "Don't representar un dato ausente como cero o como normalidad.",
+      "Don't ocultar columnas para aparentar que una tabla cabe.",
+      "Don't dar por verificada la composición sin inspección del render."
+    ]
+  }
+}

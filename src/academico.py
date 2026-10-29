@@ -2,7 +2,7 @@
 
 Entrena exclusivamente con observaciones reales. Los escenarios sintéticos se usan
 solo para comprobar una regla de boxplot aplicada a residuos (clases 4, 9 y 12).
-No depende del híbrido físico ni de los detectores experimentales anteriores.
+Las métricas y las unidades se mantienen explícitas en toda la salida.
 """
 from __future__ import annotations
 
@@ -221,10 +221,15 @@ def ajustar_y_evaluar(a):
         mg = crear_modelo(elegido, con_planta=False).fit(trd, trd["target"])
         oof.loc[vad.index], gen_oof.loc[vad.index] = predecir(m, vad), predecir(mg, vad)
         notas_cv.append(metricas_regresion(vad["target"], oof.loc[vad.index]))
-    e_train = tabla_diaria(train, oof)
-    ref = e_train.groupby("plant_id")["esperada"].quantile(0.9).to_dict()
+    # Conservar el calendario completo: una hora eliminada del ajuste no puede
+    # desaparecer del denominador de cobertura al calibrar un día completo.
+    calendario_train = d[d["plant_id"].isin(conocidas) & d["fecha"].lt(TRAIN_END)].copy()
+    pred_oof = oof.reindex(calendario_train.index)
+    calendario_train["valido"] &= pred_oof.notna()
+    e_train = tabla_diaria(calendario_train, pred_oof)
+    ref = e_train[e_train["decide"]].groupby("plant_id")["esperada"].quantile(0.9).to_dict()
     cal = {p: umbral_boxplot(g["residuo"]) for p, g in e_train.groupby("plant_id")}
-    gen = umbral_boxplot(tabla_diaria(train, gen_oof)["residuo"])
+    gen = umbral_boxplot(tabla_diaria(calendario_train, gen_oof.reindex(calendario_train.index))["residuo"])
     generico = crear_modelo(elegido, con_planta=False).fit(train, train["target"])
     todas = predecir(generico, d)
     conocidas_mask = d["plant_id"].isin(conocidas)
@@ -234,10 +239,14 @@ def ajustar_y_evaluar(a):
     e["particion"] = np.select([e["fecha"].lt(TRAIN_END), e["fecha"].lt(TEST_START)],
                                ["entrenamiento", "validación"], default="prueba")
     e["referencia"] = np.where(e["plant_id"].isin(conocidas), "modelo con planta", "modelo genérico")
-    base_test = tabla_diaria(test, predecir(modelo, test), ref)
+    # Regresión horaria evalúa horas válidas; la regla diaria necesita además
+    # saber cuáles faltaron. Usar aquí test filtrado inventaría cobertura completa.
+    calendario_test = d[d["plant_id"].isin(conocidas) & d["fecha"].ge(TEST_START)]
+    base_test = tabla_diaria(calendario_test, predecir(modelo, calendario_test), ref)
     simulaciones = evaluar_simulaciones(base_test, cal, gen)
     resumen = {"elegido": elegido, "nombre": MODELOS[elegido], "comparacion": comparacion,
                "cv": notas_cv, "calibracion": cal, "calibracion_generica": gen,
+               "por_planta": {p: metricas_regresion(g["target"], predecir(modelo, g)) for p, g in test.groupby("plant_id")},
                "particiones": {"entrenamiento": {"desde": train["fecha"].min(), "hasta": train["fecha"].max(), "n": len(train)},
                                 "validacion": {"desde": validacion["fecha"].min(), "hasta": validacion["fecha"].max(), "n": len(validacion)},
                                 "prueba": {"desde": test["fecha"].min(), "hasta": test["fecha"].max(), "n": len(test)}},
@@ -259,7 +268,7 @@ def ajustar_y_evaluar(a):
     resumen["nube"] = [{"real": float(test.iloc[i]["target"]), "pred": float(yt[i]),
                          "planta": test.iloc[i]["plant_id"]} for i in pos]
     diario_test = agregar_alertas(base_test, cal, gen)
-    resumen["regresion_diaria"] = metricas_regresion(base_test["real"], base_test["esperada"])
+    resumen["regresion_diaria"] = metricas_regresion(base_test.loc[base_test["decide"], "real"], base_test.loc[base_test["decide"], "esperada"])
     resumen["baseline_sin_inyeccion"] = {"alertas": int(diario_test["alerta"].sum()),
                                         "dias_con_decision": int(diario_test["decide"].sum()),
                                         "dias_sin_decision": int((~diario_test["decide"]).sum()),

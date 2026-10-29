@@ -1,464 +1,157 @@
-/* Dashboard de la flota solar. Lee window.DATOS (app/datos.js, generado por app/build_dashboard.py). */
-"use strict";
-
-const D = window.DATOS;
-const $ = (s) => document.querySelector(s);
-const fmt = (n, d = 0) => (n == null || Number.isNaN(n)) ? "—"
-  : n.toLocaleString("es-AR", { minimumFractionDigits: d, maximumFractionDigits: d });
-const usd = (n) => "USD " + fmt(n);
-const pct = (r) => fmt(r * 100) + "%";
-const fechaLarga = (f) => new Date(f + "T12:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
-const mesLargo = (m) => {
-  const s = new Date(m + "-15T12:00:00").toLocaleDateString("es-AR", { month: "long", year: "numeric" });
-  return s[0].toUpperCase() + s.slice(1);
-};
-const restarDias = (f, d) => { const x = new Date(f + "T12:00:00Z"); x.setUTCDate(x.getUTCDate() - d); return x.toISOString().slice(0, 10); };
-const plural = (n, uno, varios) => n === 1 ? uno : varios;
-const titulo = (s) => s.toLowerCase().replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Ii|Iii|Iv|Vi)\b/g, (m) => m.toUpperCase());
-
-const ESTADO = {
-  rojo: { txt: "Atender hoy", orden: 0 },
-  amarillo: { txt: "Revisar esta semana", orden: 1 },
-  gris: { txt: "Sin dato confiable", orden: 2 },
-  verde: { txt: "En orden", orden: 3 },
-};
-const COLOR = { verde: "#129a3c", amarillo: "#f2a900", rojo: "#d03b3b", gris: "#8b979c" };
-const TINTA = "#0f2a36", TENUE = "#566b74";
-const FUENTE = getComputedStyle(document.body).fontFamily;
-const CONFIG = { displayModeBar: false, responsive: true };
-const EJE = { gridcolor: "#dfe4e2", linecolor: "#b9c3c0", zeroline: false, tickfont: { color: TENUE, size: 13 }, automargin: true };
-const base = (extra = {}) => Object.assign({
-  font: { family: FUENTE, size: 14, color: TINTA },
-  paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
-  margin: { l: 10, r: 16, t: 10, b: 10 }, showlegend: false,
-  hoverlabel: { bgcolor: "#ffffff", bordercolor: "#c9d1cf", font: { color: TINTA, family: FUENTE, size: 14 } },
-}, extra);
-const GEO = {
-  resolution: 50, projection: { type: "mercator" }, showframe: false, bgcolor: "rgba(0,0,0,0)",
-  showland: true, landcolor: "#f4f6f5", showocean: true, oceancolor: "#d3e0e3",
-  showcoastlines: true, coastlinecolor: "#8ea3a9", showcountries: true, countrycolor: "#aebcc0", showlakes: false,
-};
-// Posición del número de cada planta en el mapa: 02, 03 y 05 están a pocos km entre sí
-const ROTULO = { station05: "top center", station03: "middle left", station02: "bottom right", station07: "middle left" };
-// "Parque Solar Fotovoltaico Cauchari III" -> "Cauchari III": el prefijo se repite y no distingue
-const nombreCorto = (s) => s.replace(/^(parque solar fotovoltaico|parque solar|pque\.? solar( fv| fotovoltaico)?|pque\.? fotov\.?|pque\.?|proyecto solar( fv)?|c\.? ?fotov\.?|p\.\s?s\.?(f\.?v\.?)?|parque)\s+/i, "") || s;
-const corto = (s, n = 26) => s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s;
-const lampara = (estado, extra = "") => `<span class="lampara ${estado} ${extra}" aria-hidden="true"></span>`;
-const flecha = `<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="m4 2 4 4-4 4" stroke="currentColor" stroke-width="2" fill="none"/></svg>`;
-
-// ------------------------------------------------------------------ estado de la página
-const FECHAS = Object.keys(D.flota.tablero).sort();
-const S = {
-  fecha: FECHAS.includes("2019-05-10") ? "2019-05-10" : FECHAS.at(-1),
-  planta: "station09", dias: 90,
-  mes: D.argentina.meses.at(-1), parque: "ULL4FV",
-  costo: D.negocio.costo, precio: D.negocio.precio, tasa: D.negocio.tasa * 100,
-};
-const tablero = () => D.flota.tablero[S.fecha];
-const filaDe = (p) => tablero().find((r) => r.p === p);
-
-function perdidaEnAlertas(p, desde, hasta) {
-  const d = D.flota.plantas[p];
-  let mwh = 0, dias = 0;
-  d.fecha.forEach((f, i) => { if (f > desde && f <= hasta && d.alerta[i]) { mwh += d.perdida[i] || 0; dias++; } });
-  return { mwh, dias };
+/* Solar / Datos. Evidencia calculada por src/academico.py. Sin peticiones de red. */
+'use strict';
+const D = window.DEFENSA;
+const $ = s => document.querySelector(s);
+const fmt = (n, d=0) => n == null || !Number.isFinite(+n) ? '—' : (+n).toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct = (n,d=1) => n == null ? '—' : fmt(n*100,d)+'%';
+const fecha = s => new Date(s+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'});
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TITULOS = {resumen:['¿Qué aprendió el modelo?','Comparar modelos, interpretar errores y poner a prueba las alertas.'],datos:['Entender los datos antes de modelar','Fuentes reales, calidad, preparación y análisis exploratorio.'],modelos:['Elegir el modelo con evidencia','Comparar error y generalización, con las herramientas de las clases.'],evaluacion:['Medir lo que detecta y lo que se escapa','Una regla de alertas, una muestra definida y una matriz de confusión.'],casos:['De la métrica al caso concreto','China y Argentina: distintas fuentes, frecuencias y límites.']};
+const S={vista:'resumen',pais:'china',planta:'station09',parque:'ULL4FV',fecha:'2019-05-10'};
+let keyboardAt=0;
+document.addEventListener('keydown',()=>{keyboardAt=Date.now();});
+const ink='#18252d',muted='#52636d',teal='#227a6c',red='#b4313b',blue='#2f70bb';
+const config={responsive:true,displaylogo:false,displayModeBar:false};
+const eje={gridcolor:'#edf1f3',zeroline:false,tickfont:{size:12,color:muted},automargin:true};
+const layout=extra=>({font:{family:'Plex, Helvetica Neue, sans-serif',size:13,color:ink},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',margin:{l:40,r:14,t:15,b:40},showlegend:false,hoverlabel:{bgcolor:'#fff',font:{color:ink,size:13}},...extra});
+function plot(id,traces,extra={}) { const el=document.getElementById(id); if(!el)return; return Plotly.react(el,traces,layout(extra),config).catch(()=>{el.innerHTML='<p class="empty">No se pudo dibujar el gráfico. Recargá la página para volver a intentarlo.</p>';}); }
+const metricasDe=(r,p='test')=>r.comparacion.find(m=>m.id===r.elegido)[p];
+function clase(key){const c=D.clases[key];return `<a href="${c.url}" target="_blank" rel="noopener">Clase ${c.clase} · ${esc(c.tema)} ↗</a>`;}
+function referencia(keys){$('#referencias').innerHTML='<div class="references">'+keys.map(clase).join('')+'</div>';}
+function barraEvidencia(){
+ const argentino=(S.vista==='modelos'&&$('#modelos-territorio').value==='argentina')||(S.vista==='casos'&&S.pais==='argentina');
+ const r=argentino?D.regresion_argentina:D.regresion,m=metricasDe(r);
+ $('#evidencia').innerHTML=`<span class="model-name">${esc(r.nombre)} · Regresión</span><div class="evidence-metrics"><span>MAE <b>${fmt(m.mae,4)}</b></span><span>RMSE <b>${fmt(m.rmse,4)}</b></span><span>R² <b>${fmt(m.r2,4)}</b></span></div><span class="evidence-context">${argentino?'Argentina · FC · 2025–sep. 2026':'China · MW/MW · may.–jun. 2019'} · prueba, n = ${fmt(m.n)}</span>`;
 }
-
-// ------------------------------------------------------------------ navegación
-const VISTAS = { flota: vistaFlota, planta: vistaPlanta, argentina: vistaArgentina, negocio: vistaNegocio };
-function mostrar() {
-  const v = location.hash.slice(1);
-  const vista = v in VISTAS ? v : "flota";
-  document.querySelectorAll(".vista").forEach((s) => { s.hidden = s.id !== "v-" + vista; });
-  document.querySelectorAll(".vistas a").forEach((a) => {
-    if (a.hash === "#" + vista) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
-  });
-  $("#control-dia").hidden = !["flota", "planta"].includes(vista);
-  if (vista !== mostrar.ultima) window.scrollTo(0, 0);
-  mostrar.ultima = vista;
-  VISTAS[vista]();
+function mostrar(){
+ const hash=location.hash.slice(1);S.vista=Object.hasOwn(TITULOS,hash)?hash:'resumen';
+ document.querySelectorAll('.view').forEach(el=>{el.hidden=el.id!=='vista-'+S.vista;});
+ document.querySelectorAll('#navegacion a').forEach(a=>{if(a.hash==='#'+S.vista)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+ $('#titulo').textContent=TITULOS[S.vista][0];$('#subtitulo').textContent=TITULOS[S.vista][1];
+ $('#breadcrumb').textContent=S.vista[0].toUpperCase()+S.vista.slice(1);
+ barraEvidencia();({resumen:resumen,datos:datos,modelos:modelos,evaluacion:evaluacion,casos:casos}[S.vista])();
+ if(Date.now()-keyboardAt>500&&!matchMedia('(prefers-reduced-motion: reduce)').matches)document.getElementById('vista-'+S.vista).animate([{opacity:.75},{opacity:1}],{duration:160,easing:'cubic-bezier(.23,1,.32,1)'});
 }
-function irAPlanta(p) { S.planta = p; location.hash = "#planta"; }
-
-// ------------------------------------------------------------------ 1. flota hoy
-function vistaFlota() {
-  const t = tablero();
-  const orden = [...t].sort((a, b) => ESTADO[a.estado].orden - ESTADO[b.estado].orden || (b.usd ?? -1) - (a.usd ?? -1));
-  const rojos = orden.filter((r) => r.estado === "rojo"), amarillos = orden.filter((r) => r.estado === "amarillo");
-  const desde = restarDias(S.fecha, 30);
-  const mes = Object.keys(D.flota.plantas).reduce((a, p) => a + perdidaEnAlertas(p, desde, S.fecha).mwh, 0);
-  const lineaMes = `En los 30 días previos la flota perdió <b>${fmt(mes)} MWh</b> (${usd(mes * D.negocio.precio)}) en días con alerta.`;
-
-  let h;
-  if (rojos.length) {
-    const r = rojos[0], n = rojos.length;
-    const extra = amarillos.length ? ` Además, ${amarillos.length} ${plural(amarillos.length, "planta para revisar", "plantas para revisar")} esta semana.` : "";
-    h = `${lampara("rojo")}<div><h1>${n} ${plural(n, "planta necesita", "plantas necesitan")} un técnico hoy</h1>
-      <p><b>${r.p}</b> rinde ${pct(r.rend)} de lo normal.${extra} ${lineaMes}</p></div>
-      <div class="cifra"><strong>${usd(r.usd)}</strong><span>pierde ${r.p} por día</span></div>`;
-  } else if (amarillos.length) {
-    h = `${lampara("amarillo")}<div><h1>Nadie necesita un técnico hoy</h1>
-      <p>${amarillos.length} ${plural(amarillos.length, "planta para revisar", "plantas para revisar")} esta semana: <b>${amarillos.map((r) => r.p).join(", ")}</b>. ${lineaMes}</p></div>
-      <div class="cifra"><strong>${usd(mes * D.negocio.precio)}</strong><span>perdidos en 30 días</span></div>`;
-  } else {
-    h = `${lampara("verde")}<div><h1>Toda la flota rinde como se espera</h1><p>${lineaMes}</p></div>
-      <div class="cifra"><strong>${usd(mes * D.negocio.precio)}</strong><span>perdidos en 30 días</span></div>`;
-  }
-  $("#flota-franja").innerHTML = h;
-
-  // lista por prioridad: los problemas con fila propia, las plantas en orden como fichas
-  const grupos = ["rojo", "amarillo", "gris", "verde"].map((e) => [e, orden.filter((r) => r.estado === e)]).filter(([, rs]) => rs.length);
-  $("#flota-lista").innerHTML = `<h2>Plantas por prioridad <em>${fechaLarga(S.fecha)}</em></h2>` + grupos.map(([e, rs]) => {
-    const cab = `<p class="grupo-titulo">${lampara(e)} ${ESTADO[e].txt} <b>${rs.length}</b></p>`;
-    if (e === "verde") {
-      return `<div class="grupo">${cab}<div class="chips">${rs.map((r) =>
-        `<button class="chip" data-p="${r.p}" title="Rinde ${pct(r.rend)} de lo normal">${r.p}</button>`).join("")}</div></div>`;
-    }
-    return `<div class="grupo">${cab}${rs.map((r) => {
-      const tipica = D.flota.plantas[r.p].modelo !== "propio" ? " Se compara con una planta típica." : "";
-      const que = e === "gris"
-        ? `Capacidad declarada no confiable<small>Mide más potencia de la que dice su ficha técnica: hay que corregirla antes de evaluarla.</small>`
-        : `Rinde ${pct(r.rend)} de lo normal${r.alerta !== "—" ? " · " + r.alerta.toLowerCase() : ""}<small>${r.accion}.${tipica}</small>`;
-      const sello = r.baja ? ` <span class="sello">Baja confianza</span>` : "";
-      return `<button class="fila" data-p="${r.p}">${lampara(e)}<span class="nombre">${r.p}${sello}</span>
-        <span class="que">${que}</span>
-        <span class="plata">${r.usd == null ? "—" : usd(r.usd)}<small>${r.usd == null ? "" : "por día"}</small></span>
-        <span class="ir">Ver planta ${flecha}</span></button>`;
-    }).join("")}</div>`;
-  }).join("");
-
-  const lista = $("#flota-lista");
-  lista.querySelectorAll("[data-p]").forEach((b) => {
-    b.addEventListener("click", () => irAPlanta(b.dataset.p));
-    b.addEventListener("mouseenter", () => enfocar(b.dataset.p));
-    b.addEventListener("focus", () => enfocar(b.dataset.p));
-    b.addEventListener("mouseleave", () => enfocar(null));
-    b.addEventListener("blur", () => enfocar(null));
-  });
-
-  // mapa: las plantas con problema se dibujan arriba
-  const pts = [...orden].reverse();
-  Plotly.react("flota-mapa", [{
-    type: "scattergeo", lon: pts.map((r) => D.flota.plantas[r.p].lon), lat: pts.map((r) => D.flota.plantas[r.p].lat),
-    text: pts.map((r) => r.p.replace("station", "")), mode: "markers+text",
-    textposition: pts.map((r) => ROTULO[r.p] || "middle right"),
-    textfont: { size: 13, color: TINTA, family: FUENTE },
-    marker: { size: 20, color: pts.map((r) => COLOR[r.estado]), line: { width: 3, color: "#ffffff" }, opacity: 1 },
-    customdata: pts.map((r) => [r.p, ESTADO[r.estado].txt]),
-    hovertemplate: "<b>%{customdata[0]}</b><br>%{customdata[1]}<extra></extra>",
-  }], base({ geo: { ...GEO, scope: "asia", lonaxis: { range: [112.9, 118.3] }, lataxis: { range: [36.1, 40.0] } } }), CONFIG);
-  const mapa = $("#flota-mapa");
-  mapa.removeAllListeners?.("plotly_click");
-  mapa.on("plotly_click", (ev) => irAPlanta(ev.points[0].customdata[0]));
-  mapa._orden = pts.map((r) => r.p);
+function descargar(texto,nombre,tipo){const url=URL.createObjectURL(new Blob([texto],{type:tipo}));const a=document.createElement('a');a.href=url;a.download=nombre;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function lect(label,value,note){return `<div class="finding"><span class="finding-label">${label}</span><strong>${value}</strong><p>${note}</p></div>`;}
+function resumen(){
+ referencia(['ensambles','clasificacion','validacion','regresion']);
+ const r=D.regresion,m=metricasDe(r),ar=metricasDe(D.regresion_argentina);
+ $('#recorrido').innerHTML=[['Clima observado','Irradiancia, temperatura y viento'],[r.nombre,'Estimar potencia · Regresión'],['Residuo + boxplot','Señalar un desvío · Clase 4'],['Revisión técnica','Interpretar antes de intervenir']].map(([a,b],i)=>`<div class="flow-step"><b>${esc(a)}</b><p>${esc(b)}</p>${i<3?'<span aria-hidden="true">→</span>':''}</div>`).join('');
+ const sm=sumarMatriz(D.simulaciones.filter(x=>x.caida===.5));
+ $('#resumen-n').textContent=fmt(sm.n)+' días-experimento con decisión · '+fmt(D.simulaciones.filter(x=>x.caida===.5).reduce((a,r)=>a+r.sin_decision,0))+' sin decisión, excluidos. Inyecciones solo para evaluar; no son fallas operativas confirmadas.';
+ $('#resumen-lecturas').innerHTML=lect('Precision · Caída del 50%',pct(sm.precision),'Proporción de alertas correctas en el benchmark.')+lect('Recall · Caída del 50%',pct(sm.recall),'Proporción de días con caída que detecta la regla.');
+ $('#resumen-matriz').innerHTML=`<div></div><div class="matrix-label">Predijo normal</div><div class="matrix-label">Predijo alerta</div><div class="matrix-label">Real<br>sin caída</div><div class="matrix-cell"><strong>${fmt(sm.tn)}</strong><span>TN · Verdaderos negativos</span></div><div class="matrix-cell error-cell"><strong>${fmt(sm.fp)}</strong><span>FP · Falsos positivos</span></div><div class="matrix-label">Real<br>con caída</div><div class="matrix-cell error-cell"><strong>${fmt(sm.fn)}</strong><span>FN · Falsos negativos</span></div><div class="matrix-cell"><strong>${fmt(sm.tp)}</strong><span>TP · Verdaderos positivos</span></div>`;
+ const cmp=[...r.comparacion].sort((a,b)=>a.validacion.rmse-b.validacion.rmse);
+ plot('resumen-scatter',[{type:'bar',orientation:'h',y:cmp.map(x=>x.nombre),x:cmp.map(x=>x.validacion.rmse),marker:{color:cmp.map(x=>x.id===r.elegido?teal:'#c5d3da')},text:cmp.map(x=>fmt(x.validacion.rmse,4)),textposition:'outside',cliponaxis:false,hovertemplate:'%{y}<br>RMSE %{x:.4f} MW/MW<extra></extra>'}],{xaxis:{...eje,title:{text:'RMSE (MW/MW)',font:{size:12}},range:[0,Math.max(...cmp.map(x=>x.validacion.rmse))*1.3]},yaxis:{...eje,showgrid:false,autorange:'reversed'},margin:{l:140,r:25,t:12,b:40}});
+ $('#resumen-alcances').innerHTML=`<div><h3>China · Observación horaria</h3><p>${D.plantas.length} plantas con sensores. Regresión de potencia y alertas al cierre del día. Una sola vuelta estacional y capacidad inconsistente en station04.</p><span class="scope-metric">${fmt(D.eda.n_horario)} <small class="caption">registros horarios</small></span></div><div><h3>Argentina · Comparación mensual</h3><p>CAMMESA y clima externo. ${esc(D.regresion_argentina.nombre)}, con MAE ${fmt(ar.mae,4)} de factor de capacidad. Comparación retrospectiva, sin etiquetas de fallas confirmadas.</p><span class="scope-metric">${fmt(D.regresion_argentina.parques)} <small class="caption">parques comparables de ${D.eda.plantas_argentina}</small></span></div>`;
 }
-
-function enfocar(p) {
-  const lista = $("#flota-lista"), mapa = $("#flota-mapa");
-  lista.classList.toggle("atenuado", !!p);
-  lista.querySelectorAll("[data-p]").forEach((b) => b.classList.toggle("foco", b.dataset.p === p));
-  if (mapa._orden) Plotly.restyle(mapa, { "marker.opacity": [mapa._orden.map((q) => (!p || q === p) ? 1 : 0.25)] });
+function datos(){
+ referencia(['etl','calidad','eda','features']);
+ $('#arquitectura').innerHTML=[['Fuentes','PVOD · CAMMESA<br>Open-Meteo · NASA'],['Preparación','Fechas y unidades<br>Calidad y categorías'],['Modelado','Train → validación<br>Regresión comparada'],['Evaluación','MAE · RMSE · R²<br>Residuos y matriz'],['Aplicación','Gráficos locales<br>Evidencia para decidir']].map(([a,b])=>`<div><h3>${a}</h3><p>${b}</p></div>`).join('');
+ $('#calidad').innerHTML=[['China',fmt(D.eda.n_horario),'registros horarios'],['Argentina',fmt(D.eda.n_mensual),'meses-parque originales'],['Duplicados',fmt(D.eda.duplicados_horario+D.eda.duplicados_mensual),'en las claves de ambas tablas'],['Ceros conservados',fmt(D.regresion_argentina.ceros_conservados),'meses operativos comparables']].map(([a,b,c])=>`<div><span class="metric-label">${a}</span><strong class="metric-number">${b}</strong><span class="metric-note">${c}</span></div>`).join('');
+ $('#preparacion').innerHTML='<ul><li>Target China: potencia medida / capacidad nominal. La planta se codifica con One-Hot Encoding; hora, mes y día del año se derivan de la fecha.</li><li>Entrenar una referencia sana excluye apagones con sol y registros congelados. Los apagones se conservan al evaluar.</li><li>station04 tiene capacidad no confiable; station09 se aplica al modelo genérico, sin usarla para aprender producción sana.</li><li>Un sensor caído, un registro inválido o poca señal implican sin decisión, nunca funcionamiento normal.</li><li>Argentina excluye centroides provinciales y capacidades inválidas. Las coordenadas de localidad siguen siendo aproximadas; se muestran como tales en el caso.</li></ul>';
+ renderEDA();
 }
-
-// ------------------------------------------------------------------ 2. una planta
-function vistaPlanta() {
-  const p = S.planta, d = D.flota.plantas[p], hoy = filaDe(p);
-  $("#planta-chips").innerHTML = Object.keys(D.flota.plantas).sort().map((q) =>
-    `<button class="chip" data-p="${q}" aria-pressed="${q === p}">${lampara(filaDe(q)?.estado ?? "gris")}${q}</button>`).join("");
-  $("#planta-chips").querySelectorAll("[data-p]").forEach((b) => b.addEventListener("click", () => { S.planta = b.dataset.p; vistaPlanta(); }));
-  $("#planta-periodo").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.dias === S.dias)));
-
-  const desde = restarDias(S.fecha, S.dias);
-  const idx = d.fecha.map((f, i) => i).filter((i) => d.fecha[i] > desde && d.fecha[i] <= S.fecha);
-  const periodo = { 30: "en el último mes", 90: "en los últimos 3 meses", 400: "en todo el período" }[S.dias];
-  let real = 0, esp = 0;
-  idx.forEach((i) => { if (d.decide[i]) { real += d.real[i]; esp += d.esperada[i]; } });
-  const { mwh, dias } = perdidaEnAlertas(p, desde, S.fecha);
-  const sensor = idx.filter((i) => d.sensor[i]).length, baja = idx.filter((i) => d.baja[i]).length;
-  const estado = hoy?.estado ?? "gris";
-  const tipica = d.modelo !== "propio" ? " Como no tiene historia sana propia, se compara con una planta típica." : "";
-  const hoyTxt = hoy ? ` Al ${fechaLarga(S.fecha)}: <b>${ESTADO[estado].txt.toLowerCase()}</b>.` : "";
-
-  $("#planta-rango").textContent = idx.length ? `${fechaLarga(d.fecha[idx[0]])} al ${fechaLarga(d.fecha[idx.at(-1)])}` : "";
-  if (estado === "gris") {
-    $("#planta-franja").innerHTML = `${lampara("gris")}<div><h1>${p}: capacidad declarada no confiable</h1>
-      <p>Mide más potencia de la que dice su ficha técnica, así que su rendimiento no se puede juzgar hasta corregirla. La energía de abajo se muestra solo como referencia.</p></div><div></div>`;
-  } else if (!esp) {
-    $("#planta-franja").innerHTML = `${lampara(estado)}<div><h1>${p}: sin días para juzgar ${periodo}</h1>
-      <p>En este período no hubo días con datos suficientes (sensor caído o días muy nublados).${hoyTxt}</p></div><div></div>`;
-  } else {
-    $("#planta-franja").innerHTML = `${lampara(estado)}<div><h1>${p} generó ${pct(real / esp)} de lo que debía ${periodo}</h1>
-      <p>${dias ? `Perdió <b>${fmt(mwh)} MWh</b> en ${dias} ${plural(dias, "día", "días")} con alerta.` : "No tuvo días con alerta."}${hoyTxt}${tipica}${sensor ? ` ${sensor} ${plural(sensor, "día quedó", "días quedaron")} sin decisión por el sensor caído.` : ""}</p></div>
-      <div class="cifra"><strong>${usd(mwh * D.negocio.precio)}</strong><span>perdidos en días con alerta</span></div>`;
-  }
-  $("#planta-aviso").innerHTML = baja ? `<div class="aviso"><span class="sello">Baja confianza</span><div>
-    <strong>De enero a marzo las alertas de ${p} son de baja confianza.</strong>
-    Esta planta rinde menos todos los inviernos (sombra o nieve) y el modelo, con un solo año de datos, no lo aprende. Los avisos se muestran, pero no implican una falla.</div></div>` : "";
-
-  const x = idx.map((i) => d.fecha[i]);
-  const tam = S.dias <= 30 ? 13 : S.dias <= 90 ? 9 : 6;
-  const carril = (nombre, cond, color, abierto = false) => {
-    const xs = idx.filter(cond).map((i) => d.fecha[i]);
-    return { type: "scatter", mode: "markers", x: xs, y: xs.map(() => nombre), yaxis: "y2", hoverinfo: "skip",
-      marker: { symbol: abierto ? "square-open" : "square", size: tam, color, line: { width: abierto ? 2 : 0, color } } };
-  };
-  Plotly.react("planta-grafico", [
-    { type: "bar", x, y: idx.map((i) => d.real[i]), marker: { color: "#1f6f86" }, name: "Generó",
-      hovertemplate: "Generó %{y:,.0f} MWh<extra></extra>" },
-    { type: "bar", x, y: idx.map((i) => d.perdida[i] > 0 ? d.perdida[i] : null), marker: { color: "#e2735f" }, name: "Dejó de generar",
-      hovertemplate: "Dejó de generar %{y:,.0f} MWh<extra></extra>" },
-    { type: "scatter", mode: "lines", x, y: idx.map((i) => d.decide[i] ? d.esperada[i] : null), line: { color: TINTA, width: 2, shape: "hvh" },
-      name: "Debía generar", hovertemplate: "Debía generar %{y:,.0f} MWh<extra></extra>" },
-    carril("Alerta del detector", (i) => d.alerta[i], "#d03b3b"),
-    carril("Falla grave", (i) => d.grave[i], "#8f1f1f"),
-    carril("Baja confianza", (i) => d.baja[i] && (d.alerta[i] || d.grave[i]), "#c98a00", true),
-    carril("Sin decisión (sensor)", (i) => d.sensor[i], "#8b979c"),
-  ], base({
-    barmode: "stack", bargap: 0.12, hovermode: "x unified",
-    margin: { l: 10, r: 16, t: 6, b: 10 },
-    xaxis: { ...EJE, anchor: "y2", type: "date", tickformat: "%d %b", hoverformat: "%d de %B de %Y", showgrid: false },
-    yaxis: { ...EJE, domain: [0.3, 1], title: { text: "MWh por día", font: { color: TENUE, size: 13 } }, rangemode: "tozero" },
-    yaxis2: { ...EJE, domain: [0, 0.22], type: "category", showgrid: true, fixedrange: true, range: [-0.5, 3.5],
-      categoryorder: "array", categoryarray: ["Sin decisión (sensor)", "Baja confianza", "Falla grave", "Alerta del detector"] },
-  }), CONFIG);
+function renderEDA(){
+ const tipo=$('#eda-tipo').value,p=$('#eda-planta').value,all=D.eda.nube,rows=all.filter(x=>p==='todas'||x.plant_id===p);
+ $('#eda-planta').disabled=tipo==='corr';
+ const names={scatter:'Irradiancia y potencia',box:'Distribución por planta',hist:'Forma de la distribución',corr:'Correlación entre variables observadas'};
+ $('#eda-titulo').textContent=names[tipo];
+ $('#eda-nota').textContent=tipo==='corr'?'Todas las horas de sol del dataset; sin filtro de planta.':`Muestra determinista: ${fmt(rows.length)} registros horarios con sol${p==='todas'?'':', '+p}.`;
+ const rule={scatter:'Una asociación visible justifica explorar modelos; no prueba causalidad ni el error de predicción.',box:'La caja contiene el 50% central. Los puntos extremos requieren investigación; no se eliminan por ser extremos.',hist:'El histograma muestra frecuencias de potencia normalizada. La selección cambia la población observada.',corr:'La correlación mide asociación lineal, entre −1 y 1. No reemplaza la validación de un modelo.'};
+ $('#eda-interpretacion').textContent=rule[tipo];
+ if(!rows.length&&tipo!=='corr'){document.getElementById('eda-chart').innerHTML='<p class="empty">Sin observaciones para esta selección.</p>';return;}
+ if(tipo==='scatter')plot('eda-chart',[{x:rows.map(x=>x.irradiancia),y:rows.map(x=>x.target),customdata:rows.map(x=>x.plant_id),mode:'markers',marker:{color:teal,size:5,opacity:.45},hovertemplate:'%{customdata}<br>%{x:.0f} W/m²<br>%{y:.3f} MW/MW<extra></extra>'}],{xaxis:{...eje,title:'Irradiancia medida (W/m²)'},yaxis:{...eje,title:'Potencia / capacidad (MW/MW)'}});
+ if(tipo==='box')plot('eda-chart',[{type:'box',x:rows.map(x=>x.plant_id),y:rows.map(x=>x.target),marker:{color:teal,size:3},line:{color:teal,width:1.3},fillcolor:'#eaf3f5',boxpoints:'outliers',hovertemplate:'%{x}<br>%{y:.3f} MW/MW<extra></extra>'}],{xaxis:{...eje,showgrid:false},yaxis:{...eje,title:'Potencia / capacidad (MW/MW)'}});
+ if(tipo==='hist')plot('eda-chart',[{type:'histogram',x:rows.map(x=>x.target),nbinsx:30,marker:{color:teal,line:{color:'#fff',width:1}},hovertemplate:'Potencia %{x:.2f}<br>%{y} observaciones<extra></extra>'}],{xaxis:{...eje,title:'Potencia / capacidad (MW/MW)'},yaxis:{...eje,title:'Frecuencia (registros)'}});
+ if(tipo==='corr'){const names=['Potencia','Irradiancia','Temperatura','Clima externo'];plot('eda-chart',[{type:'heatmap',x:names,y:names,z:D.eda.correlacion,zmin:-1,zmax:1,colorscale:[[0,'#b4313b'],[.5,'#f6f8f9'],[1,teal]],texttemplate:'%{z:.2f}',textfont:{size:13},showscale:false,hovertemplate:'%{x} / %{y}<br>r = %{z:.3f}<extra></extra>'}],{xaxis:{...eje,showgrid:false},yaxis:{...eje,showgrid:false,autorange:'reversed'},margin:{l:90,r:10,t:20,b:70}});}
 }
-
-// ------------------------------------------------------------------ 3. argentina
-const NEUTRO = "#a9b8bc";
-const colorParque = (e) => e === "verde" ? NEUTRO : COLOR[e];
-const tamMW = (mw, k = 2.2) => mw ? Math.max(7, Math.sqrt(mw) * k) : 7;
-
-function filasMes() {
-  return Object.entries(D.argentina.parques).flatMap(([c, q]) => {
-    const i = q.fecha.indexOf(S.mes);
-    if (i < 0 || q.fc[i] == null || !q.rel[i]) return [];
-    const estado = q.alerta[i] && q.rel[i] < 1 ? "rojo" : q.bajo_p10[i] ? "amarillo" : "verde";
-    return [{ c, nombre: nombreCorto(titulo(q.nombre)), provincia: q.provincia, lat: q.lat, lon: q.lon, mw: q.mw,
-      fc: q.fc[i], esp: q.fc[i] / q.rel[i], ratio: q.rel[i], gwh: q.gwh[i], estado, arrastre: !!q.alerta[i] && q.rel[i] >= 1 }];
-  });
+function modeloActual(){return $('#modelos-territorio').value==='argentina'?D.regresion_argentina:D.regresion;}
+function modelos(){
+ referencia(['arbol','ensambles','validacion','regresion']);barraEvidencia();
+ const r=modeloActual(),p=$('#modelos-particion').value,isArg=r===D.regresion_argentina;
+ $('#modelos-regla').textContent=isArg?'La selección utiliza el RMSE de 2024, no el resultado de prueba.':r.regla_eleccion;
+ const parts=isArg?[['Entrenamiento','Hasta diciembre 2023'],['Validación','Enero–diciembre 2024'],['Prueba retrospectiva','Enero 2025–septiembre 2026']]:[['Entrenamiento',`${fecha(r.particiones.entrenamiento.desde)} → ${fecha(r.particiones.entrenamiento.hasta)}`],['Validación','Abril de 2019'],['Prueba retrospectiva','Mayo–junio de 2019']];
+ $('#split').innerHTML=parts.map(([a,b])=>`<div><b>${a}</b><p>${b}</p></div>`).join('');
+ const rows=[...r.comparacion].sort((a,b)=>a[p].rmse-b[p].rmse);
+ plot('modelos-chart',[{type:'bar',orientation:'h',x:rows.map(x=>x[p].rmse),y:rows.map(x=>x.nombre),marker:{color:rows.map(x=>x.id===r.elegido?teal:'#c5d3da')},text:rows.map(x=>fmt(x[p].rmse,4)),textposition:'outside',cliponaxis:false,hovertemplate:'%{y}<br>RMSE %{x:.4f}<extra></extra>'}],{xaxis:{...eje,title:{text:isArg?'RMSE de factor de capacidad':'RMSE (MW/MW)',font:{size:12}},range:[0,Math.max(...rows.map(x=>x[p].rmse))*1.26]},yaxis:{...eje,showgrid:false,autorange:'reversed'},margin:{l:140,r:25,t:10,b:44}});
+ const desc={rf:'Promedia árboles entrenados con muestras y variables diferentes. Captura relaciones no lineales y reduce la variabilidad de un árbol. No extrapola fuera del rango aprendido.',xgb:'Construye árboles en secuencia para corregir errores. Requiere controlar complejidad y evaluar la generalización.',arbol:'Divide los datos mediante preguntas. Cada hoja predice un promedio; la profundidad y el mínimo por hoja limitan el sobreajuste.',lineal_multiple:'Combina varias predictoras en una relación lineal. Es una referencia sencilla e interpretable; no necesita más complejidad si los datos de validación no la justifican.',lineal_simple:'Una recta usa solamente la irradiancia para estimar potencia. Es la referencia más sencilla de la comparación.'};
+ $('#modelo-explicacion').innerHTML=`<p class="model-choice">${esc(r.nombre)}</p><p class="model-description">${desc[r.elegido]}</p><h3>Variables de entrada</h3><div class="feature-list">${r.features.map(f=>`<span>${esc(({irradiancia:'Irradiancia',temperatura:'Temperatura',viento:'Viento',hora:'Hora',mes:'Mes',dia_del_anio:'Día del año',om_ghi_kwh_m2_mes:'Irradiación mensual',om_temp_max_media_c:'Temperatura máxima',om_nubosidad_media_pct:'Nubosidad'})[f]||f)}</span>`).join('')}</div><p class="caption below">${isArg?'Sin ID del parque: estima una referencia de parque típico.':'150 árboles · mínimo de 5 muestras por hoja · semilla 42.'}</p>`;
+ $('#modelos-unidades').textContent=`${r.unidad_target}. Métricas de ${p==='test'?'prueba retrospectiva':p==='train'?'entrenamiento':'validación'}.`;
+ $('#modelos-tabla tbody').innerHTML=r.comparacion.map(row=>`<tr class="${row.id===r.elegido?'selected-model':''}"><td>${esc(row.nombre)}${row.id===r.elegido?'<span class="chosen-tag">Elegido</span>':''}</td><td class="number">${fmt(row[p].mae,4)}</td><td class="number">${fmt(row[p].rmse,4)}</td><td class="number">${fmt(row[p].r2,4)}</td><td class="number">${fmt(row[p].n)}</td></tr>`).join('');
+ $('#modelo-detalles').innerHTML=`<p><b>MAE:</b> promedio de errores absolutos. <b>RMSE:</b> raíz del error cuadrático medio, penaliza más los errores grandes. <b>R²:</b> compara con predecir la media y puede ser negativo en datos nuevos.</p><p>${esc(r.protocolo)}</p><p>La comparación entre entrenamiento y prueba ayuda a detectar sobreajuste. Los transformadores se ajustan dentro del pipeline, con los datos de entrenamiento. Los escenarios controlados nunca participan del ajuste.</p>${!isArg?`<p>Para calibrar los residuos se usan cinco folds agrupados por mes, solo dentro de entrenamiento. No es una simulación cronológica completa. La importancia de una variable no prueba causalidad.</p><p>Importancias de ${esc(r.nombre)}: ${r.importancias.slice(0,6).map(x=>`${esc(x.variable)} (${pct(x.valor)})`).join(' · ')}.</p>`:`<p>${esc(r.limite)}</p>`}`;
 }
-
-function contextoArgentina() {
-  const n = D.argentina.nacional;
-  $("#arg-ctx-nota").textContent = `${mesLargo(n.u12.desde).toLowerCase()} a ${mesLargo(n.u12.hasta).toLowerCase()} · ${n.total_parques} parques de CAMMESA`;
-  const completos = n.anios.filter((a) => a.completo);
-  const de2020 = completos.find((a) => a.anio === 2020), ultimo = completos.at(-1);
-  $("#arg-ctx-lecturas").innerHTML = `
-    <div><span>Generado en los últimos 12 meses</span><strong>${fmt(n.u12.gwh)} GWh</strong><small>${fmt(ultimo.gwh / de2020.gwh, 1)} veces lo de 2020 (año ${ultimo.anio} contra 2020)</small></div>
-    <div><span>Parques solares que generaron</span><strong>${n.u12.parques}</strong><small>${n.anios.find((a) => a.anio === 2020).parques} en 2020</small></div>
-    <div><span>Potencia instalada</span><strong>${fmt(n.mw.total)} MW</strong><small>en los ${n.mw.con_dato} parques con dato de potencia</small></div>`;
-  const an = n.anios.filter((a) => a.anio >= 2017);
-  Plotly.react("arg-anios", [{
-    type: "bar", x: an.map((a) => a.completo ? String(a.anio) : `${a.anio}*`), y: an.map((a) => a.gwh),
-    marker: { color: an.map((a) => a.completo ? "#1f6f86" : "#9cc3cf") },
-    customdata: an.map((a) => [a.parques, a.completo ? "" : " (hasta " + mesLargo(n.u12.hasta).toLowerCase() + ")"]),
-    hovertemplate: "%{x}%{customdata[1]}: %{y:,.0f} GWh<br>%{customdata[0]} parques<extra></extra>",
-  }], base({ bargap: 0.25, xaxis: { ...EJE, type: "category", showgrid: false }, yaxis: { ...EJE } }), CONFIG);
-  const top = n.provincias.slice(0, 7), resto = n.provincias.slice(7).reduce((a, [, g]) => a + g, 0);
-  const pv = [...top, ["Otras", resto]].reverse();
-  Plotly.react("arg-provincias", [{
-    type: "bar", orientation: "h", x: pv.map(([, g]) => g), y: pv.map(([p]) => p),
-    marker: { color: pv.map(([p]) => p === "Otras" ? NEUTRO : "#1f6f86") },
-    text: pv.map(([, g]) => fmt(g)), textposition: "outside", textfont: { size: 12, color: TENUE }, cliponaxis: false,
-    hovertemplate: "%{y}: %{x:,.0f} GWh<extra></extra>",
-  }], base({ bargap: 0.3, margin: { l: 10, r: 40, t: 4, b: 10 }, xaxis: { ...EJE, showticklabels: false, showgrid: false }, yaxis: { ...EJE, showgrid: false } }), CONFIG);
+function sumarMatriz(rows){let tn=0,fp=0,fn=0,tp=0;rows.forEach(r=>{tn+=r.tn;fp+=r.fp;fn+=r.fn;tp+=r.tp;});const n=tn+fp+fn+tp,div=(a,b)=>b?a/b:null;return{tn,fp,fn,tp,n,accuracy:div(tp+tn,n),precision:div(tp,tp+fp),recall:div(tp,tp+fn),f1:div(2*tp,2*tp+fp+fn)};}
+function filasEval(level=+$('#eval-caida').value){const p=$('#eval-planta').value,d=$('#eval-duracion').value;return D.simulaciones.filter(r=>r.caida===level&&(p==='todas'||r.planta===p)&&(d==='todas'||r.duracion===+d));}
+function evaluacion(){
+ referencia(['eda','clasificacion','validacion','regresion']);
+ const rows=filasEval(),m=sumarMatriz(rows),unknown=rows.reduce((a,r)=>a+r.sin_decision,0),count=rows.filter(r=>r.demora!=null).length;
+ $('#matriz').innerHTML=`<div></div><div class="matrix-label">Predijo normal</div><div class="matrix-label">Predijo alerta</div><div class="matrix-label">Real<br>sin caída</div><div class="matrix-cell"><strong>${fmt(m.tn)}</strong><span>TN · Verdaderos negativos</span></div><div class="matrix-cell error-cell"><strong>${fmt(m.fp)}</strong><span>FP · Falsos positivos</span></div><div class="matrix-label">Real<br>con caída</div><div class="matrix-cell error-cell"><strong>${fmt(m.fn)}</strong><span>FN · Falsos negativos</span></div><div class="matrix-cell"><strong>${fmt(m.tp)}</strong><span>TP · Verdaderos positivos</span></div>`;
+ $('#eval-muestra').textContent=`${fmt(m.n)} días-experimento con decisión · ${fmt(unknown)} sin decisión, excluidos · ${rows.length} episodios independientes. La misma fecha base puede repetirse en distintos experimentos.`;
+ $('#eval-metricas').innerHTML=[['Precision',m.precision,'TP / (TP + FP) · ¿Cuántas alertas fueron correctas?'],['Recall',m.recall,'TP / (TP + FN) · ¿Cuántos días de caída detecta?'],['F1',m.f1,'Equilibrio entre precision y recall'],['Accuracy',m.accuracy,'(TP + TN) / total · Aciertos sobre todos los días']].map(([a,b,c])=>`<div class="metric-line"><span>${a}</span><b>${pct(b)}</b><small>${c}</small></div>`).join('');
+ const levels=[.1,.25,.5,1],ms=levels.map(l=>sumarMatriz(filasEval(l)));
+ plot('eval-curva',[['precision','Precision',teal],['recall','Recall',blue],['f1','F1','#859ba6']].map(([key,name,c])=>({x:levels.map(x=>pct(x,0)),y:ms.map(x=>x[key]),name,mode:'lines+markers',marker:{size:6},line:{color:c,width:2},hovertemplate:name+': %{y:.1%}<extra></extra>'})),{showlegend:true,legend:{orientation:'h',x:0,y:1.15,font:{size:12}},xaxis:{...eje,showgrid:false,title:'Caída inyectada'},yaxis:{...eje,tickformat:'.0%',range:[-.03,1.03]},margin:{l:40,r:12,t:30,b:40}});
+ const prevalence=m.n?(m.tp+m.fn)/m.n:null;
+ $('#evaluacion-detalles').innerHTML=`<p><b>Regla:</b> ${esc(D.regresion.detector)}</p><p>Caída seleccionada: ${$('#eval-caida').selectedOptions[0].text}. Prevalencia controlada de días con caída: ${pct(prevalence)}. Episodios con al menos una alerta: ${count} de ${rows.length}. Cada planta, caída, duración y semilla tiene identidad propia.</p><p>Los días sin decisión quedan fuera de los cuatro conteos; nunca se convierten en TN. Una demora solo existe para episodios detectados, por lo que no describe por sí sola a los episodios omitidos.</p><p>Los valores altos de precision del experimento no garantizan la misma precision en campo: la frecuencia real de fallas es desconocida. No hay etiquetas operativas para construir una matriz de confusión de la historia real.</p><p>${esc(D.regresion.protocolo)}</p>`;
 }
-
-function vistaArgentina() {
-  const sel = $("#mes");
-  if (!sel.options.length) {
-    sel.innerHTML = [...D.argentina.meses].reverse().map((m) => `<option value="${m}">${mesLargo(m)}</option>`).join("");
-    sel.addEventListener("change", () => { S.mes = sel.value; vistaArgentina(); });
-    const mover = (k) => { const i = D.argentina.meses.indexOf(S.mes) + k; if (D.argentina.meses[i]) { S.mes = D.argentina.meses[i]; vistaArgentina(); } };
-    $("#mes-ant").addEventListener("click", () => mover(-1));
-    $("#mes-sig").addEventListener("click", () => mover(1));
-    contextoArgentina();
-  }
-  sel.value = S.mes;
-  const im = D.argentina.meses.indexOf(S.mes);
-  $("#mes-ant").disabled = im === 0; $("#mes-sig").disabled = im === D.argentina.meses.length - 1;
-
-  const filas = filasMes();
-  const alertas = filas.filter((f) => f.estado === "rojo"), bajos = filas.filter((f) => f.estado === "amarillo");
-  const arrastre = filas.filter((f) => f.arrastre);
-  const revisar = [...alertas, ...bajos].sort((a, b) => (a.estado === b.estado ? 0 : a.estado === "rojo" ? -1 : 1) || a.ratio - b.ratio);
-  const mes = mesLargo(S.mes).toLowerCase();
-  const perdido = revisar.reduce((a, f) => a + Math.max(f.esp - f.fc, 0) / f.fc * (f.gwh || 0), 0);
-  $("#arg-franja").innerHTML = revisar.length
-    ? `${lampara(alertas.length ? "rojo" : "amarillo")}<div><h1>En ${mes}, ${revisar.length} de ${filas.length} parques rindieron menos de lo normal</h1>
-       <p>${alertas.length} con alerta y ${bajos.length} por debajo de su rango habitual. El que más se aleja es <b>${revisar[0].nombre}</b> (${revisar[0].provincia}): rindió ${pct(revisar[0].ratio)} de lo normal.</p></div>
-       <div class="cifra"><strong>${fmt(perdido * 1000)} MWh</strong><span>dejaron de generar esos parques</span></div>`
-    : `${lampara("verde")}<div><h1>En ${mes}, los ${filas.length} parques rindieron lo esperado para su sol</h1><p>Ninguno con alerta ni por debajo de su rango habitual.</p></div><div></div>`;
-
-  // dispersión: lo que debía (x) contra lo que aprovechó (y); la diagonal es "rindió lo esperado"
-  const orden = [...filas].sort((a, b) => (a.estado === "verde") - (b.estado === "verde")).reverse();
-  const tope = Math.max(...filas.map((f) => Math.max(f.fc, f.esp))) * 1.08;
-  Plotly.react("arg-dispersion", [
-    { type: "scatter", mode: "lines", x: [0, tope], y: [0, tope], line: { color: TENUE, width: 1.5 }, hoverinfo: "skip" },
-    { type: "scatter", mode: "markers", x: orden.map((f) => f.esp), y: orden.map((f) => f.fc),
-      marker: { size: orden.map((f) => tamMW(f.mw)), color: orden.map((f) => colorParque(f.estado)), opacity: orden.map((f) => f.estado === "verde" ? 0.75 : 1),
-        line: { width: 2, color: "#ffffff" } },
-      customdata: orden.map((f) => [f.c, f.nombre, f.provincia, f.mw == null ? "s/d" : fmt(f.mw), f.ratio * 100]),
-      hovertemplate: "<b>%{customdata[1]}</b> · %{customdata[2]}<br>Aprovechó %{y:.0%} · debía %{x:.0%}<br>Rindió %{customdata[4]:.0f}% de lo normal · %{customdata[3]} MW<extra></extra>" },
-  ], base({
-    margin: { l: 10, r: 16, t: 10, b: 10 },
-    annotations: [{ x: tope * 0.9, y: tope * 0.9, text: "rindió lo normal", showarrow: false, textangle: -38, font: { size: 13, color: TENUE }, yshift: 12 }],
-    xaxis: { ...EJE, range: [0, tope], tickformat: ".0%", title: { text: "lo normal para el parque con ese sol", font: { color: TENUE, size: 13 } } },
-    yaxis: { ...EJE, range: [0, tope], tickformat: ".0%", scaleanchor: "x", title: { text: "lo que aprovechó", font: { color: TENUE, size: 13 } } },
-  }), CONFIG);
-
-  const MAX = 6, visibles = S.verTodos ? revisar : revisar.slice(0, MAX);
-  $("#arg-revisar").innerHTML = revisar.length ? visibles.map((f) => `<button class="fila fila-c" data-c="${f.c}">${lampara(f.estado)}
-      <span class="que"><b class="nombre">${f.nombre}</b><small>${f.provincia}${f.mw ? ` · ${fmt(f.mw)} MW` : ""} · ${f.estado === "rojo" ? "alerta" : "bajo su rango habitual"}</small></span>
-      <span class="plata">${pct(f.ratio)}<small>de lo normal</small></span></button>`).join("")
-      + (revisar.length > MAX ? `<button class="mas" id="arg-mas">${S.verTodos ? "Ver menos" : `Ver los ${revisar.length}`}</button>` : "")
-      + (arrastre.length ? `<p class="nota">Con alerta de meses anteriores pero que este mes ya rindieron lo normal: ${arrastre.map((f) => f.nombre).join(", ")}.</p>` : "")
-    : `<p class="vacio">Este mes ningún parque rindió por debajo de lo esperado. Probá con otro mes o mirá la historia de Ullúm 4 en 2025.</p>`;
-  $("#arg-mas")?.addEventListener("click", () => { S.verTodos = !S.verTodos; vistaArgentina(); });
-  $("#arg-revisar").querySelectorAll("[data-c]").forEach((b) => b.addEventListener("click", () => elegirParque(b.dataset.c)));
-
-  const capas = ["verde", "amarillo", "rojo"].map((e) => {
-    const fs = filas.filter((f) => f.estado === e);
-    return { type: "scattergeo", lon: fs.map((f) => f.lon), lat: fs.map((f) => f.lat), mode: "markers",
-      marker: { size: fs.map((f) => tamMW(f.mw, 1.6)), color: e === "verde" ? "#7d9199" : COLOR[e], opacity: e === "verde" ? 0.7 : 1, line: { width: e === "verde" ? 0 : 2, color: "#ffffff" } },
-      customdata: fs.map((f) => [f.c, f.nombre, f.provincia, f.ratio * 100]),
-      hovertemplate: "<b>%{customdata[1]}</b><br>%{customdata[2]}<br>Rindió %{customdata[3]:.0f}% de lo normal<extra></extra>" };
-  });
-  Plotly.react("arg-mapa", capas, base({ geo: { ...GEO, scope: "south america", lonaxis: { range: [-73.5, -53] }, lataxis: { range: [-55.5, -21.5] } } }), CONFIG);
-
-  for (const id of ["arg-mapa", "arg-dispersion"]) {
-    const el = document.getElementById(id);
-    el.removeAllListeners?.("plotly_click");
-    el.on("plotly_click", (ev) => { const c = ev.points[0].customdata?.[0]; if (c) elegirParque(c); });
-  }
-  historiaParque();
+const stateText={normal:'Sin alerta',alerta:'Con alerta',sin_dato:'Sin decisión',capacidad:'Capacidad no confiable',ausente:'Sin dato en la fecha'};
+function casos(){
+ referencia(['calidad','ensambles','regresion']);barraEvidencia();
+ const china=S.pais==='china';
+ document.querySelectorAll('[data-pais]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pais===S.pais)));
+ $('#caso-planta-label').hidden=!china;$('#caso-fecha-label').hidden=!china;$('#caso-parque-label').hidden=china;
+ if(china)casoChina();else casoArgentina();
 }
-
-function elegirParque(c) {
-  S.parque = c;
-  historiaParque();
-  $("#arg-historia").scrollIntoView({ behavior: "smooth", block: "center" });
+function casoChina(){
+ const all=D.diario.filter(r=>r.plant_id===S.planta&&r.fecha<=S.fecha),actual=D.diario.find(r=>r.plant_id===S.planta&&r.fecha===S.fecha),status=actual?.estado||'ausente';
+ const rows=all.slice(-90),ok=rows.filter(r=>r.decide&&r.estado!=='capacidad'),alertas=ok.filter(r=>r.alerta),mwh=alertas.reduce((a,r)=>a+(r.deficit_mwh||0),0),isGeneric=!D.regresion.plantas_entrenamiento.includes(S.planta);
+ const message={normal:'No cruzó el umbral de residuos en esta fecha. Esto no confirma ausencia de fallas pequeñas.',alerta:'Un residuo bajo justifica revisar medición y operación. La señal no confirma la causa del desvío.',sin_dato:actual?.sensor_caido?'El sensor no permite decidir. Revisar el instrumento antes de interpretar el rendimiento.':'La calidad o la magnitud de la señal no permiten una decisión confiable.',capacidad:'La potencia medida excede la ficha declarada. Se excluye de la interpretación económica hasta verificar la capacidad.',ausente:'No hay observación de esta planta en la fecha de corte. No se asume funcionamiento normal.'};
+ $('#caso-lectura').innerHTML=`<div><h2>${esc(S.planta)} · ${stateText[status]}</h2><p>${message[status]} ${isGeneric?'Referencia de un modelo genérico, sin historia sana propia.':''}</p></div><div><span class="case-number">${status==='capacidad'?'—':fmt(mwh)} <small class="caption">MWh</small></span><p>Déficit estimado en ${alertas.length} días con alerta<br>Últimas ${rows.length} observaciones disponibles</p></div>`;
+ $('#caso-titulo').textContent='Energía observada y referencia';
+ $('#caso-alcance').textContent=`${D.regresion.nombre}${isGeneric?' genérico':''} · ${rows.length?fecha(rows[0].fecha)+' → '+fecha(rows.at(-1).fecha):'Sin datos'} · ${actual?.particion||'sin partición en la fecha'}`;
+ if(!rows.length){document.getElementById('caso-chart').innerHTML='<p class="empty">No hay registros hasta esta fecha.</p>';}
+ else plot('caso-chart',[{x:rows.map(r=>r.fecha),y:rows.map(r=>r.real*r.capacidad),name:'Observado',mode:'lines',line:{color:teal,width:2},hovertemplate:'Observado %{y:.1f} MWh<extra></extra>'},{x:rows.map(r=>r.fecha),y:rows.map(r=>r.decide?r.esperada*r.capacidad:null),name:'Referencia',mode:'lines',line:{color:'#91a7b2',width:1.6},hovertemplate:'Referencia %{y:.1f} MWh<extra></extra>'},{x:alertas.map(r=>r.fecha),y:alertas.map(r=>r.real*r.capacidad),mode:'markers',marker:{color:red,size:6},hovertemplate:'Día con alerta<extra></extra>'}],{hovermode:'x unified',xaxis:{...eje,showgrid:false,type:'date',nticks:5,tickformat:'%d %b'},yaxis:{...eje,title:'MWh por día',rangemode:'tozero'}});
+ $('#caso-lista-titulo').textContent='Flota al '+fecha(S.fecha);
+ $('#caso-lista').innerHTML=D.plantas.map(p=>{const r=D.diario.find(x=>x.plant_id===p.id&&x.fecha===S.fecha),st=r?.estado||'ausente';return `<button class="plant-row" data-planta="${p.id}" aria-pressed="${p.id===S.planta}"><span class="row-name">${p.id}<br><small>${fmt(p.mw,1)} MW nominales</small></span><span class="state-label ${st}">${stateText[st]}</span></button>`;}).join('');
+ $('#caso-lista').querySelectorAll('[data-planta]').forEach(b=>b.addEventListener('click',()=>{S.planta=b.dataset.planta;$('#caso-planta').value=S.planta;casos();}));
+ const cal=D.regresion.calibracion[S.planta]||D.regresion.calibracion_generica,per=D.regresion.por_planta[S.planta];
+ $('#caso-detalles').innerHTML=`<p>PVOD · Hebei, China · 2018–2019. Se utiliza la misma regla evaluada en la matriz; no hay una política de estados distinta. Umbral de residuo de esta referencia: ${pct(cal.umbral)}.</p><p>${ok.length} días con decisión y ${rows.length-ok.length} sin interpretación utilizable en el período mostrado. ${per?`Métricas horarias de esta planta en prueba: MAE ${fmt(per.mae,4)}, RMSE ${fmt(per.rmse,4)}, R² ${fmt(per.r2,4)}, n = ${fmt(per.n)}.`:'Esta planta no forma parte del conjunto de prueba de plantas entrenadas; no se le atribuyen las métricas de una planta conocida.'}</p><p>La línea representa el modelo entrenado antes de abril; las fechas de entrenamiento se muestran retrospectivamente y dentro de muestra. Validación y prueba se identifican por fecha.</p><p>La diferencia positiva respecto de la referencia no demuestra energía recuperable. ${esc(D.economia.nota)} Un precio de USD ${fmt(D.economia.precio,2)}/MWh daría un valor ilustrativo de USD ${fmt(mwh*D.economia.precio)}, sin interpretación económica para una capacidad inválida.</p><p>«Sin alerta» no equivale a ausencia de falla. Una sola vuelta estacional y las mediciones limitan la interpretación.</p>`;
 }
-
-function historiaParque() {
-  const q = D.argentina.parques[S.parque];
-  if (!q) return;
-  const ult = q.alerta.slice(-12).filter((a, k) => a && q.rel[q.rel.length - 12 + k] < 1).length;
-  const datos = [q.provincia, q.mw ? `${fmt(q.mw)} MW` : null, q.contrato ? `contrato ${q.contrato}` : null].filter(Boolean).join(" · ");
-  $("#arg-historia-titulo").innerHTML = `<h3 style="margin:0;font-size:1.3rem;letter-spacing:-0.015em">${nombreCorto(titulo(q.nombre))}</h3>
-    <p class="nota" style="margin:2px 0 6px">${datos} · alerta en ${ult} de sus últimos 12 meses con dato</p>`;
-  const al = q.fecha.map((f, i) => i).filter((i) => q.alerta[i] && q.rel[i] < 1);
-  const debia = q.fc.map((v, i) => (v != null && q.rel[i]) ? v / q.rel[i] : null);
-  Plotly.react("arg-historia", [
-    { type: "scatter", mode: "lines", x: q.fecha, y: debia, name: "Lo normal para el parque con ese sol", line: { color: "#9aabb0", width: 2.5 },
-      hovertemplate: "Debía %{y:.1%}<extra></extra>" },
-    { type: "scatter", mode: "lines+markers", x: q.fecha, y: q.fc, name: "Lo que aprovechó", line: { color: TINTA, width: 2 }, marker: { size: 4 },
-      hovertemplate: "Aprovechó %{y:.1%}<extra></extra>" },
-    { type: "scatter", mode: "markers", x: al.map((i) => q.fecha[i]), y: al.map((i) => q.fc[i]), name: "Mes con alerta",
-      marker: { color: COLOR.rojo, size: 10, line: { width: 2, color: "#fff" } }, hoverinfo: "skip" },
-  ], base({
-    showlegend: true, legend: { orientation: "h", y: 1.1, x: 0, font: { size: 13, color: TENUE } }, hovermode: "x unified",
-    margin: { l: 10, r: 16, t: 30, b: 10 },
-    xaxis: { ...EJE, type: "date", hoverformat: "%B %Y", showgrid: false },
-    yaxis: { ...EJE, tickformat: ".0%", title: { text: "factor de capacidad", font: { color: TENUE, size: 13 } }, rangemode: "tozero" },
-  }), CONFIG);
+function casoArgentina(){
+ const all=D.argentina.filter(r=>r.central===S.parque).sort((a,b)=>a.fecha.localeCompare(b.fecha)),rows=all,latest=all.at(-1),test=all.filter(r=>r.fecha>='2025-01-01'),alerts=test.filter(r=>r.alerta),r=D.regresion_argentina;
+ $('#caso-lectura').innerHTML=`<div><h2>${esc(latest?.central_descripcion||S.parque)}</h2><p>Comparación mensual · ${esc(r.nombre)}. ${test.length} meses en prueba retrospectiva, ${alerts.length} con alerta. No hay etiquetas de fallas operativas confirmadas.</p></div><div><span class="case-number">${fmt(test.filter(x=>x.energia_gwh===0).length)}</span><p>meses observados con cero<br>Conservados en la evaluación</p></div>`;
+ $('#caso-titulo').textContent='Factor de capacidad observado y referencia';$('#caso-alcance').textContent=`CAMMESA + Open-Meteo · ${esc(latest?.provincia||'')} · Modelo de parque típico · FC adimensional`;
+ const flags=rows.filter(x=>x.alerta);
+ plot('caso-chart',[{x:rows.map(x=>x.fecha),y:rows.map(x=>x.factor_capacidad),mode:'lines',name:'Observado',line:{color:teal,width:2},hovertemplate:'Observado %{y:.1%}<extra></extra>'},{x:rows.map(x=>x.fecha),y:rows.map(x=>x.pred),mode:'lines',name:'Referencia típica',line:{color:'#91a7b2',width:1.6},hovertemplate:'Parque típico %{y:.1%}<extra></extra>'},{x:flags.map(x=>x.fecha),y:flags.map(x=>x.factor_capacidad),mode:'markers',marker:{size:6,color:red},hovertemplate:'Mes con alerta<extra></extra>'}],{hovermode:'x unified',xaxis:{...eje,showgrid:false,type:'date',nticks:5,tickformat:'%Y'},yaxis:{...eje,title:'Factor de capacidad',tickformat:'.0%',rangemode:'tozero'},shapes:[{type:'rect',xref:'x',yref:'paper',x0:'2025-01-01',x1:rows.at(-1)?.fecha,y0:0,y1:1,fillcolor:'#f2f7f8',line:{width:0},layer:'below'}]});
+ $('#caso-lista-titulo').textContent='Parques para explorar';
+ const selected=['ULL4FV','UL42FV','CHEPFV','VMR2FV','TAMBFV'];
+ const ids=selected.filter(c=>D.argentina.some(x=>x.central===c));
+ $('#caso-lista').innerHTML=ids.map(c=>{const ar=D.argentina.filter(x=>x.central===c&&x.fecha>='2025-01-01'),n=ar.filter(x=>x.alerta).length,zeros=ar.filter(x=>x.energia_gwh===0).length;return `<button class="plant-row" data-parque="${c}" aria-pressed="${c===S.parque}"><span>${c}<br><small>${zeros} meses con cero</small></span><span>${n} <small>con alerta</small></span></button>`;}).join('')+'<p class="caption below">Los conteos corresponden a los meses de prueba desde enero de 2025.</p>';
+ $('#caso-lista').querySelectorAll('[data-parque]').forEach(b=>b.addEventListener('click',()=>{S.parque=b.dataset.parque;$('#caso-parque').value=S.parque;casos();}));
+ $('#caso-detalles').innerHTML=`<p>${esc(r.protocolo)} ${esc(r.limite)}</p><p>La curva de referencia muestra un parque típico. La alerta usa además la normalización por el nivel histórico propio del parque y su umbral de boxplot. La normalización se aprende con fechas de entrenamiento.</p><p>Fuente de coordenada del parque: ${esc(latest?.coord_source)}. Las coordenadas de localidad son aproximadas. La capacidad puede proceder de un mes cercano: verificar cambios de habilitación antes de atribuir el desvío a una falla.</p><p>La región argentina incluye ${r.parques} parques comparables de ${D.eda.plantas_argentina} en la fuente original. Se conservaron ${r.ceros_conservados} ceros operativos; no son datos ausentes.</p><p>No se informa precision, recall ni matriz de confusión sobre este historial porque no hay etiquetas independientes de fallas.</p>`;
 }
-
-// ------------------------------------------------------------------ 4. limpieza y plata
-// Mismas fórmulas que src/negocio.py (t_optimo_limpieza, costo_anual_limpieza, ahorro_anual_limpieza)
-const N = D.negocio;
-const tOptimo = (c, p, r) => Math.sqrt(2 * c / (p * N.e_mw * r));
-const costoAnual = (t, c, p, r) => 365 * (c / t + p * N.e_mw * r * t / 2);
-const ahorroAnual = (c, p, r) => costoAnual(N.t_base, c, p, r) - costoAnual(tOptimo(c, p, r), c, p, r);
-{
-  const t = tOptimo(N.costo, N.precio, N.tasa), a = ahorroAnual(N.costo, N.precio, N.tasa);
-  if (Math.abs(t - N.control.t) > 1e-6 || Math.abs(a - N.control.ahorro) > 1e-3) console.warn("La calculadora no coincide con src/negocio.py", { t, a, control: N.control });
+function iniciar(){
+ if(!D||!window.Plotly)throw new Error('Faltan los archivos locales de datos o gráficos. Conservá la carpeta app completa y recargá la página.');
+ const opt=(values,all)=>`${all?'<option value="todas">Todas las plantas</option>':''}${values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('')}`;
+ $('#eda-planta').innerHTML=opt(D.plantas.map(x=>x.id),true);
+ $('#eval-planta').innerHTML=opt(D.regresion.plantas_entrenamiento,true);
+ $('#caso-planta').innerHTML=opt(D.plantas.map(x=>x.id));$('#caso-planta').value=S.planta;
+ const parques=[...new Set(D.argentina.map(x=>x.central))].sort();$('#caso-parque').innerHTML=opt(parques);$('#caso-parque').value=S.parque;
+ const dates=D.diario.map(x=>x.fecha).sort();$('#caso-fecha').min=dates[0];$('#caso-fecha').max=dates.at(-1);$('#caso-fecha').value=S.fecha;
+ for(const id of ['eda-tipo','eda-planta'])$('#'+id).addEventListener('change',renderEDA);
+ for(const id of ['modelos-territorio','modelos-particion'])$('#'+id).addEventListener('change',modelos);
+ for(const id of ['eval-caida','eval-duracion','eval-planta'])$('#'+id).addEventListener('change',evaluacion);
+ $('#caso-planta').addEventListener('change',e=>{S.planta=e.target.value;casos();});
+ $('#caso-parque').addEventListener('change',e=>{S.parque=e.target.value;casos();});
+ $('#caso-fecha').addEventListener('change',e=>{if(!e.target.value)return;S.fecha=e.target.value;casos();});
+ document.querySelectorAll('[data-pais]').forEach(b=>b.addEventListener('click',()=>{S.pais=b.dataset.pais;casos();}));
+ document.querySelectorAll('[data-ir]').forEach(b=>b.addEventListener('click',()=>{location.hash=b.dataset.ir;}));
+ $('#presentar').addEventListener('click',()=>{const active=document.body.classList.toggle('exposicion');$('#presentar').setAttribute('aria-pressed',String(active));$('#presentar').textContent=active?'Vista estándar':'Modo exposición';document.querySelectorAll('.view:not([hidden]) .js-plotly-plot').forEach(el=>Plotly.Plots.resize(el));});
+ $('#descargar-datos').addEventListener('click',()=>descargar(JSON.stringify(D,null,2),'solar-evidencia.json','application/json'));
+ $('#descargar-metricas').addEventListener('click',()=>{const r=modeloActual(),p=$('#modelos-particion').value;const csv='Modelo,Particion,MAE,RMSE,R2,N\n'+r.comparacion.map(x=>[x.nombre,p,x[p].mae,x[p].rmse,x[p].r2,x[p].n].join(',')).join('\n');descargar(csv,'solar-metricas.csv','text/csv;charset=utf-8');});
+ window.addEventListener('hashchange',mostrar);
+ Plotly.register({moduleType:'locale',name:'es',dictionary:{},format:{days:['domingo','lunes','martes','miércoles','jueves','viernes','sábado'],shortDays:['dom','lun','mar','mié','jue','vie','sáb'],months:['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],shortMonths:['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],date:'%d/%m/%Y',decimal:',',thousands:'.'}});Plotly.setPlotConfig({locale:'es'});
+ mostrar();
 }
-
-function vistaNegocio() {
-  const ids = { costo: "costo", precio: "precio", tasa: "tasa" };
-  for (const k in ids) {
-    const el = document.getElementById(ids[k]);
-    if (!el.dataset.listo) { el.value = S[k]; el.addEventListener("input", () => { S[k] = +el.value; vistaNegocio(); }); el.dataset.listo = "1"; }
-  }
-  const c = S.costo, p = S.precio, r = S.tasa / 100;
-  $("#costo-v").textContent = usd(c);
-  $("#precio-v").textContent = `USD ${fmt(p, 2)}`;
-  $("#tasa-v").textContent = `${fmt(S.tasa, 3)}%`;
-  const medida = Math.abs(S.tasa - N.tasa * 100) < 0.0005;
-  $("#tasa-nota").innerHTML = medida
-    ? `<span class="sello medido">Medido</span> En los datos: la energía cae 0,049% por cada día sin lluvia.`
-    : `<span class="sello supuesto">Escenario</span> El valor medido en los datos es 0,049% por día.`;
-
-  const T = tOptimo(c, p, r), ahorro = ahorroAnual(c, p, r);
-  $("#l-t").textContent = `${fmt(T)} días`;
-  $("#l-ahorro").textContent = usd(ahorro);
-  $("#l-costo").textContent = usd(costoAnual(T, c, p, r));
-  $("#neg-franja").innerHTML = T >= N.t_base
-    ? `${lampara("verde")}<div><h1>Con estos supuestos, alcanza con limpiar una vez por año</h1>
-       <p>La suciedad cuesta menos que la limpieza: el intervalo óptimo sería de ${fmt(T)} días.</p></div><div></div>`
-    : `${lampara("amarillo")}<div><h1>Conviene limpiar cada ${fmt(T)} días</h1>
-       <p>Unas ${fmt(365 / T, 1)} limpiezas por año, además de las lluvias. Frente a limpiar una vez por año, se ahorran <b>${usd(ahorro)} por MW al año</b>.</p></div>
-       <div class="cifra"><strong>${usd(ahorro)}</strong><span>ahorro por MW al año</span></div>`;
-
-  const ts = Array.from({ length: 356 }, (_, i) => i + 10);
-  const cs = ts.map((t) => costoAnual(t, c, p, r));
-  const techo = Math.max(costoAnual(N.t_base, c, p, r), costoAnual(T, c, p, r)) * 1.5;
-  Plotly.react("neg-curva", [
-    { type: "scatter", mode: "lines", x: ts, y: cs, line: { color: TINTA, width: 2.5 },
-      hovertemplate: "Limpiar cada %{x} días: USD %{y:,.0f} por MW al año<extra></extra>" },
-    { type: "scatter", mode: "markers+text", x: [Math.min(T, 365)], y: [costoAnual(Math.min(T, 365), c, p, r)], text: [`Óptimo: cada ${fmt(T)} días`],
-      textposition: "bottom center", textfont: { size: 14, color: TINTA }, marker: { size: 13, color: COLOR.amarillo, line: { width: 3, color: "#fff" } }, hoverinfo: "skip" },
-    { type: "scatter", mode: "markers+text", x: [N.t_base], y: [costoAnual(N.t_base, c, p, r)], text: ["Una vez por año"],
-      textposition: "top left", textfont: { size: 13, color: TENUE }, marker: { size: 10, color: "#8b979c" }, hoverinfo: "skip" },
-  ], base({
-    margin: { l: 10, r: 20, t: 10, b: 10 },
-    xaxis: { ...EJE, range: [10, 372], title: { text: "días entre limpiezas", font: { color: TENUE, size: 13 } } },
-    yaxis: { ...EJE, range: [0, techo], tickprefix: "USD ", title: { text: "costo por MW al año", font: { color: TENUE, size: 13 } } },
-  }), CONFIG);
-
-  // caso station09: pérdida en días con alerta, al precio elegido
-  const s9 = D.flota.plantas.station09;
-  let mwh = 0, dias = 0, real = 0, esp = 0;
-  const porMes = {};
-  s9.fecha.forEach((f, i) => {
-    if (s9.decide[i]) { real += s9.real[i]; esp += s9.esperada[i]; }
-    if (s9.alerta[i]) { mwh += s9.perdida[i] || 0; dias++; porMes[f.slice(0, 7)] = (porMes[f.slice(0, 7)] || 0) + (s9.perdida[i] || 0); }
-  });
-  const flota = Object.keys(D.flota.plantas).reduce((a, q) => a + perdidaEnAlertas(q, "0000", "9999").mwh, 0);
-  $("#caso-titulo").textContent = `station09 perdió ${fmt(mwh)} MWh en ${dias} días con alerta: ${usd(mwh * p)}`;
-  $("#caso-texto").innerHTML = `Durante el año generó ${pct(real / esp)} de lo que debía. Es el ${pct(mwh / flota)} de toda la energía perdida en días con alerta de la flota (${fmt(flota)} MWh).`;
-  const meses = Object.keys(porMes).sort();
-  Plotly.react("caso-grafico", [{
-    type: "bar", x: meses.map((m) => m + "-15"), y: meses.map((m) => porMes[m] * p), marker: { color: "#e2735f" },
-    hovertemplate: "%{x|%B %Y}: USD %{y:,.0f}<extra></extra>",
-  }], base({
-    bargap: 0.2, margin: { l: 10, r: 10, t: 10, b: 10 },
-    xaxis: { ...EJE, type: "date", tickformat: "%b %Y", showgrid: false },
-    yaxis: { ...EJE, tickprefix: "USD ", title: { text: "perdido por mes", font: { color: TENUE, size: 13 } } },
-  }), CONFIG);
-}
-
-// ------------------------------------------------------------------ arranque
-Plotly.register({
-  moduleType: "locale", name: "es", dictionary: {},
-  format: {
-    days: ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"],
-    shortDays: ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"],
-    months: ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
-    shortMonths: ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
-    date: "%d/%m/%Y", decimal: ",", thousands: ".",
-  },
-});
-Plotly.setPlotConfig({ locale: "es" });
-const fechaInput = $("#fecha");
-fechaInput.min = FECHAS[0]; fechaInput.max = FECHAS.at(-1); fechaInput.value = S.fecha;
-fechaInput.addEventListener("change", () => {
-  const f = fechaInput.value;
-  S.fecha = FECHAS.includes(f) ? f : (FECHAS.filter((x) => x <= f).at(-1) ?? FECHAS[0]);
-  fechaInput.value = S.fecha;
-  mostrar();
-});
-$("#planta-periodo").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { S.dias = +b.dataset.dias; vistaPlanta(); }));
-window.addEventListener("hashchange", mostrar);
-mostrar();
+try{iniciar();}catch(error){const box=$('#error');box.hidden=false;box.textContent=error.message;console.error(error);}

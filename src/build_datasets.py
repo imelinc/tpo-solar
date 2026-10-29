@@ -13,8 +13,8 @@ Genera:
 
 Uso (local o Colab):
   !pip install pandas pyarrow openpyxl requests py7zr
-  !python build_datasets.py            # descarga lo que falte en ./raw y arma todo
-Las descargas se cachean en ./raw/, así que volver a correr no vuelve a pedir nada.
+  !python -m src.build_datasets       # descarga a data/raw y procesa en data/processed
+Las descargas se cachean en data/raw/. TPO_DIR y TPO_RAW permiten salidas temporales.
 """
 import io, json, math, os, re, sys, time, unicodedata, zipfile
 from pathlib import Path
@@ -23,8 +23,12 @@ import numpy as np
 import pandas as pd
 import requests
 
-BASE = Path(os.environ.get("TPO_DIR", Path(__file__).resolve().parent))
-RAW = BASE / "raw"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.config import DATA_PROCESSED, DATA_RAW
+
+BASE = Path(os.environ.get("TPO_DIR", DATA_PROCESSED))
+RAW = Path(os.environ.get("TPO_RAW", DATA_RAW))
+BASE.mkdir(parents=True, exist_ok=True)
 for d in ["pvod", "cammesa", "openmeteo_A", "nasa_A", "openmeteo_B", "geocode"]:
     (RAW / d).mkdir(parents=True, exist_ok=True)
 

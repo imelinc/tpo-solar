@@ -20,3 +20,9 @@ referencias/
 models/*.csv
 # Archivos de trabajo de la herramienta de diseño (Impeccable): no son parte del proyecto
 .impeccable/
+
+# Capturas y decisiones locales de diseño
+.taste-skill/
+
+# Dependencias de pruebas de interfaz
+node_modules/

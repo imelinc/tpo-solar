@@ -8,53 +8,46 @@ web
 
 ## Stack
 
-Delegado por el equipo ("elegí la mejor manera para que sea profesional y entendible"). Elección: página HTML estática
-(`app/index.html`) con los datos precalculados en un archivo JS que genera un script de Python a partir de `src/` y
-`data/processed/`. Gráficos con Plotly.js copiado del paquete de Python ya instalado. Reemplaza al dashboard de Streamlit.
+HTML, CSS y JavaScript estáticos, Plotly local, fuentes IBM Plex Sans locales. Python genera evidencia JSON y parquet. El dashboard abre sin conexión; no consulta APIs.
 
 ## Users
 
-Dos audiencias, con el mismo peso:
-- **Gerente de operaciones de una flota solar (no técnico).** Lo abre a la mañana para decidir a qué planta mandar un técnico hoy, cuánta plata se está perdiendo y cada cuánto limpiar.
-- **Jurado de la defensa del TPO (UADE, Ciencia de Datos).** Lo ve proyectado en el aula durante una demo de unos 2 minutos y medio, dentro de una presentación de 15 minutos. Tiene que entenderse sin explicación técnica.
+Principal: jurado y equipo en la defensa de Ciencia de Datos de UADE, 12/11/2026. Secundario: Gerencia Comercial y Técnica para entender desvíos de generación. Trabajo compartido de Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio.
 
 ## Product Purpose
 
-Comparar lo que cada planta genera con lo que debería generar según el clima (con la planta limpia), avisar cuándo rinde de menos y traducir esa pérdida a energía y plata. Éxito: en pocos segundos se entiende qué planta está mal, cuánto cuesta y qué hacer.
-
-## Positioning
-
-No compara una planta contra su propio mes anterior: la compara contra un modelo físico + ML del clima y contra sus vecinas. Por eso encuentra plantas que rinden mal siempre (station09), que una revisión mensual no ve.
+Explicar con evidencia de clase cómo estimar producción solar y evaluar una regla de alerta. Éxito: el jurado puede identificar datos, modelo, particiones, métricas, errores y límites en segundos, y navegar el análisis interactivo.
 
 ## Operating Context
 
-- Se proyecta en un aula, a distancia, con la luz que haya.
-- La defensa se planea sin internet: todo lo que se muestra sale de `data/processed/`.
-- Período de datos de la flota: 1/7/2018 a 13/6/2019 (PVOD, 10 plantas en Hebei, China). Argentina: comparación mensual de parques de CAMMESA, 2011 a 2026.
+Proyección en aula, defensa de 15 minutos, computadora con datos y recursos descargados. El usuario eligió diseño claro, minimalista y sobrio, y la composición **Laboratorio comparativo**: comparación de modelos junto a matriz de confusión.
 
 ## Capabilities and Constraints
 
-- Semáforo por planta: verde, amarillo (revisar esta semana), rojo (visita técnica hoy) y gris (capacidad no confiable: station04). Sale de `semaforo_flota`.
-- Detalle diario por planta: energía real vs. esperada con la planta limpia, alertas, días sin decisión por sensor caído, días de baja confianza (station06 enero a marzo).
-- Argentina es **comparación mensual entre parques, no detección en tiempo real**; esto tiene que estar explícito.
-- Calculadora de limpieza: T* y ahorro anual por MW con costo, precio y tasa de ensuciamiento.
-- Límites honestos: detecta pérdidas ≥ 50% el mismo día y casos crónicos; 25% en el límite; no detecta caídas de 10% día a día.
-- Número principal del modelo: 6,04% de error de energía diaria (evaluación ciega). 5,04% solo como nota.
-- Todo el texto en español (Argentina).
+- Recorrido: Resumen → Datos → Modelos → Evaluación → Casos.
+- China: observación horaria, target numérico de potencia nominal y análisis diario de residuos.
+- Argentina: comparación mensual de factor de capacidad. Sus métricas y modelo son distintos.
+- Modelos limitados a los apuntes: regresión simple/múltiple, árbol, Random Forest y XGBoost.
+- Clases 4 y 12 respaldan boxplot y residuos; clase 9 respalda matriz de confusión, accuracy, precision, recall y F1.
+- El modelo, la unidad y las métricas de prueba se mantienen visibles. Cada vista enlaza a sus clases de Notion.
+- No se entrena con datos sintéticos. Las inyecciones se identifican como experimentos de evaluación.
+- No hay etiquetas operativas confirmadas para los casos reales. No se inventa una matriz para Argentina.
+- Una observación inválida o ausente nunca equivale a normalidad.
+- El déficit relativo al modelo y los USD ilustrativos no son recuperación ni ahorro demostrados.
+- Toda evaluación es retrospectiva porque los períodos ya se exploraron.
 
 ## Evidence on Hand
 
-- Datos reales: `data/processed/app_diario.parquet`, `app_horario.parquet`, `app_argentina.parquet`, `pvod_plantas_metadata.csv`.
-- Casos: station09 (bajo rendimiento crónico: 4.724 MWh y unos USD 202 mil en días con alerta), ULL4FV (alerta en 11 de 12 meses de 2025).
-- Supuestos explícitos: precio USD 42,84/MWh de RenovAr Ronda 2 (ilustrativo para plantas chinas), costo de limpieza USD 800/MW, revisión manual cada 30 días, línea base de limpieza una vez por año. No inventar clientes, cotizaciones ni ingresos reales.
+`src/academico.py` produce `data/processed/defensa_evidencia.json` y las dos tablas parquet. `docs/alineacion_materia.md` contiene las fuentes curriculares. Las métricas se leen de la evidencia generada; no se tipean a mano en la aplicación.
 
 ## Product Principles
 
-1. Primero la decisión, después el dato: cada pantalla abre diciendo qué pasa y qué hacer.
-2. Plata y energía en palabras de negocio; los términos técnicos (residuo, índice relativo, percentil) quedan en ayudas o se traducen.
-3. Honestidad sobre los límites: supuestos y baja confianza siempre a la vista, nunca escondidos.
-4. Se entiende desde el fondo del aula.
+1. Primero la evidencia y su alcance, luego la interpretación.
+2. Una sola variable para una cifra que aparece en varios lugares.
+3. Comparar es más útil que decorar; incertidumbre visible.
+4. Distinguir regresión, señal binaria y decisión de negocio.
+5. Lenguaje argentino, unidades completas y gráficos legibles.
 
 ## Accessibility & Inclusion
 
-Proyector: contraste alto y letra grande. El estado nunca se comunica solo con color (siempre con texto o ícono).
+Contraste alto, texto e indicadores además de color, controles nativos, foco visible, navegación por teclado, movimiento reducido y composición responsive. Modo exposición aumenta el texto auxiliar. Los gráficos tienen alternativas en tablas y textos.

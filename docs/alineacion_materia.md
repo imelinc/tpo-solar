@@ -2,7 +2,7 @@
 
 Fuente curricular: apuntes de **Ciencia de Datos**, **2do CUATRI 2026**, consultados el 29/10/2026. Se leyeron las doce clases devueltas por la base «Clases y Apuntes» de esa materia y «Criterios para los exámenes». Las fechas de edición de Notion no se tomaron como prueba de precedencia: se contrastaron las secciones, incluida la actualización de regresión de la clase 12.
 
-Defensa: **12/11/2026**. Equipo informado por el usuario: **4 integrantes**. La consigna escrita solicita 5–6; confirmar con el docente la aceptación de cuatro. Nombres y responsabilidades pendientes de respuesta del equipo.
+Defensa: **12/11/2026**. Equipo informado por el usuario: **4 integrantes**. La consigna escrita solicita 5–6; confirmar con el docente la aceptación de cuatro. Integrantes: Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio. Trabajo compartido en todas las etapas; el reparto del guion es solo de exposición.
 
 ## Decisiones
 
@@ -23,9 +23,7 @@ El dashboard está dirigido principalmente a la defensa. Mantiene China (observa
 | Regresión simple/múltiple, residuos, MAE, MSE, RMSE y R² | [Clase 12](https://www.notion.so/401096bfe0b280d98850da56a4101d05) | Línea base, comparación de regresores y diagnóstico del error con unidades explícitas. |
 | Interpretar y comparar, no entrenar con datos sintéticos | [Criterios del docente](https://www.notion.so/401096bfe0b2817db3f6c84d61adc01f) | Entrenamiento solo con mediciones reales. Inyecciones de caída únicamente como prueba controlada del detector, claramente identificadas. |
 
-## Técnicas que se retiran de la versión de defensa
-
-No se encontró desarrollo curricular de PVWatts/híbrido físico, CUSUM, Isolation Forest, MAD como detector o optimización de intervalos de limpieza. No se presentan como técnicas de la materia ni se mantienen como motor del nuevo dashboard. Ridge/Lasso aparecen mencionados como remedio a multicolinealidad, pero no desarrollados: se prefiere la regresión lineal enseñada explícitamente.
+## Detector basado en contenido de clase
 
 La regla de boxplot **Q1 − 1,5 × IQR**, sí explicada en clase 4, permite señalar residuos bajos. Es una regla de detección sobre un regressor, no un clasificador supervisado entrenado sobre etiquetas artificiales. Se debe validar con su propia matriz de confusión y explicar la diferencia.
 
@@ -38,4 +36,6 @@ Los cálculos de energía, fechas, unidades y traducción a USD son transformaci
 - En las matrices, los días sin datos suficientes se excluyen con un contador visible; nunca se convierten en verdaderos negativos.
 - Los modelos de árbol no extrapolan fuera del rango observado. Se declara el único año y la estacionalidad incompleta.
 - Argentina conserva ceros operativos como observaciones; una ausencia de reporte y un cero no son equivalentes.
-- El informe `revision_tpo.md` es el diagnóstico de la versión anterior. Los nuevos resultados deben tener su propia evidencia y no heredar cifras del híbrido.
+- El informe `revision_tpo.md` es el diagnóstico de la versión anterior. Los nuevos resultados deben tener su propia evidencia y no heredar cifras de experimentos previos.
+
+[Diagrama de arquitectura y contrato de ejecución](arquitectura.md)

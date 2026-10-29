@@ -3,6 +3,8 @@
 Ejecutar: python -m unittest discover -s tests -v
 """
 import unittest
+import json
+from pathlib import Path
 import numpy as np
 import pandas as pd
 from src.academico import (agregar_alertas, crear_modelo, evaluar_simulaciones,
@@ -64,6 +66,22 @@ class EvaluacionAcademica(unittest.TestCase):
                 self.assertEqual(r['fn'], 0)
         self.assertEqual(sims, evaluar_simulaciones(base, {}, {'umbral': -.2}))
         pd.testing.assert_frame_equal(base, original)
+
+    def test_cobertura_diaria_benchmark_igual_a_aplicacion(self):
+        # Contrato con la evidencia real: no dejar desaparecer horas inválidas.
+        ruta = Path(__file__).resolve().parents[1] / 'data/processed/defensa_evidencia.json'
+        evidencia = json.loads(ruta.read_text())
+        for planta in evidencia['regresion']['plantas_entrenamiento']:
+            dias = [r for r in evidencia['diario'] if r['plant_id'] == planta and r['fecha'] >= '2019-05-01']
+            esperados = sum(r['decide'] for r in dias)
+            excluidos = sum(not r['decide'] for r in dias)
+            for sim in evidencia['simulaciones']:
+                if sim['planta'] == planta:
+                    self.assertEqual(sim['n'], esperados, sim['id'])
+                    self.assertEqual(sim['sin_decision'], excluidos, sim['id'])
+        parcial = next(r for r in evidencia['diario'] if r['plant_id'] == 'station01' and r['fecha'] == '2019-06-10')
+        self.assertFalse(parcial['decide'])
+        self.assertEqual(parcial['estado'], 'sin_dato')
 
     def test_modelo_fuera_del_alcance_rechazado(self):
         with self.assertRaises(ValueError):
