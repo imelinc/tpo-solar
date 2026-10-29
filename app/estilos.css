@@ -49,7 +49,7 @@ h1{font:italic 500 44px/1.08 var(--serif);letter-spacing:-.015em;text-wrap:balan
 
 /* Línea de lectura del modelo, como coordenadas de una carta */
 .readout-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 28px;padding:12px 0;margin-bottom:22px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.readout-line .model-name{font:italic 500 22px/1.1 var(--serif);color:var(--amber);letter-spacing:0;text-transform:none}
+.readout-line .model-name{font:600 17px/1.1 var(--sans);color:var(--amber);letter-spacing:0;text-transform:none}
 .readout-line span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .readout-line b{font-size:16px;letter-spacing:0;text-transform:none;color:var(--chalk);font-weight:500;margin-left:8px}
 .readout-line .scope{margin-left:auto;letter-spacing:0;text-transform:none;font-size:13px}
@@ -59,7 +59,7 @@ h1{font:italic 500 44px/1.08 var(--serif);letter-spacing:-.015em;text-wrap:balan
 .plate::before,.plate::after{content:'';position:absolute;top:-4px;width:7px;height:7px;background:var(--sky);border:1px solid var(--line-strong);transform:rotate(45deg)}
 .plate::before{left:-4px}.plate::after{right:-4px}
 .plate-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.plate-head h2{font:italic 500 25px/1.15 var(--serif);color:var(--chalk)}
+.plate-head h2{font:600 18px/1.25 var(--sans);letter-spacing:-.005em;color:var(--chalk)}
 .plate-meta{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
 .margin-note{font-size:13px;color:var(--muted);margin-top:12px;max-width:80ch}
 .prose{color:var(--muted);font-size:14px;max-width:62ch}
@@ -76,7 +76,7 @@ h1{font:italic 500 44px/1.08 var(--serif);letter-spacing:-.015em;text-wrap:balan
 .plate-map .plate-head,.plate-map .map-legend{max-width:calc(min(74vh,780px) * .6765)}
 .carta-inset{position:absolute;right:10px;bottom:10px;width:clamp(84px,17%,132px);height:auto;background:rgba(10,16,33,.92);border:1px solid var(--line-strong)}
 .carta text{font-family:var(--sans);font-size:11px;fill:var(--faint);letter-spacing:.06em}
-.carta .nombre{font-family:var(--serif);font-style:italic;font-size:15px;fill:var(--chalk);letter-spacing:0}
+.carta .nombre{font-family:var(--sans);font-size:12px;font-weight:500;fill:var(--chalk);letter-spacing:0}
 .carta .nombre.alerta{fill:var(--red)}
 .carta .estrella{cursor:pointer;transition:r 160ms var(--ease)}
 .carta .estrella:hover{fill:var(--amber)}
@@ -94,11 +94,11 @@ h1{font:italic 500 44px/1.08 var(--serif);letter-spacing:-.015em;text-wrap:balan
 .index-table th button[aria-sort]{color:var(--chalk)}
 .index-table th.number button{text-align:right}
 .index-table td{padding:8px;border-bottom:1px solid var(--line);color:var(--muted)}
-.index-table td:first-child{font:italic 400 16px/1.2 var(--serif);color:var(--chalk)}
+.index-table td:first-child{font:500 13px/1.3 var(--sans);color:var(--chalk)}
 .index-table tr{cursor:pointer}
 .index-table tr[aria-selected=true] td{background:var(--red-soft)}
 .index-table tr[aria-selected=true] td:first-child{color:var(--red)}
-.index-table .fuera{display:block;color:var(--red);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-family:var(--sans);font-style:normal;margin-top:2px}
+.index-table .fuera{display:block;color:var(--red);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
 .number{text-align:right;white-space:nowrap}
 .grid-eda{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap)}
 .ephemeris{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 36px}
@@ -113,7 +113,7 @@ h1{font:italic 500 44px/1.08 var(--serif);letter-spacing:-.015em;text-wrap:balan
 .timeline>div{padding:12px 16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--plate)}
 .timeline>div:nth-child(2){border-color:var(--line-strong);background:var(--plate-2)}
 .timeline>div:nth-child(3){border-color:rgba(255,179,107,.5);background:var(--amber-soft)}
-.timeline b{display:block;font:italic 500 19px/1.2 var(--serif)}
+.timeline b{display:block;font:600 15px/1.25 var(--sans)}
 .timeline p{font-size:12px;color:var(--muted);margin-top:3px}
 .grid-models{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr);gap:var(--gap);align-items:start}
 .grid-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap)}
@@ -136,11 +136,11 @@ h1{font:italic 500 44px/1.08 var(--serif);letter-spacing:-.015em;text-wrap:balan
 .data-table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
 .data-table th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:400;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line-strong)}
 .data-table td{padding:12px 10px;border-bottom:1px solid var(--line);color:var(--muted)}
-.data-table td:first-child{font:italic 400 17px/1.2 var(--serif);color:var(--chalk)}
+.data-table td:first-child{font:500 14px/1.3 var(--sans);color:var(--chalk)}
 .data-table th.number{text-align:right}
 .data-table tbody tr{cursor:pointer}
 .data-table tr.selected-model td{background:var(--plate-2)}
-.chosen-tag{font:500 10px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sky);background:var(--red);padding:3px 6px;border-radius:2px;margin-left:8px;vertical-align:2px;font-style:normal}
+.chosen-tag{font:500 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sky);background:var(--red);padding:3px 6px;border-radius:2px;margin-left:8px;vertical-align:2px;font-style:normal}
 
 /* Sitio */
 .controls{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px}
@@ -153,7 +153,7 @@ h1{font:italic 500 44px/1.08 var(--serif);letter-spacing:-.015em;text-wrap:balan
 .presets button[aria-pressed=true]{border-color:var(--red);color:var(--chalk)}
 .grid-site{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,1fr);gap:var(--gap);align-items:start}
 .site-side{display:flex;flex-direction:column;gap:var(--gap)}
-.site-reading h2{font:italic 500 24px/1.2 var(--serif)}
+.site-reading h2{font:600 18px/1.25 var(--sans)}
 .site-reading .energy{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:10px 0 4px}
 .site-reading .energy strong{font-size:56px;font-weight:400;letter-spacing:-.03em;line-height:1}
 .site-reading .energy span{font-size:15px;color:var(--muted)}
@@ -167,7 +167,7 @@ h1{font:italic 500 44px/1.08 var(--serif);letter-spacing:-.015em;text-wrap:balan
 
 /* Parque */
 .park-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px 32px;padding-bottom:4px}
-.park-head h2{font:italic 500 34px/1.1 var(--serif)}
+.park-head h2{font:600 26px/1.15 var(--sans);letter-spacing:-.01em}
 .park-head .coords{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--red);margin-top:6px}
 .park-head dl{display:flex;flex-wrap:wrap;gap:4px 28px}
 .park-head dl div{display:flex;flex-direction:column}
@@ -176,7 +176,7 @@ h1{font:italic 500 44px/1.08 var(--serif);letter-spacing:-.015em;text-wrap:balan
 .multiples{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .multiples button{display:flex;flex-direction:column;gap:4px;text-align:left;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius);background:var(--sky)}
 .multiples button[aria-pressed=true]{border-color:var(--red);background:var(--red-soft)}
-.multiples b{font:italic 400 14px/1.15 var(--serif);color:var(--chalk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.multiples b{font:500 12px/1.25 var(--sans);color:var(--chalk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .multiples small{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
 .multiples svg{width:100%;height:38px}
 
@@ -188,7 +188,7 @@ h1{font:italic 500 44px/1.08 var(--serif);letter-spacing:-.015em;text-wrap:balan
 /* Modo exposición: más grande para el proyector */
 body.exposicion{font-size:17px}
 body.exposicion h1{font-size:52px}
-body.exposicion .plate-head h2{font-size:29px}
+body.exposicion .plate-head h2{font-size:21px}
 body.exposicion .plate-meta,body.exposicion .readout-line span,body.exposicion .chart-key,body.exposicion .margin-note{font-size:14px}
 body.exposicion .index-table{font-size:15px}
 body.exposicion .carta text{font-size:13px}
