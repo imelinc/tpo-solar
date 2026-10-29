@@ -22,7 +22,9 @@ for(const view of ['resumen','datos','modelos','evaluacion','casos']){
 }
 route('datos');for(const type of ['box','hist','corr','scatter']){change('#eda-tipo',type);assert(plots.get('eda-chart').traces.length);}
 change('#eda-planta','station09');assert(plots.get('eda-chart').traces[0].customdata.every(p=>p==='station09'));
+route('evaluacion');assert.equal($('#breadcrumb').textContent,'Evaluación');
 route('modelos');change('#modelos-territorio','argentina');assert($('#evidencia').textContent.includes('Regresión lineal múltiple'));
+assert($('#modelo-detalles').textContent.includes('MSE'));
 for(const p of ['train','validacion','test']){change('#modelos-particion',p);assert.equal($('#modelos-tabla tbody').children.length,3);}
 change('#modelos-territorio','china');assert.equal($('#modelos-tabla tbody').children.length,5);
 route('evaluacion');assert($('#matriz').textContent.includes('431'));assert($('#matriz').textContent.includes('43'));
@@ -35,8 +37,15 @@ for(const level of ['0.1','0.25','0.5','1'])for(const dur of ['todas','1','3','7
 route('casos');change('#caso-fecha','2018-07-01');change('#caso-planta','station09');assert($('#caso-lectura').textContent.includes('Sin dato en la fecha'));
 change('#caso-fecha','2018-07-10');change('#caso-planta','station08');assert($('#caso-lectura').textContent.includes('Sin decisión'));
 change('#caso-planta','station04');assert($('#caso-lectura').textContent.includes('Capacidad no confiable'));
+assert(!$('#caso-detalles').textContent.includes('USD'),$('#caso-detalles').textContent);
+change('#caso-planta','station09');assert($('#caso-detalles').textContent.includes('USD'));
 $('button[data-pais="argentina"]').click();assert($('#evidencia').textContent.includes('Argentina'));assert.equal($('#caso-parque-label').hidden,false);
 change('#caso-parque','UL42FV');const series=plots.get('caso-chart').traces[0].y;assert(series.some(v=>v===0),'ceros operativos visibles');
+$('button[data-pais="china"]').click();
+const fila=$('#caso-lista [data-planta="station01"]');fila.focus();fila.click();
+assert.equal(w.document.activeElement.dataset.planta,'station01');
+route('resumen');$('[data-ir="modelos"]').focus();route('modelos');assert.equal(w.document.activeElement.id,'contenido');
+$('#navegacion a[href="#datos"]').focus();route('datos');assert.equal(w.document.activeElement.getAttribute('href'),'#datos');
 $('#presentar').click();assert(w.document.body.classList.contains('exposicion'));$('#presentar').click();assert(!w.document.body.classList.contains('exposicion'));
 assert.equal(errors.length,0,errors.join('\n'));
 console.log('OK: navegación de 5 vistas, EDA, modelos, 144 combinaciones de filtros, ausencia, sensor, capacidad, Argentina, ceros y exposición.');
