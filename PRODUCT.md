@@ -20,11 +20,11 @@ Estimar la energía anual de un parque solar argentino a partir del lugar, el a�
 
 ## Operating Context
 
-Proyección en aula, computadora con datos locales. El recorrido es Modelos, Sitio y Serie. El marco es el de Argentina.
+Proyección en aula, computadora con datos locales. El recorrido es Atlas, Modelos, Sitio y Parque. Solo Argentina, sin selector de país.
 
 ## Capabilities and Constraints
 
-- Recorrido: Modelos → Sitio → Serie.
+- Recorrido: Atlas → Modelos → Sitio → Parque.
 - Target: factor de capacidad mensual. La energía usa la potencia ingresada y las horas del mes.
 - Modelos de los apuntes: regresión simple/múltiple, árbol, Random Forest y XGBoost.
 - La clase de matriz de confusión no se aplica: no hay fallas etiquetadas.

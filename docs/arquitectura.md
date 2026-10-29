@@ -19,6 +19,6 @@ flowchart LR
 
 1. `python -m src.academico` entrena, arma la grilla y escribe la evidencia.
 2. `python app/build_dashboard.py` copia esa evidencia a `app/datos.js`. No vuelve a entrenar.
-3. `app/index.html` muestra Modelos, Sitio y Serie. La consulta de un sitio lee la grilla.
+3. `app/index.html` muestra Atlas (carta y exploración), Modelos, Sitio y Parque. La consulta de un sitio lee la grilla.
 
 El identificador del parque no es una entrada del modelo. La energía en GWh se calcula en la página a partir del factor, la potencia y las horas del mes.

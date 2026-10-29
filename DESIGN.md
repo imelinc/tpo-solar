@@ -1,229 +1,100 @@
 ---
-name: Solar / Datos
-description: Evidencia científica clara, minimalista y sobria.
+name: Solar / Datos · Atlas de parques
+description: Carta estelar de los parques solares argentinos; el lugar ordena la lectura.
 colors:
-  ground: "#f4f6f7"
-  surface: "#fff"
-  raised: "#f5f8f9"
-  active: "#e7edef"
-  border: "#e3eaed"
-  rule: "#edf1f3"
-  text: "#18252d"
-  muted: "#52636d"
-  accent: "#227a6c"
-  positive: "#1d7353"
-  negative: "#b4313b"
-  warning: "#815619"
-  secondary-data: "#2f70bb"
-  reference-data: "#91a7b2"
-  field-border: "#b9c9d0"
-  focus: "#347e97"
-  evidence: "#eff5f7"
-  evidence-text: "#1b4d5d"
-  matrix: "#edf5f6"
-  matrix-error: "#fbf0f0"
+  sky: "#0a1021"
+  plate: "#0f1729"
+  plate-2: "#16233d"
+  line: "#24374f"
+  line-strong: "#3a4e6b"
+  chalk: "#f2f2e9"
+  muted: "#a9b3c6"
+  faint: "#8590a6"
+  red: "#ff4d2e"
+  amber: "#ffb36b"
+  negative-corr: "#5b8fd9"
 typography:
-  headline:
-    fontFamily: "Plex, 'Helvetica Neue', sans-serif"
-    fontSize: "28px"
+  display:
+    fontFamily: "Atlas (EB Garamond Italic, local), Georgia, serif"
+    fontSize: "44px"
     fontWeight: 500
-    lineHeight: 1.25
-    letterSpacing: "-.025em"
+    fontStyle: italic
+    lineHeight: 1.08
   title:
-    fontFamily: "Plex, 'Helvetica Neue', sans-serif"
-    fontSize: "17px"
-    fontWeight: 500
-    lineHeight: 1.35
+    fontFamily: "Plex (IBM Plex Sans, local)"
+    fontSize: "18px"
+    fontWeight: 600
+    lineHeight: 1.25
   body:
-    fontFamily: "Plex, 'Helvetica Neue', sans-serif"
+    fontFamily: "Plex"
     fontSize: "15px"
     lineHeight: 1.5
   label:
-    fontFamily: "Plex, 'Helvetica Neue', sans-serif"
-    fontSize: "12px"
-    lineHeight: 1.5
-  metric:
-    fontFamily: "Plex, 'Helvetica Neue', sans-serif"
-    fontSize: "28px"
+    fontFamily: "Plex"
+    fontSize: "11px"
+    letterSpacing: ".12em–.16em"
+    textTransform: uppercase
+  figure:
+    fontFamily: "Plex"
+    fontSize: "26px"
     fontWeight: 400
-    lineHeight: 1.4
 rounded:
-  tag: "4px"
-  matrix: "5px"
-  control: "6px"
-  panel: "8px"
-  sheet: "16px"
+  plate: "3px"
+  chip: "20px"
 spacing:
-  inline: "7px"
-  control: "8px 12px"
-  field: "7px 11px"
-  panel: "21px 22px"
-  evidence: "14px 18px"
-  block: "24px"
-components:
-  button-quiet:
-    backgroundColor: "{colors.raised}"
-    textColor: "{colors.text}"
-    rounded: "{rounded.control}"
-    padding: "{spacing.control}"
-  button-quiet-hover:
-    backgroundColor: "{colors.active}"
-  field:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.text}"
-    rounded: "{rounded.control}"
-    padding: "{spacing.field}"
-  nav-active:
-    backgroundColor: "{colors.active}"
-    textColor: "{colors.text}"
-    rounded: "{rounded.control}"
-    padding: "10px 14px"
-  tag:
-    backgroundColor: "{colors.raised}"
-    textColor: "{colors.muted}"
-    rounded: "{rounded.tag}"
-    padding: "5px 9px"
-  panel:
-    backgroundColor: "{colors.surface}"
-    rounded: "{rounded.panel}"
-    padding: "{spacing.panel}"
-  evidence-strip:
-    backgroundColor: "{colors.evidence}"
-    textColor: "{colors.muted}"
-    rounded: "{rounded.control}"
-    padding: "{spacing.evidence}"
-  matrix-cell:
-    backgroundColor: "{colors.matrix}"
-    textColor: "{colors.text}"
-    rounded: "{rounded.matrix}"
-    padding: "18px 15px"
-  matrix-cell-error:
-    backgroundColor: "{colors.matrix-error}"
+  gap: "20px"
+  plate: "18px 20px"
+  page: "28px 32px"
 ---
 
-# Design System: Solar / Datos
+# Design System: Solar / Datos · Atlas de parques
 
 ## Overview
 
-**Creative North Star: "Laboratorio comparativo"**
-
-Laboratorio comparativo organiza el análisis como una hoja de trabajo clara, minimalista y sobria. El marco frío y la hoja blanca sostienen la información; la jerarquía depende de tipografía, alineación y espacio. El color identifica datos y estados.
-
-Los controles son discretos y familiares. La evidencia conserva el modelo, las métricas, la unidad y el alcance junto a la lectura; los estados desconocidos se expresan con texto. La precisión visual acompaña la precisión de las cifras.
-
-**Key Characteristics:**
-
-- Hoja enmarcada sobre fondo frío.
-- Tipografía Plex local y cifras tabulares.
-- Paneles planos con bordes suaves.
-- Color funcional para series, selección y estados.
-
-La dirección fue elegida por el usuario el 29/10/2026: `.impeccable/mocks/decision/laboratorio.html`, referencia `seed:6a8420f350ea078c`; base de app Framed sheet, semilla 1409239049. El frontmatter captura los valores actuales de `app/estilos.css`; las series se contrastaron con `app/tablero.js` y los componentes con `app/index.html`. Alcance: inspección de fuente. **Pendiente: verificación visual del render y uso real**; no se obtuvieron capturas porque la apertura de `file://` fue bloqueada. Este documento no certifica que la interfaz esté lista para entrega.
+**North Star: "Carta estelar de los parques".** El dashboard es una carta de cielo nocturno: cada parque es una estrella y la consulta de un sitio es apuntar un retículo. El lugar ordena la lectura; los números se leen como coordenadas. Dirección elegida por el usuario el 29/10/2026 (ronda de Impeccable, seed 79f98652, mundo *star atlas*).
 
 ## Colors
 
-Paleta fría y contenida; los neutros forman la estructura y los acentos comunican evidencia.
-
-### Primary
-
-- **Verde petróleo** (`accent`): datos observados, modelo elegido, enlaces y selección de planta.
-
-### Secondary
-
-- **Azul analítico** (`secondary-data`): segunda serie de métricas, como recall.
-- **Gris de referencia** (`reference-data`): línea del valor esperado, distinta del observado.
-
-### Neutral
-
-- **Marco frío** (`ground`) y **hoja blanca** (`surface`): fondo exterior y área principal.
-- **Niebla de apoyo** (`raised`) y **selección gris** (`active`): controles, notas y navegación activa.
-- **Tinta** (`text`) y **pizarra** (`muted`): lectura principal y contexto.
-- **Borde** (`border`), **regla** (`rule`) y **borde de campo** (`field-border`): separación estructural.
-- **Banda de evidencia** (`evidence`, `evidence-text`): agrupa contexto y nombre del modelo.
-
-Los colores semánticos `positive`, `negative` y `warning` conservan roles de estado; `warning` está declarado en CSS y no tiene uso visible asignado en los componentes inspeccionados. `matrix` y `matrix-error` distinguen celdas de aciertos y errores; `focus` señala interacción por teclado.
-
-La defensa usa el marco de Argentina: fondo `#c5dff3` y franja celeste `#74acdf`. Las series siguen en verde petróleo y azul.
-
-**The Color With Evidence Rule.** Todo estado debe llevar texto o etiqueta además del color.
+- **Cielo** (`sky`) es el fondo, con una trama de puntos muy tenue. **Placa** (`plate`) y **placa 2** (`plate-2`) separan bloques y estados activos.
+- **Tiza** (`chalk`) para texto principal y para lo observado (estrellas, línea observada). **Ámbar** (`amber`) para lo estimado por el modelo: campo de factor en la carta, línea punteada, punto de prueba, barras de energía.
+- **Rojo linterna** (`red`) es el único color de alerta y anotación: retículo, parque seleccionado, caso límite, ceros operativos, modelo elegido. No se usa como decoración.
+- Correlaciones negativas usan `negative-corr`; las positivas, ámbar.
+- Ningún estado depende solo del color: observado y estimado también difieren en la forma de línea (llena y punteada), validación y prueba en aro y punto, y cada alerta lleva texto.
 
 ## Typography
 
-**Headline / Body Font:** IBM Plex Sans, registrada localmente como `Plex`, con Helvetica Neue y sans-serif como respaldo. Archivos en `app/fonts/`, pesos disponibles 400, 500 y 600; licencia OFL local. No hay familia mono separada.
-
-La jerarquía de títulos, cuerpo, etiquetas y métricas figura en el frontmatter. Cifras tabulares en todo el cuerpo; negritas de énfasis en peso 600. El título principal baja a 25 px hasta 850 px y a 24 px hasta 640 px. Las cifras se mueven entre 25 y 30 px según componente. Textos de contexto usan 12–14 px, con algunas etiquetas móviles de 11 px.
-
-Los párrafos de cabecera tienen un máximo de 75ch; notas y alcances usan 65–70ch. El modo exposición aumenta el cuerpo a 17 px, referencias a 14 px y banda de evidencia a 15 px; en móvil el cuerpo vuelve a 15 px.
-
-**The Stable Numbers Rule.** Las cifras conservan alineación tabular y se actualizan sin contadores animados.
+- **Itálica serif (Atlas, EB Garamond) solo en los títulos de cada vista y en la marca.** Pedido explícito del usuario: el resto del texto va derecho.
+- IBM Plex Sans para títulos de placa (600), cuerpo, tablas y cifras, siempre con cifras tabulares.
+- Rótulos en versalitas espaciadas de 11 px (`plate-meta`, encabezados de tabla, ejes de la carta). Cortos: nunca frases largas en mayúscula.
+- Modo exposición agranda título, títulos de placa, rótulos e índice para el proyector.
 
 ## Layout
 
-Hoja enmarcada: barra lateral fija de 228 px, barra superior de 64 px y hoja blanca de ancho máximo 1680 px. La hoja usa relleno de 30 px 32 px 24 px, con separación de bloques tomada de `spacing.block`. Los paneles comparten bordes y líneas de lectura; no flotan sobre el marco.
+Barra superior fija con marca, cuatro vistas (Atlas, Modelos, Sitio, Parque; la activa con un rombo rojo) y Modo exposición. Debajo, título de la vista y una línea de lectura persistente con el modelo elegido y sus métricas de prueba.
 
-El recorrido es Modelos → Sitio → Serie. Modelos pone la comparación a la izquierda y la lectura del modelo a la derecha. Sitio y Serie usan la grilla principal. Se apilan a 1100 px. Los gráficos permiten zoom, desplazamiento y hover. La página no muestra enlaces a los apuntes.
+- **Atlas:** carta a la altura de la pantalla (relación 600 × 887) más el índice ordenable; abajo, cuatro placas de exploración y la ficha de calidad.
+- **Modelos:** partición temporal con ancho proporcional a los meses, gráfico de puntos de RMSE, ficha del modelo con importancias, observado contra estimado, validación por parque y tabla.
+- **Sitio:** formulario y ejemplos; carta con retículo y línea al parque que presta el clima; lectura de energía, avisos y barras mensuales (rayadas si el clima es promedio).
+- **Parque:** encabezado con coordenadas, serie con la prueba sombreada, residuos y la grilla de series de todos los parques.
 
-- Desde 1600 px: relleno principal de 36 px 42 px; gráficos estándar de 340 px de alto.
-- Hasta 1100 px: lateral de 192 px, relleno principal de 24 px y paneles de 17 px; se reduce densidad horizontal.
-- Hasta 850 px: navegación horizontal desplazable, lateral en flujo y sin margen izquierdo; hoja con esquinas de 12 px.
-- Hasta 640 px: hoja sin radio ni margen exterior, relleno de 24 px 16 px y grillas principales de una columna. Selectores y fecha alcanzan 44 px; botón discreto de 40 px. La matriz conserva dos columnas de predicción y una de etiquetas. Las tablas mantienen un mínimo de 480 px dentro del contenedor con scroll.
-
-El modo exposición usa lateral de 200 px en escritorio y vuelve al flujo móvil. El modo impresión oculta navegación y controles. Estas reglas están comprobadas en fuente; el ajuste real a pantallas y proyección queda pendiente de render.
+A 1180 px las grillas pasan a una columna; a 860 px la navegación se desplaza en horizontal y la carta ocupa todo el ancho.
 
 ## Elevation & Depth
 
-La interfaz es plana: no hay sombras de panel ni de control. La profundidad surge del marco, la hoja blanca, superficies de apoyo y bordes finos. El foco usa un contorno sólido de 3 px con desplazamiento de 3 px; es una señal de interacción, no una sombra.
-
-**The Flat Sheet Rule.** Los paneles se distinguen por borde, espacio y tono; no por elevación decorativa.
-
-## Shapes
-
-Esquinas suaves según escala del frontmatter: hoja más abierta, paneles intermedios y controles más contenidos. Etiquetas y celdas conservan radios menores. Separadores de 1 px ordenan tablas, métricas y navegación explicativa. Puntos de estado circulares acompañan texto; no funcionan como única señal.
+Plano. Las placas tienen borde de 1 px y dos rombos en las esquinas superiores, como los nodos de una carta. Solo las estrellas de 50 MW o más tienen un halo radial.
 
 ## Components
 
-### Buttons
-
-Botones discretos de superficie secundaria, texto de tinta y radio de control. Tipografía de 13 px; altura mínima de 36 px en escritorio. El hover usa la superficie activa únicamente con puntero fino. Presión: escala 0,98 durante 120 ms con la curva `cubic-bezier(.23,1,.32,1)`; se elimina con movimiento reducido. Los deshabilitados tienen opacidad 0,45. La implementación no tiene un botón sólido de acento.
-
-### Inputs / Fields
-
-Selectores y fecha nativos, hoja blanca, borde específico de campo y radio de control. Altura mínima de 38 px y tipografía de 14 px dentro de controles; foco compartido con enlaces, botones y desplegables. Cada campo tiene una etiqueta visible y el ancho se adapta al contenedor.
-
-### Navigation
-
-Tres enlaces —Modelos, Sitio y Serie— con iconos de trazo, texto secundario y selección identificada por `aria-current=page`, tono activo y peso 500. En móvil, los enlaces se desplazan horizontalmente; los iconos se ocultan hasta 640 px. El enlace de salto al contenido aparece al recibir foco.
-
-### Chips
-
-Etiquetas compactas de superficie secundaria para las entradas del modelo. La marca de modelo elegido añade texto explícito. Los chips informativos no se presentan como acciones. Los atajos de sitio son botones.
-
-### Cards / Containers
-
-Panel blanco con borde fino y relleno de panel; notas sobre superficie secundaria. La banda de evidencia permite salto de línea y conserva métricas, modelo y contexto en grupos separados. No sustituir esta relación por tarjetas decorativas aisladas.
-
-### Confusion Matrix / Metrics
-
-Matriz HTML con realidad en filas y predicción en columnas. Cada celda presenta conteo, sigla y nombre. Las celdas de error usan tono rojizo suave; los conteos desconocidos se muestran con raya. Las fórmulas de precision, recall, F1 y accuracy acompañan a las cifras; los días sin decisión se identifican fuera de los cuatro conteos.
-
-### Charts / Tables
-
-Plotly local, fuentes Plex y ejes con reglas claras; gráficos transparentes sobre hoja. El modelo elegido se resalta en verde y las alternativas en gris. Barras, series y puntos llevan unidades y títulos. Las tablas conservan columnas numéricas alineadas a la derecha y exportación CSV. Los errores de recursos se muestran en la página; los gráficos tienen texto de fallo y las exploraciones sin observaciones un mensaje vacío.
-
-El cambio de vista usa únicamente opacidad 0,75 → 1 durante 160 ms con la curva indicada. El código lo omite si hubo teclado en los últimos 500 ms o si se solicita movimiento reducido; no detecta explícitamente el dispositivo que originó el cambio. No hay animación de números ni coreografía de gráficos.
+- **Carta (SVG propio):** contornos de Natural Earth 1:50m locales, graticula de 2° punteada, campo de factor típico estimado en celdas de 0,2° recortado a la Argentina, rectángulo de entrenamiento punteado en ámbar, estrellas con radio `2,6 + 0,82·√MW` y leyenda de potencia fija. Recuadro con el país completo para ubicar la carta y elegir sitios fuera de ella.
+- **Índice:** tabla ordenable; la fila seleccionada se marca en rojo y "fuera del rango" aparece bajo el nombre.
+- **Botones:** contorno de 1 px en placa, versalitas; el estado activo se llena de rojo (Modo exposición) o se bordea en rojo (ejemplos).
+- **Avisos:** lista con rombo; los de alerta tienen borde y fondo rojos.
+- **Gráficos:** Plotly local con fondo transparente, grilla `line` y rótulos `muted`.
 
 ## Do's and Don'ts
 
-### Do:
-
-- **Do** conservar modelo, unidad y alcance junto a las métricas.
-- **Do** acompañar el color de estados con texto y etiquetas.
-- **Do** mantener las cifras tabulares y las tablas desplazables dentro de su contenedor.
-- **Do** respetar el foco visible, los controles nativos y movimiento reducido.
-
-### Don't:
-
-- **Don't** añadir sombras a los paneles ni animación de cifras.
-- **Don't** representar un dato ausente como cero o como normalidad.
-- **Don't** ocultar columnas para aparentar que una tabla cabe.
-- **Don't** dar por verificada la composición sin inspección del render.
+- **Do** mantener el modelo, la unidad y la partición visibles junto a las métricas.
+- **Do** marcar fuera de rango, ceros y clima promedio con texto además del color.
+- **Don't** usar itálica fuera de los títulos de vista y la marca.
+- **Don't** agregar sombras de tarjeta, gradientes de texto ni una segunda tinta de alerta.
+- **Don't** mostrar un dato ausente como cero.
