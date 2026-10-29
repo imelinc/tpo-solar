@@ -7,21 +7,21 @@ related_targets:
   - app/tablero.js
 ---
 
-Scope: dashboard de defensa de Ciencia de Datos, modo Operate. Principal audiencia: jurado y cuatro integrantes en aula, 12/11/2026. Recorrido confirmado: Resumen → Datos → Modelos → Evaluación → Casos. China diario y Argentina mensual, con métricas y modelos distintos.
+Scope: dashboard de defensa de Ciencia de Datos, modo Operate. Principal audiencia: jurado y cuatro integrantes en aula, 12/11/2026. Recorrido: Modelos → Alertas → Caso, pensado para 5–7 minutos. China horario y Argentina mensual se distinguen por fondo y bandera. La página no muestra enlaces a los apuntes.
 
 ## Direction contract
 
 Dirección elegida por el usuario: **Laboratorio comparativo**. Referencia `seed:6a8420f350ea078c`, tipo grounded, construcción en código. Boceto de elección local: `.impeccable/mocks/decision/laboratorio.html`. Preferencias explícitas: claro, minimalista y sobrio.
 
-THESIS: El análisis comparativo es la interfaz: el jurado ve qué se eligió, qué errores comete y qué clase respalda cada paso.
+THESIS: El gráfico compara y el país se reconoce al instante. El jurado ve qué modelo se eligió, con qué error, y qué detecta la regla.
 
-OWN-WORLD: Marco gris frío claro, hoja blanca, IBM Plex Sans local, tinta #18252d y datos #227a6c. Chrome neutro, cifras tabulares y gráficos sin adornos. Diseño canónico en DESIGN.md y .impeccable/design.json.
+OWN-WORLD: Hoja blanca sobre un marco que cambia con el país: cálido con franja roja y oro en China, celeste con franja de la bandera en Argentina. IBM Plex Sans local, cifras tabulares y series en verde petróleo y azul. Diseño canónico en DESIGN.md.
 
-STORY: Primero evidencia con alcance, luego interpretación. La regresión estima una cantidad; la regla produce una alerta y se evalúa con su propia matriz.
+STORY: Primero la comparación de modelos, después la matriz de China, al final un caso. Argentina no tiene matriz.
 
-FIRST VIEWPORT: Navegación lateral, encabezado de producto y franja persistente de modelo/unidades/métricas; comparación de RMSE a la izquierda y matriz con precision/recall a la derecha. La franja del recorrido conecta observación, regresión, residuo y revisión.
+FIRST VIEWPORT: Selector grande con banderas, franja de modelo y métricas, gráfico de RMSE de validación contra prueba.
 
-SIGNATURE: Procedencia visible: cada vista mantiene modelo, población, período y referencias de clase; filtros de evaluación recalculan matriz y métricas desde los mismos experimentos.
+SIGNATURE: El fondo y la bandera dicen el país. Clic en una barra o en la curva recalcula la lectura. Los filtros de alertas salen de los mismos experimentos.
 
 RISK: Demasiados metadatos pueden competir con el gráfico. Las notas largas van en detalles; incertidumbre y exclusiones de matrices quedan visibles.
 

@@ -1,5 +1,9 @@
 # Verificación de la versión de defensa
 
+## Recorte a Argentina — 29/10/2026
+
+`python -m unittest discover -s tests -v` pasa 10 pruebas. `node tests/dashboard.cjs` confirma que los cinco modelos, los presets y los ceros de la serie coinciden con la evidencia. En el navegador se recorrió Modelos, Sitio (2023, 2028 y Ushuaia) y Serie, en escritorio y a 390 px de ancho. El modelo elegido por validación es XGBoost. La consulta de un sitio lee la grilla de 0,2°.
+
 Fecha: 29/10/2026.
 
 ## Hecho con evidencia

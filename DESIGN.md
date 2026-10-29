@@ -143,6 +143,8 @@ Paleta fría y contenida; los neutros forman la estructura y los acentos comunic
 
 Los colores semánticos `positive`, `negative` y `warning` conservan roles de estado; `warning` está declarado en CSS y no tiene uso visible asignado en los componentes inspeccionados. `matrix` y `matrix-error` distinguen celdas de aciertos y errores; `focus` señala interacción por teclado.
 
+La defensa usa el marco de Argentina: fondo `#c5dff3` y franja celeste `#74acdf`. Las series siguen en verde petróleo y azul.
+
 **The Color With Evidence Rule.** Todo estado debe llevar texto o etiqueta además del color.
 
 ## Typography
@@ -159,7 +161,7 @@ Los párrafos de cabecera tienen un máximo de 75ch; notas y alcances usan 65–
 
 Hoja enmarcada: barra lateral fija de 228 px, barra superior de 64 px y hoja blanca de ancho máximo 1680 px. La hoja usa relleno de 30 px 32 px 24 px, con separación de bloques tomada de `spacing.block`. Los paneles comparten bordes y líneas de lectura; no flotan sobre el marco.
 
-La composición actual del Resumen dispone comparación de modelos a la izquierda y matriz/métricas a la derecha en proporción 1:1,3. Se apila a 1100 px. Otras vistas usan grillas 1,7:1 o 1,55:1, con mínimo de 280 px en la columna derecha; Evaluación usa dos columnas iguales y se apila a 1100 px. El recorrido de la aplicación es Resumen → Datos → Modelos → Evaluación → Casos.
+El recorrido es Modelos → Sitio → Serie. Modelos pone la comparación a la izquierda y la lectura del modelo a la derecha. Sitio y Serie usan la grilla principal. Se apilan a 1100 px. Los gráficos permiten zoom, desplazamiento y hover. La página no muestra enlaces a los apuntes.
 
 - Desde 1600 px: relleno principal de 36 px 42 px; gráficos estándar de 340 px de alto.
 - Hasta 1100 px: lateral de 192 px, relleno principal de 24 px y paneles de 17 px; se reduce densidad horizontal.
@@ -190,11 +192,11 @@ Selectores y fecha nativos, hoja blanca, borde específico de campo y radio de c
 
 ### Navigation
 
-Cinco enlaces con iconos de trazo, texto secundario y selección identificada por `aria-current=page`, tono activo y peso 500. En móvil, los enlaces se desplazan horizontalmente; los iconos se ocultan hasta 640 px. El enlace de salto al contenido aparece al recibir foco.
+Tres enlaces —Modelos, Sitio y Serie— con iconos de trazo, texto secundario y selección identificada por `aria-current=page`, tono activo y peso 500. En móvil, los enlaces se desplazan horizontalmente; los iconos se ocultan hasta 640 px. El enlace de salto al contenido aparece al recibir foco.
 
 ### Chips
 
-Etiquetas compactas de superficie secundaria para alcance y variables. La marca de modelo elegido añade texto explícito. Los chips informativos no se presentan como acciones; China/Argentina usa botones segmentados con `aria-pressed`, superficie blanca en selección y foco compartido.
+Etiquetas compactas de superficie secundaria para las entradas del modelo. La marca de modelo elegido añade texto explícito. Los chips informativos no se presentan como acciones. Los atajos de sitio son botones.
 
 ### Cards / Containers
 

@@ -1,6 +1,6 @@
-"""Empaqueta evidencia calculada y recursos locales para la defensa sin conexión.
+"""Empaqueta la evidencia argentina. No reentrena ni cambia cifras.
 
-python -m src.academico recalcula. Este comando solo empaqueta; no altera cifras.
+python -m src.academico recalcula. Después: python app/build_dashboard.py
 """
 import json
 import sys
@@ -12,21 +12,19 @@ from src.config import DATA_PROCESSED
 
 
 def main():
-    ruta = DATA_PROCESSED / 'defensa_evidencia.json'
+    ruta = DATA_PROCESSED / "defensa_evidencia.json"
     datos = json.loads(ruta.read_text())
-    # Un artefacto incompleto no reemplaza una aplicación que ya funciona.
-    for key in ['regresion', 'regresion_argentina', 'simulaciones', 'diario', 'argentina', 'clases']:
+    for key in ["regresion", "grilla", "serie", "parques", "clima", "tipico", "presets", "rango"]:
         if not datos.get(key):
-            raise ValueError(f'Falta evidencia: {key}. Ejecutar python -m src.academico')
-    if len({r['id'] for r in datos['simulaciones']}) != len(datos['simulaciones']):
-        raise ValueError('Simulaciones con identidad duplicada')
-    for r in datos['diario']:
-        if not r['decide'] and r['estado'] == 'normal':
-            raise ValueError('Un día sin decisión no puede mostrarse normal')
-    (APP / 'datos.js').write_text('window.DEFENSA = ' + json.dumps(datos, ensure_ascii=False, allow_nan=False, separators=(',', ':')) + ';\n')
-    print(f'Empaquetado: {len(datos["simulaciones"])} simulaciones; {len(datos["diario"])} días-planta; {len(datos["argentina"])} meses-parque.')
-    print(f'datos.js: {(APP / "datos.js").stat().st_size/1e6:.2f} MB. No requiere red.')
+            raise ValueError(f"Falta evidencia: {key}. Ejecutar python -m src.academico")
+    if datos.get("pais") != "Argentina":
+        raise ValueError("La evidencia no es la de Argentina")
+    if len(datos["regresion"]["comparacion"]) != 5:
+        raise ValueError("La comparación tiene que incluir los cinco modelos de la materia")
+    (APP / "datos.js").write_text("window.DEFENSA = " + json.dumps(datos, ensure_ascii=False, allow_nan=False, separators=(",", ":")) + ";\n")
+    print(f"Empaquetado: {datos['regresion']['nombre']}; {len(datos['serie'])} meses-parque; {len(datos['parques'])} parques.")
+    print(f"datos.js: {(APP / 'datos.js').stat().st_size / 1e6:.2f} MB. No requiere red.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

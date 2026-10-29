@@ -1,5 +1,7 @@
 # Estado de la revisión del TPO
 
+Diagnóstico de la versión anterior, con dos países y la regla de alertas. La defensa actual está en `docs/plan_modelado.md`.
+
 Actualizado: 29/10/2026. Este archivo reemplaza el diagnóstico inicial para reflejar el alcance curricular confirmado por el usuario.
 
 ## Requisitos y evidencia necesaria

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 TPO Ciencia de Datos (UADE) - Construcción de datasets para
-"predecir la generación solar esperada según el clima y detectar plantas que rinden de menos".
+"estimar la generación mensual argentina según lugar y clima". La defensa usa el dataset B.
 
 Genera:
   dataset_A_pvod_15min.csv              PVOD (10 plantas, China) cada 15 min, sin clima externo

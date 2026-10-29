@@ -1,92 +1,114 @@
-"""Comprobaciones de decisiones, etiquetas y reproducibilidad de la defensa.
+"""Decisiones de la defensa argentina.
 
 Ejecutar: python -m unittest discover -s tests -v
 """
 import unittest
-import json
-from pathlib import Path
 import numpy as np
 import pandas as pd
-from src.academico import (agregar_alertas, crear_modelo, evaluar_simulaciones,
-                           metricas_confusion, metricas_regresion, umbral_boxplot)
+from src.academico import consultar, crear_modelo, metricas_regresion, preparar
+from src.config import DATA_PROCESSED
+
+
+def _grilla():
+    # 2×2 celdas. La primera vale 0,2 en 2023 y 0,3 en el clima típico.
+    n = 2 * 2 * 12
+    return {"paso": 0.2, "lats": [-30.0, -29.8], "lons": [-68.0, -67.8], "anios": [2023, 2026],
+            "factores": {"2023": [0.2] * 12 + [0.1] * (n - 12), "2026": [0.25] * 6 + [0.3] * 6 + [0.1] * (n - 12),
+                         "0": [0.3] * n}}
+
+
+def _mundo():
+    parques = [{"i": 0, "central": "A", "nombre": "Parque A", "provincia": "San Juan",
+                "lat": -30.0, "lon": -68.0, "potencia_mw": 10}]
+    clima = [{"i": 0, "anio": 2023, "mes": m, "ghi": 100, "temp": 20, "nub": 10} for m in range(1, 13)]
+    clima += [{"i": 0, "anio": 2026, "mes": m, "ghi": 90, "temp": 20, "nub": 10} for m in range(1, 7)]
+    tipico = [{"i": 0, "mes": m, "ghi": 80, "temp": 18, "nub": 12} for m in range(1, 13)]
+    rango = {"lat_min": -31.0, "lat_max": -29.0, "lon_min": -69.0, "lon_max": -67.0}
+    return parques, clima, tipico, rango
 
 
 class EvaluacionAcademica(unittest.TestCase):
-    def test_matriz_con_errores_conocidos(self):
-        m = metricas_confusion(tn=66, fp=6, fn=12, tp=30)
-        self.assertEqual(m['n'], 114)
-        self.assertAlmostEqual(m['precision'], 30 / 36)
-        self.assertAlmostEqual(m['recall'], 30 / 42)
-        self.assertAlmostEqual(m['accuracy'], 96 / 114)
-        self.assertAlmostEqual(m['f1'], 60 / 78)
-
-    def test_sin_positivos_no_inventa_precision(self):
-        m = metricas_confusion(5, 0, 0, 0)
-        self.assertIsNone(m['precision'])
-        self.assertIsNone(m['recall'])
-        self.assertIsNone(m['f1'])
-        self.assertEqual(m['accuracy'], 1)
-
     def test_regresion_conserva_unidades_y_r2_negativo(self):
         m = metricas_regresion([0, 1, 2], [3, 3, 3])
-        self.assertEqual(m['mae'], 2)
-        self.assertAlmostEqual(m['rmse'], np.sqrt(14 / 3))
-        self.assertLess(m['r2'], 0)
-
-    def test_sensor_invalido_no_puede_ser_normal(self):
-        e = pd.DataFrame({'plant_id': ['s', 's', 'station04'], 'decide': [False, True, True],
-                          'residuo': [np.nan, -0.7, 0.2], 'esperada': 5., 'real': 2., 'capacidad': 10.})
-        x = agregar_alertas(e, {}, {'umbral': -0.2})
-        self.assertEqual(x.estado.tolist(), ['sin_dato', 'alerta', 'capacidad'])
-        self.assertFalse(x.alerta.iloc[0])
-        self.assertTrue(np.isnan(x.deficit_mwh.iloc[0]))
-        self.assertTrue(np.isnan(x.deficit_mwh.iloc[2]))
-
-    def test_boxplot_tolera_un_extremo_sin_ajustarse_a_el(self):
-        r = pd.Series(list(np.linspace(-.04, .04, 100)) + [-.9])
-        p = umbral_boxplot(r)
-        self.assertLess(-.9, p['umbral'])
-        self.assertLess(p['umbral'], r.quantile(.25))
-        with self.assertRaises(ValueError):
-            umbral_boxplot(pd.Series([.1, .2]))
-
-    def test_simulaciones_independientes_y_dias_sin_decision(self):
-        base = pd.DataFrame({'plant_id': 's', 'fecha': pd.date_range('2019-05-01', periods=25).strftime('%Y-%m-%d'),
-                             'decide': True, 'real': 5., 'esperada': 5., 'residuo': 0., 'capacidad': 1.})
-        base.loc[3, 'decide'] = False
-        original = base.copy(deep=True)
-        sims = evaluar_simulaciones(base, {}, {'umbral': -.2})
-        self.assertEqual(len(sims), 4 * 3 * 5)
-        self.assertEqual(len({r['id'] for r in sims}), len(sims))
-        for r in sims:
-            self.assertEqual(r['n'], 24)
-            self.assertEqual(r['sin_decision'], 1)
-            self.assertEqual(r['n'], r['tp'] + r['tn'] + r['fp'] + r['fn'])
-            if r['caida'] == 1 and r['tp']:
-                self.assertEqual(r['fn'], 0)
-        self.assertEqual(sims, evaluar_simulaciones(base, {}, {'umbral': -.2}))
-        pd.testing.assert_frame_equal(base, original)
-
-    def test_cobertura_diaria_benchmark_igual_a_aplicacion(self):
-        # Contrato con la evidencia real: no dejar desaparecer horas inválidas.
-        ruta = Path(__file__).resolve().parents[1] / 'data/processed/defensa_evidencia.json'
-        evidencia = json.loads(ruta.read_text())
-        for planta in evidencia['regresion']['plantas_entrenamiento']:
-            dias = [r for r in evidencia['diario'] if r['plant_id'] == planta and r['fecha'] >= '2019-05-01']
-            esperados = sum(r['decide'] for r in dias)
-            excluidos = sum(not r['decide'] for r in dias)
-            for sim in evidencia['simulaciones']:
-                if sim['planta'] == planta:
-                    self.assertEqual(sim['n'], esperados, sim['id'])
-                    self.assertEqual(sim['sin_decision'], excluidos, sim['id'])
-        parcial = next(r for r in evidencia['diario'] if r['plant_id'] == 'station01' and r['fecha'] == '2019-06-10')
-        self.assertFalse(parcial['decide'])
-        self.assertEqual(parcial['estado'], 'sin_dato')
+        self.assertEqual(m["mae"], 2)
+        self.assertAlmostEqual(m["rmse"], np.sqrt(14 / 3))
+        self.assertLess(m["r2"], 0)
 
     def test_modelo_fuera_del_alcance_rechazado(self):
         with self.assertRaises(ValueError):
-            crear_modelo('no_permitido')
+            crear_modelo("no_permitido")
+
+    def test_anio_futuro_repite_el_clima_tipico(self):
+        g, mundo = _grilla(), _mundo()
+        a = consultar(g, *mundo, -30, -68, 2027, 10)
+        b = consultar(g, *mundo, -30, -68, 2029, 10)
+        self.assertEqual(a["modo"], "tipico")
+        self.assertEqual(b["modo"], "tipico")
+        self.assertAlmostEqual(a["energia_gwh"], b["energia_gwh"])
+        self.assertAlmostEqual(a["energia_gwh"], 0.3 * 10 * 365 * 24 / 1000)
+
+    def test_bisiesto_solo_cambia_las_horas(self):
+        g, mundo = _grilla(), _mundo()
+        comun = consultar(g, *mundo, -30, -68, 2027, 10)
+        bisiesto = consultar(g, *mundo, -30, -68, 2028, 10)
+        self.assertGreater(bisiesto["energia_gwh"], comun["energia_gwh"])
+        self.assertAlmostEqual(bisiesto["energia_gwh"] - comun["energia_gwh"], 0.3 * 10 * 24 / 1000)
+
+    def test_la_potencia_escala_la_energia(self):
+        g, mundo = _grilla(), _mundo()
+        simple = consultar(g, *mundo, -30, -68, 2023, 10)
+        doble = consultar(g, *mundo, -30, -68, 2023, 20)
+        self.assertAlmostEqual(doble["energia_gwh"], simple["energia_gwh"] * 2)
+        self.assertEqual(simple["modo"], "observado")
+        self.assertTrue(simple["dentro"])
+
+    def test_2026_mezcla_meses_medidos_y_promedio(self):
+        r = consultar(_grilla(), *_mundo(), -30, -68, 2026, 10)
+        self.assertEqual(r["modo"], "mixto")
+
+    def test_ushuaia_queda_fuera_del_rango(self):
+        r = consultar(_grilla(), *_mundo(), -54.8, -68.3, 2023, 10)
+        self.assertFalse(r["dentro"])
+        self.assertGreater(r["distancia_celda_km"], 100)
+
+    def test_potencia_cero_rechazada(self):
+        with self.assertRaises(ValueError):
+            consultar(_grilla(), *_mundo(), -30, -68, 2023, 0)
+
+    def test_prepara_conserva_ceros_y_descarta_coordenada_provincial(self):
+        filas = [
+            self._fila("A", "2023-01-01", 10, 0.2, "osm_parque"),
+            self._fila("A", "2023-02-01", 0, 0.0, "osm_parque"),
+            self._fila("A", "2022-12-01", 0, 0.0, "osm_parque"),
+            self._fila("B", "2023-01-01", 5, 0.2, "osm_centroide_provincia"),
+            self._fila("CUM2FV", "2019-01-01", 8, 0.2, "osm_parque"),
+            self._fila("CUM2FV", "2023-06-01", 8, 0.2, "osm_parque"),
+            self._fila("D", "2023-01-01", 8, 0.8, "osm_parque"),
+        ]
+        d = preparar(pd.DataFrame(filas))
+        self.assertEqual(sorted(d["central"].unique()), ["A", "CUM2FV"])
+        self.assertTrue((d["energia_mwh"] == 0).any())
+        self.assertFalse((d["central"].eq("A") & d["fecha"].eq("2022-12-01")).any())
+        self.assertTrue((d["central"].eq("CUM2FV") & d["fecha"].eq("2023-06-01")).any())
+        self.assertFalse((d["central"].eq("CUM2FV") & d["fecha"].eq("2019-01-01")).any())
+
+    def test_datos_reales_excluyen_centroide_y_conservan_ceros(self):
+        ruta = DATA_PROCESSED / "dataset_B_argentina_mensual.parquet"
+        if not ruta.exists():
+            self.skipTest("sin dataset argentino")
+        d = preparar(pd.read_parquet(ruta))
+        self.assertNotIn("osm_centroide_provincia", set(d["coord_source"]))
+        self.assertGreater(int(d["energia_mwh"].eq(0).sum()), 0)
+        self.assertGreater(d["central"].nunique(), 10)
+        self.assertTrue(d["lat"].between(-45, -20).all())
+
+    @staticmethod
+    def _fila(central, fecha, energia, factor, coord):
+        return {"central": central, "fecha": fecha, "energia_mwh": energia, "factor_capacidad": factor,
+                "potencia_mw": 10, "coord_source": coord, "lat": -31.5, "lon": -68.5,
+                "om_ghi_kwh_m2_mes": 180, "om_temp_max_media_c": 25, "om_nubosidad_media_pct": 20,
+                "central_descripcion": central, "provincia": "San Juan", "energia_gwh": energia / 1000}
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

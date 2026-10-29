@@ -3,69 +3,82 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f2f6f7">
-<title>Solar / Datos · Ciencia de Datos</title>
+<meta name="theme-color" content="#c5dff3">
+<title>Solar / Datos · Argentina</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%231b6c80' stroke-width='2'/%3E%3Cpath d='M2 16h28M16 2v28' stroke='%231b6c80'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="estilos.css">
 </head>
-<body>
+<body data-pais="argentina">
 <noscript><p class="error">Sin JavaScript no hay gráficos interactivos. Abrí el <a href="../docs/respaldo/index.html">respaldo de la defensa</a>: funciona sin JavaScript ni internet.</p></noscript>
 <a class="skip" href="#contenido">Ir al contenido</a>
 <aside class="sidebar" aria-label="Navegación principal">
-  <a class="brand" href="#resumen" aria-label="Solar Datos, resumen"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><circle cx="16" cy="16" r="8"/><path d="M16 1v5m0 20v5M1 16h5m20 0h5M5.4 5.4 9 9m14 14 3.6 3.6M5.4 26.6 9 23M23 9l3.6-3.6"/></svg><span>Solar <span class="brand-slash">/</span> Datos</span></a>
-  <p class="project-note">Generación solar<br>Ciencia de Datos · UADE</p>
+  <a class="brand" href="#modelos" aria-label="Solar Datos"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><circle cx="16" cy="16" r="8"/><path d="M16 1v5m0 20v5M1 16h5m20 0h5M5.4 5.4 9 9m14 14 3.6 3.6M5.4 26.6 9 23M23 9l3.6-3.6"/></svg><span>Solar <span class="brand-slash">/</span> Datos</span></a>
+  <p class="project-note" id="pais-nota">Argentina<br><span>Generación mensual</span></p>
   <nav id="navegacion">
-    <a href="#resumen"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="5" height="5"/><rect x="12" y="3" width="5" height="5"/><rect x="3" y="12" width="5" height="5"/><rect x="12" y="12" width="5" height="5"/></svg>Resumen</a>
-    <a href="#datos"><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="5" rx="7" ry="3"/><path d="M3 5v10c0 4 14 4 14 0V5M3 10c0 4 14 4 14 0"/></svg>Datos</a>
     <a href="#modelos"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v5M4 15v-5h12v5"/><circle cx="10" cy="3" r="2"/><circle cx="4" cy="16" r="2"/><circle cx="16" cy="16" r="2"/></svg>Modelos</a>
-    <a href="#evaluacion"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3v14h14M6 12l4-5 3 3 4-6"/></svg>Evaluación</a>
-    <a href="#casos"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 8c0 5-6 9-6 9S4 13 4 8a6 6 0 1 1 12 0Z"/><circle cx="10" cy="8" r="2"/></svg>Casos</a>
+    <a href="#sitio"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 8c0 5-6 9-6 9S4 13 4 8a6 6 0 1 1 12 0Z"/><circle cx="10" cy="8" r="2"/></svg>Sitio</a>
+    <a href="#serie"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3v14h14M6 12l4-5 3 3 4-6"/></svg>Serie</a>
   </nav>
-  <div class="sidebar-bottom"><span class="status-dot"></span> Datos precalculados<p>Defensa · 12 de noviembre de 2026</p><a href="../docs/alineacion_materia.md">Respaldo de la materia <span aria-hidden="true">↗</span></a></div>
+  <div class="sidebar-bottom"><span class="status-dot"></span> Datos precalculados<p>Defensa · 12 de noviembre de 2026</p></div>
 </aside>
 <div class="workspace">
-<header class="topbar"><span>Trabajo Práctico Obligatorio <span class="topbar-separator">/</span> <span id="breadcrumb">Resumen</span></span><button id="presentar" class="quiet-button" type="button" aria-pressed="false">Modo exposición</button></header>
+<header class="topbar"><span>Defensa <span class="topbar-separator">/</span> <span id="breadcrumb">Modelos</span></span><button id="presentar" class="quiet-button" type="button" aria-pressed="false">Modo exposición</button></header>
 <main id="contenido" tabindex="-1">
   <div id="error" class="error" role="alert" hidden></div>
-  <div class="page-title"><div><h1 id="titulo">Del clima a una decisión informada</h1><p id="subtitulo">Estimación de generación y desvíos en plantas solares.</p></div><span class="study-tag">Análisis retrospectivo</span></div>
-  <div id="evidencia" class="evidence-strip" aria-label="Modelo y alcance de la evaluación"></div>
-  <section id="vista-resumen" class="view" aria-labelledby="titulo">
-    <div id="recorrido" class="reasoning-flow" aria-label="Recorrido de la solución"></div>
-    <div class="grid-summary">
-      <section class="panel"><div class="section-heading"><div><h2>Comparar modelos</h2><p>China · RMSE de validación, abril 2019</p></div><span class="caption">Menor es mejor</span></div><div id="resumen-scatter" class="chart" role="img" aria-label="Comparación de RMSE de modelos en validación"></div><p class="caption">La elección se hace con validación. El test retrospectivo se consulta después, en Modelos.</p><button class="quiet-button below" data-ir="modelos">Ver comparación completa →</button></section>
-      <section class="panel"><div class="section-heading"><div><h2>¿Qué detecta la regla?</h2><p>Caída controlada del 50% · Matriz de confusión</p></div><span class="class-reference">Clase 9</span></div><div id="resumen-matriz" class="confusion"></div><div id="resumen-lecturas" class="summary-metrics"></div><p class="caption" id="resumen-n"></p><button class="quiet-button below" data-ir="evaluacion">Cambiar caída, duración o planta →</button></section>
+  <div class="page-title"><div><h1 id="titulo">Qué modelo estima mejor</h1><p id="subtitulo">Comparamos el error en validación y en la prueba.</p></div><span class="study-tag">Retrospectivo</span></div>
+  <div id="evidencia" class="evidence-strip" aria-live="polite" aria-label="Modelo y métricas de prueba"></div>
+  <section id="vista-modelos" class="view" aria-labelledby="titulo">
+    <div id="split" class="split-diagram" aria-label="Particiones temporales"></div>
+    <div class="grid-models">
+      <section class="panel">
+        <div class="section-heading"><div><h2>Error de cada modelo</h2><p>Menor RMSE de validación, mejor. Si empatan, queda el más simple.</p></div></div>
+        <div id="modelos-chart" class="chart hero" role="img" aria-label="RMSE de validación y de prueba"></div>
+      </section>
+      <section class="panel">
+        <h2 id="modelo-foco-titulo">Modelo</h2>
+        <div id="modelo-cifras" class="readout"></div>
+        <p id="modelo-porque"></p>
+        <div id="modelo-entradas" class="feature-list"></div>
+        <p id="modelo-detalles" class="caption below"></p>
+      </section>
     </div>
-    <section class="panel below"><div class="section-heading"><div><h2>Un problema, dos escalas de datos</h2><p>Conservar el alcance de cada fuente es parte del análisis.</p></div><button class="quiet-button" data-ir="casos">Explorar casos →</button></div><div class="scope-pair" id="resumen-alcances"></div></section>
+    <section class="panel below">
+      <div class="section-heading"><div><h2>Métricas en la misma unidad</h2><p id="modelos-unidades"></p></div></div>
+      <div class="table-scroll"><table id="modelos-tabla"><thead><tr><th>Modelo</th><th class="number">RMSE validación</th><th class="number">RMSE prueba</th><th class="number">MAE prueba</th><th class="number">R² prueba</th><th class="number">n prueba</th></tr></thead><tbody></tbody></table></div>
+    </section>
   </section>
-  <section id="vista-datos" class="view" aria-labelledby="titulo" hidden>
-    <div class="section-heading"><div><h2>De las fuentes a la evidencia</h2><p>Pipeline ETL y CRISP-DM · Clases 2 y 4</p></div><button class="quiet-button" id="descargar-datos">Descargar evidencia JSON</button></div>
-    <div id="arquitectura" class="architecture"></div>
-    <div id="calidad" class="metrics-row"></div>
-    <div class="controls"><label>Exploración <select id="eda-tipo"><option value="scatter">Irradiancia y potencia</option><option value="box">Distribución por planta</option><option value="hist">Histograma de potencia</option><option value="corr">Matriz de correlación</option></select></label><label>Planta <select id="eda-planta"></select></label></div>
-    <section class="panel"><div class="section-heading"><div><h2 id="eda-titulo">Irradiancia y potencia</h2><p id="eda-nota"></p></div><span class="class-reference">Clase 4 · EDA</span></div><div id="eda-chart" class="chart tall" role="img" aria-label="Exploración de datos solares"></div><p id="eda-interpretacion" class="caption"></p></section>
-    <details class="explanation below"><summary>Qué se prepara y qué se conserva</summary><div id="preparacion"></div></details>
+  <section id="vista-sitio" class="view" aria-labelledby="titulo" hidden>
+    <form id="sitio-form" class="controls">
+      <label>Latitud <input id="sitio-lat" type="number" step="0.01" required></label>
+      <label>Longitud <input id="sitio-lon" type="number" step="0.01" required></label>
+      <label>Año <input id="sitio-anio" type="number" step="1" min="1990" max="2100" required></label>
+      <label>Potencia (MW) <input id="sitio-mw" type="number" step="0.1" min="0.1" required></label>
+    </form>
+    <div id="sitio-presets" class="controls"></div>
+    <div id="sitio-lectura" class="case-reading"></div>
+    <p id="sitio-aviso" class="benchmark-notice"></p>
+    <div class="grid-main below">
+      <section class="panel">
+        <div class="section-heading"><div><h2>Energía de cada mes</h2><p>Factor de capacidad por la potencia y por las horas del mes.</p></div></div>
+        <div id="sitio-chart" class="chart hero" role="img" aria-label="Energía mensual estimada"></div>
+      </section>
+      <section class="panel">
+        <div class="section-heading"><div><h2>Dónde cae el punto</h2><p>Cada marca es un parque con clima medido.</p></div></div>
+        <div id="sitio-mapa" class="chart hero" role="img" aria-label="Mapa de parques y sitio consultado"></div>
+      </section>
+    </div>
   </section>
-  <section id="vista-modelos" class="view" aria-labelledby="titulo" hidden>
-    <div class="controls"><label>Datos <select id="modelos-territorio"><option value="china">China · Potencia horaria</option><option value="argentina">Argentina · Factor de capacidad mensual</option></select></label><label>Comparar en <select id="modelos-particion"><option value="validacion">Validación · selección</option><option value="test">Prueba · retrospectiva</option><option value="train">Entrenamiento · diagnóstico</option></select></label></div>
-    <div id="split" class="split-diagram"></div>
-    <div class="grid-models"><section class="panel"><div class="section-heading"><div><h2>Comparar antes de elegir</h2><p id="modelos-regla"></p></div><span class="class-reference">Clases 6, 7 y 12</span></div><div id="modelos-chart" class="chart" role="img" aria-label="Comparación de error de modelos"></div></section><section class="panel"><h2>La elección del modelo</h2><div id="modelo-explicacion"></div></section></div>
-    <section class="panel below"><div class="section-heading"><div><h2>Las métricas, con sus unidades</h2><p id="modelos-unidades"></p></div><button class="quiet-button" id="descargar-metricas">Descargar tabla CSV</button></div><div class="table-scroll"><table id="modelos-tabla"><thead><tr><th>Modelo</th><th class="number">MAE</th><th class="number">RMSE</th><th class="number">R²</th><th class="number">Registros</th></tr></thead><tbody></tbody></table></div></section>
-    <details class="explanation below"><summary>Qué aprendieron los modelos y cómo se evita el leakage</summary><div id="modelo-detalles"></div></details>
+  <section id="vista-serie" class="view" aria-labelledby="titulo" hidden>
+    <div class="controls"><label>Parque <select id="serie-parque"></select></label></div>
+    <div id="serie-lectura" class="case-reading"></div>
+    <section class="panel">
+      <div class="section-heading"><div><h2>Observado y estimado</h2><p id="serie-alcance"></p></div></div>
+      <div id="serie-chart" class="chart hero" role="img" aria-label="Factor de capacidad observado y estimado"></div>
+      <div class="chart-footer"><span><i class="legend-dot teal"></i>Observado</span><span><i class="legend-line"></i>Estimado</span><span>El fondo marca la prueba</span></div>
+    </section>
+    <p id="serie-detalles" class="caption below"></p>
   </section>
-  <section id="vista-evaluacion" class="view" aria-labelledby="titulo" hidden>
-    <div class="benchmark-notice"><b>Prueba controlada, sobre observaciones reales.</b> Las caídas se inyectan solo para evaluar la regla; el modelo se entrenó con mediciones reales. Las etiquetas no son fallas operativas confirmadas.</div>
-    <div class="controls"><label>Caída inyectada <select id="eval-caida"><option value="0.1">10%</option><option value="0.25">25%</option><option value="0.5" selected>50%</option><option value="1">100%</option></select></label><label>Duración <select id="eval-duracion"><option value="todas">1, 3 y 7 días</option><option value="1">1 día</option><option value="3">3 días</option><option value="7">7 días</option></select></label><label>Planta <select id="eval-planta"></select></label></div>
-    <div class="grid-evaluation"><section class="panel"><div class="section-heading"><div><h2>Matriz de confusión</h2><p>Real en filas · Predicción en columnas</p></div><span class="class-reference">Clase 9</span></div><div id="matriz" class="confusion" aria-live="polite"></div><p id="eval-muestra" class="caption"></p></section><section class="panel"><div class="section-heading"><div><h2>¿Qué errores comete?</h2><p>Las métricas se recalculan con los filtros.</p></div></div><div id="eval-metricas"></div><div class="learning-note"><h3>Por qué accuracy no alcanza</h3><p>Muchos días no tienen caída. El modelo puede acertar esa mayoría y aun dejar pasar pérdidas: mirá también recall y los falsos negativos.</p></div></section></div>
-    <section class="panel below"><div class="section-heading"><div><h2>El tamaño de la caída importa</h2><p>Comparación con la misma planta y duración seleccionadas.</p></div><span class="class-reference">Precision · Recall · F1</span></div><div id="eval-curva" class="chart short" role="img" aria-label="Métricas según magnitud de caída"></div></section>
-    <details class="explanation below"><summary>Fórmulas, calibración y límites de esta evaluación</summary><div id="evaluacion-detalles"></div></details>
-  </section>
-  <section id="vista-casos" class="view" aria-labelledby="titulo" hidden>
-    <div class="controls"><div class="segmented" role="group" aria-label="País del caso"><button data-pais="china" aria-pressed="true">China · Diario</button><button data-pais="argentina" aria-pressed="false">Argentina · Mensual</button></div><label id="caso-planta-label">Planta <select id="caso-planta"></select></label><label id="caso-fecha-label">Fecha de corte <input type="date" id="caso-fecha"></label><label id="caso-parque-label" hidden>Parque <select id="caso-parque"></select></label></div>
-    <div id="caso-lectura" class="case-reading"></div>
-    <div class="grid-main"><section class="panel"><div class="section-heading"><div><h2 id="caso-titulo">Observación y referencia del modelo</h2><p id="caso-alcance"></p></div></div><div id="caso-chart" class="chart" role="img" aria-label="Serie temporal del caso seleccionado"></div><div class="chart-footer"><span><i class="legend-dot teal"></i>Observado</span><span><i class="legend-line"></i>Referencia</span><span><i class="legend-dot red"></i>Con alerta</span></div></section><section class="panel"><h2 id="caso-lista-titulo">Flota en la fecha de corte</h2><div id="caso-lista"></div></section></div>
-    <details class="explanation below"><summary>Leer el caso con sus límites y fuentes</summary><div id="caso-detalles"></div></details>
-  </section>
-  <footer class="page-footer"><div id="referencias"></div><p>Ignacio Melinc · Matias Young · Francisco Fabrello · Malena Garcia Moraglio</p><span>Trabajo compartido · Defensa 12/11/2026</span></footer>
+  <footer class="page-footer"><p>Ignacio Melinc · Matias Young · Francisco Fabrello · Malena Garcia Moraglio</p><span>Trabajo compartido · Defensa 12/11/2026</span></footer>
 </main>
 </div>
 <script src="vendor/plotly-2.35.2.min.js"></script>

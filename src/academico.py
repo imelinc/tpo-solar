@@ -1,330 +1,309 @@
-"""Versión de defensa: modelos, gráficos y métricas respaldados por los apuntes.
+"""Defensa: generación mensual de un parque solar argentino.
 
-Entrena exclusivamente con observaciones reales. Los escenarios sintéticos se usan
-solo para comprobar una regla de boxplot aplicada a residuos (clases 4, 9 y 12).
-Las métricas y las unidades se mantienen explícitas en toda la salida.
+Estima el factor de capacidad con la ubicación y el clima del mes.
+La energía en MWh es factor × potencia instalada × horas del mes.
+Entrena solo con mediciones reales. El año elige el clima; no es una causa física.
 """
 from __future__ import annotations
 
-import hashlib
+import calendar
 import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import confusion_matrix, mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.tree import DecisionTreeRegressor
 
-from src.config import DATA_PROCESSED, ROOT
+from src.config import DATA_PROCESSED
 
 SEED = 42
-TRAIN_END = "2019-04-01"
-TEST_START = "2019-05-01"
+UMBRAL_KM = 150
+PASO = 0.2
+NUM = ["om_ghi_kwh_m2_mes", "lat", "lon", "om_temp_max_media_c", "om_nubosidad_media_pct"]
+ORDEN = ["lineal_simple", "lineal_multiple", "arbol", "rf", "xgb"]
 MODELOS = {"lineal_simple": "Regresión lineal simple", "lineal_multiple": "Regresión lineal múltiple",
            "arbol": "Árbol de regresión", "rf": "Random Forest", "xgb": "XGBoost"}
-FEATURES = ["irradiancia", "temperatura", "viento", "hora", "mes", "dia_del_anio"]
-CLASES = {
-    "etl": {"clase": 2, "tema": "Pipeline y ETL", "url": "https://www.notion.so/3bb096bfe0b280e59278f280f481a77a"},
-    "calidad": {"clase": 3, "tema": "Calidad de datos", "url": "https://www.notion.so/3c9096bfe0b280f3bafef6695b024471"},
-    "eda": {"clase": 4, "tema": "CRISP-DM, EDA y boxplot", "url": "https://www.notion.so/3c9096bfe0b28052a107eb1c1ebe53b7"},
-    "arbol": {"clase": 6, "tema": "Árboles de decisión y regresión", "url": "https://www.notion.so/3d6096bfe0b2807fba88e0b0a48ff2d4"},
-    "ensambles": {"clase": 7, "tema": "Random Forest y XGBoost", "url": "https://www.notion.so/3ec096bfe0b2806b96d9e1d626263337"},
-    "clasificacion": {"clase": 9, "tema": "Matriz de confusión y métricas", "url": "https://www.notion.so/3ec096bfe0b280ab83c7d946b9984f5f"},
-    "features": {"clase": 10, "tema": "Variables derivadas y One-Hot Encoding", "url": "https://www.notion.so/3f3096bfe0b28065aa31d0f0b43d729b"},
-    "validacion": {"clase": 11, "tema": "Train/test, cross-validation y leakage", "url": "https://www.notion.so/3fb096bfe0b281a595a4fa720f25134e"},
-    "regresion": {"clase": 12, "tema": "Regresión, residuos, MAE, RMSE y R²", "url": "https://www.notion.so/401096bfe0b280d98850da56a4101d05"},
-}
+COORDS_OK = ["SE_CAMMESA_via_WRI", "osm_parque", "WikiSolar_via_GPPD_aprox", "osm_localidad_inferida_del_nombre"]
+POTENCIA_DUDOSA = ["CUM2FV", "PINFFV", "VANGFV"]
+ENTRADAS = {"om_ghi_kwh_m2_mes": "irradiación mensual", "lat": "latitud", "lon": "longitud",
+            "om_temp_max_media_c": "temperatura máxima", "om_nubosidad_media_pct": "nubosidad", "mes": "mes"}
 
 
-def preparar_horario(a: pd.DataFrame, escenario: str = "sensor") -> pd.DataFrame:
-    """Deriva fechas; conserva ceros para evaluar y marca datos inválidos sin borrarlos."""
-    d = a.sort_values(["plant_id", "timestamp_local_utc8"]).copy()
-    ts = pd.to_datetime(d["timestamp_local_utc8"])
-    d["fecha"] = ts.dt.strftime("%Y-%m-%d")
-    d["hora"], d["mes"], d["dia_del_anio"] = ts.dt.hour, ts.dt.month, ts.dt.dayofyear
-    d["grupo_mes"] = ts.dt.strftime("%Y-%m")
-    def congelados(s):
-        tramo = s.ne(s.shift()).cumsum()
-        return s.ne(0) & s.groupby(tramo).transform("size").ge(3)
-    d["congelado"] = d.groupby("plant_id")["pvod_power"].transform(congelados)
-    if escenario == "sensor":
-        cols = ["pvod_lmd_totalirrad", "pvod_lmd_temperature", "pvod_lmd_windspeed"]
-    elif escenario == "externo":
-        cols = ["om_shortwave_radiation", "om_temperature_2m", "om_wind_speed_10m_ms"]
-    else:
-        raise ValueError("Escenario desconocido")
-    for dest, src in zip(["irradiancia", "temperatura", "viento"], cols):
-        d[dest] = d[src]
-    d["target"] = d["pvod_power"] / d["plant_capacity_mw"]
-    d["apagon"] = (d["pvod_lmd_totalirrad"] > 500) & (d["target"] < 0.05)
-    d["valido"] = ~d["congelado"] & d[FEATURES + ["target"]].notna().all(axis=1)
-    return d[d["is_daylight"].eq(1)].reset_index(drop=True)
+def preparar(b: pd.DataFrame) -> pd.DataFrame:
+    """Deja meses comparables. Conserva ceros posteriores al primer mes con generación."""
+    d = b.copy()
+    d["fecha"] = pd.to_datetime(d["fecha"]).dt.strftime("%Y-%m-%d")
+    d["mes"] = pd.to_datetime(d["fecha"]).dt.month.astype(int)
+    d["anio"] = pd.to_datetime(d["fecha"]).dt.year.astype(int)
+    ok = d["coord_source"].isin(COORDS_OK) & d["potencia_mw"].gt(0) & d["factor_capacidad"].between(0, 0.45)
+    ok &= d[NUM].notna().all(axis=1)
+    ventana = d["fecha"].between("2022-01-01", "2025-09-01")
+    ok &= ~d["central"].isin(POTENCIA_DUDOSA) | ventana
+    d = d.loc[ok].copy()
+    inicio = d.loc[d["energia_mwh"].gt(0)].groupby("central")["fecha"].min()
+    d = d.loc[d["fecha"].ge(d["central"].map(inicio))].copy()
+    return d.sort_values(["central", "fecha"]).reset_index(drop=True)
 
 
-def crear_modelo(tipo: str, con_planta: bool = True, features=None):
-    fs = features or FEATURES
+def meses_dummies(tipo: str) -> list[int]:
+    # Enero queda como referencia de la recta. Con las doce columnas y el intercepto, la lineal es singular.
     if tipo == "lineal_simple":
-        fs = [fs[0]]
-        con_planta = False
-    transformers = [("numericas", SimpleImputer(strategy="median"), fs)]
-    if con_planta:
-        transformers.append(("planta", OneHotEncoder(handle_unknown="ignore", sparse_output=False), ["plant_id"]))
-    pre = ColumnTransformer(transformers)
+        return []
     if tipo.startswith("lineal"):
-        estimator = LinearRegression()
-    elif tipo == "arbol":
-        estimator = DecisionTreeRegressor(max_depth=8, min_samples_leaf=10, random_state=SEED)
-    elif tipo == "rf":
-        estimator = RandomForestRegressor(n_estimators=150, min_samples_leaf=5, max_features=0.8,
-                                          n_jobs=-1, random_state=SEED)
-    elif tipo == "xgb":
+        return list(range(2, 13))
+    return list(range(1, 13))
+
+
+def nombres_columnas(tipo: str) -> list[str]:
+    if tipo == "lineal_simple":
+        return ["om_ghi_kwh_m2_mes"]
+    return NUM + [f"mes_{m}" for m in meses_dummies(tipo)]
+
+
+def crear_modelo(tipo: str):
+    if tipo.startswith("lineal"):
+        return LinearRegression()
+    if tipo == "arbol":
+        return DecisionTreeRegressor(max_depth=8, min_samples_leaf=10, random_state=SEED)
+    if tipo == "rf":
+        return RandomForestRegressor(n_estimators=80, min_samples_leaf=5, max_features=0.8,
+                                     n_jobs=1, random_state=SEED)
+    if tipo == "xgb":
         from xgboost import XGBRegressor
-        estimator = XGBRegressor(n_estimators=250, max_depth=5, learning_rate=0.05,
-                                 subsample=0.8, colsample_bytree=0.8, n_jobs=4, random_state=SEED)
-    else:
-        raise ValueError("Modelo fuera del alcance curricular")
-    return make_pipeline(pre, estimator)
+        return XGBRegressor(n_estimators=120, max_depth=4, learning_rate=0.08,
+                            subsample=0.8, colsample_bytree=0.8, n_jobs=1, random_state=SEED)
+    raise ValueError("Modelo fuera del alcance curricular")
 
 
-def predecir(modelo, d):
-    return np.clip(modelo.predict(d), 0, None)
+def matriz(df: pd.DataFrame, medianas: dict, tipo: str) -> np.ndarray:
+    cols = nombres_columnas(tipo)
+    parts = []
+    for c in cols:
+        if c.startswith("mes_"):
+            parts.append((df["mes"].astype(int) == int(c.split("_")[1])).to_numpy(dtype=float))
+        else:
+            parts.append(df[c].fillna(medianas[c]).to_numpy(dtype=float))
+    return np.column_stack(parts)
 
 
-def metricas_regresion(y, pred):
-    """Métricas de clase 12. La unidad es la de y; no se llama accuracy al R²."""
-    return {"mae": float(mean_absolute_error(y, pred)),
-            "mse": float(mean_squared_error(y, pred)),
-            "rmse": float(np.sqrt(mean_squared_error(y, pred))),
-            "r2": float(r2_score(y, pred)), "n": int(len(y))}
+def metricas_regresion(y, pred) -> dict:
+    y, pred = np.asarray(y, float), np.asarray(pred, float)
+    return {"mae": float(mean_absolute_error(y, pred)), "mse": float(mean_squared_error(y, pred)),
+            "rmse": float(np.sqrt(mean_squared_error(y, pred))), "r2": float(r2_score(y, pred)), "n": int(len(y))}
 
 
-def metricas_confusion(tn: int, fp: int, fn: int, tp: int):
-    n = tn + fp + fn + tp
-    div = lambda a, b: a / b if b else None
-    return {"tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp), "n": int(n),
-            "accuracy": div(tp + tn, n), "precision": div(tp, tp + fp),
-            "recall": div(tp, tp + fn), "f1": div(2 * tp, 2 * tp + fp + fn)}
+def km(lat1, lon1, lat2, lon2) -> float:
+    x = np.radians(lon2 - lon1) * np.cos(np.radians((lat1 + lat2) / 2))
+    y = np.radians(lat2 - lat1)
+    return float(6371.0 * np.hypot(x, y))
 
 
-def umbral_boxplot(residuos: pd.Series):
-    r = residuos.dropna()
-    if len(r) < 10:
-        raise ValueError("Calibración insuficiente")
-    q1, q3 = r.quantile([0.25, 0.75])
-    return {"q1": float(q1), "q3": float(q3), "iqr": float(q3 - q1),
-            "umbral": float(q1 - 1.5 * (q3 - q1)), "n": len(r)}
+def entradas_de(tipo: str) -> list[str]:
+    if tipo == "lineal_simple":
+        return [ENTRADAS["om_ghi_kwh_m2_mes"]]
+    return [ENTRADAS[c] for c in NUM] + ["mes"]
 
 
-def tabla_diaria(d, pred, referencia=None):
-    x = d.assign(pred=np.asarray(pred), sensor=d["pvod_lmd_totalirrad"], externo=d["om_shortwave_radiation"])
-    e = x.groupby(["plant_id", "fecha"], as_index=False).agg(
-        real=("target", "sum"), esperada=("pred", "sum"), capacidad=("plant_capacity_mw", "first"),
-        sensor=("sensor", "sum"), externo=("externo", "sum"), horas=("target", "size"),
-        validas=("valido", "sum"))
-    if referencia is None:
-        referencia = e.groupby("plant_id")["esperada"].quantile(0.9).to_dict()
-    e["sensor_caido"] = e["sensor"] < 0.3 * e["externo"]
-    e["cobertura_ok"] = e["validas"] == e["horas"]
-    e["poca_senal"] = e["esperada"] < 0.25 * e["plant_id"].map(referencia)
-    e["decide"] = ~e["sensor_caido"] & e["cobertura_ok"] & ~e["poca_senal"] & e["esperada"].gt(0)
-    e["residuo"] = (e["real"] - e["esperada"]) / e["esperada"].where(e["esperada"].gt(0))
-    e["residuo"] = e["residuo"].where(e["decide"])
-    return e
-
-
-def agregar_alertas(e, calibracion, generica):
-    e = e.copy()
-    e["umbral"] = e["plant_id"].map({p: v["umbral"] for p, v in calibracion.items()}).fillna(generica["umbral"])
-    e["alerta"] = e["decide"] & e["residuo"].lt(e["umbral"])
-    e["estado"] = np.select([e["plant_id"].eq("station04"), ~e["decide"], e["alerta"]],
-                             ["capacidad", "sin_dato", "alerta"], default="normal")
-    e["deficit_mwh"] = ((e["esperada"] - e["real"]) * e["capacidad"]).clip(lower=0).where(e["decide"], np.nan)
-    e.loc[e["plant_id"].eq("station04"), "deficit_mwh"] = np.nan
-    return e
-
-
-def evaluar_simulaciones(base: pd.DataFrame, calibracion: dict, generica: dict):
-    """Una identidad por planta/nivel/duración/semilla; ninguna inyección entrena un modelo."""
-    resultados = []
-    for planta, g in base.groupby("plant_id"):
-        g = g.sort_values("fecha").reset_index(drop=True)
-        if len(g) < 12:
-            continue
-        for fraccion in [0.10, 0.25, 0.50, 1.0]:
-            for duracion in [1, 3, 7]:
-                for semilla in range(5):
-                    etiqueta = f"{planta}-{fraccion}-{duracion}-{semilla}"
-                    # Semilla estable entre procesos; no se usa hash() de Python.
-                    rng = np.random.default_rng(int(hashlib.sha256(etiqueta.encode()).hexdigest()[:8], 16))
-                    ini = int(rng.integers(1, len(g) - duracion))
-                    inicio = pd.Timestamp(g.loc[ini, "fecha"])
-                    fin = inicio + pd.Timedelta(days=duracion)
-                    fechas = pd.to_datetime(g["fecha"])
-                    positiva = fechas.ge(inicio) & fechas.lt(fin)
-                    x = g.copy()
-                    x.loc[positiva, "real"] *= 1 - fraccion
-                    x["residuo"] = ((x["real"] - x["esperada"]) / x["esperada"]).where(x["decide"])
-                    x = agregar_alertas(x, calibracion, generica)
-                    dec = x["decide"]
-                    tn, fp, fn, tp = confusion_matrix(positiva[dec], x.loc[dec, "alerta"], labels=[False, True]).ravel()
-                    detectados = x.loc[positiva & dec & x["alerta"], "fecha"]
-                    demora = (pd.Timestamp(detectados.iloc[0]) - inicio).days if len(detectados) else None
-                    resultados.append({"id": etiqueta, "planta": planta, "caida": fraccion,
-                                       "duracion": duracion, "semilla": semilla, "inicio": str(inicio.date()),
-                                       **metricas_confusion(tn, fp, fn, tp), "demora": demora,
-                                       "sin_decision": int((~dec).sum()), "dias": len(x),
-                                       "positivos_sin_decision": int((positiva & ~dec).sum())})
-    return resultados
-
-
-def ajustar_y_evaluar(a):
-    d = preparar_horario(a)
-    candidatas = ~d["plant_id"].isin(["station04", "station09"])
-    sano = candidatas & d["valido"] & ~d["apagon"]
-    train = d[sano & d["fecha"].lt(TRAIN_END)]
-    conocidas = sorted(train["plant_id"].unique())
-    # Para evaluar se conservan los apagones; no se usa la máscara de entrenamiento sano.
-    evaluable = d["plant_id"].isin(conocidas) & d["valido"]
-    validacion = d[evaluable & d["fecha"].ge(TRAIN_END) & d["fecha"].lt(TEST_START)]
-    test = d[evaluable & d["fecha"].ge(TEST_START)]
-    modelos, comparacion = {}, []
-    for tipo, nombre in MODELOS.items():
-        print("Entrenando", nombre, flush=True)
-        m = crear_modelo(tipo).fit(train, train["target"])
-        modelos[tipo] = m
-        comparacion.append({"id": tipo, "nombre": nombre,
-                            "train": metricas_regresion(train["target"], predecir(m, train)),
-                            "validacion": metricas_regresion(validacion["target"], predecir(m, validacion))})
-    # Regla previa al test: mínimo RMSE de validación; empate relativo <1% favorece RF.
-    orden = sorted(comparacion, key=lambda r: r["validacion"]["rmse"])
-    elegido = orden[0]["id"]
-    rf = next(r for r in comparacion if r["id"] == "rf")
-    if rf["validacion"]["rmse"] <= orden[0]["validacion"]["rmse"] * 1.01:
-        elegido = "rf"
-    modelo = modelos[elegido]
-    for row in comparacion:
-        row["test"] = metricas_regresion(test["target"], predecir(modelos[row["id"]], test))
-    print("Elegido por validación:", elegido, flush=True)
-    # Calibrar con predicciones fuera de muestra, agrupadas por mes, solo de train.
-    oof, gen_oof = pd.Series(index=train.index, dtype=float), pd.Series(index=train.index, dtype=float)
-    notas_cv = []
-    for tr, va in GroupKFold(5).split(train, groups=train["grupo_mes"]):
-        trd, vad = train.iloc[tr], train.iloc[va]
-        m = crear_modelo(elegido).fit(trd, trd["target"])
-        mg = crear_modelo(elegido, con_planta=False).fit(trd, trd["target"])
-        oof.loc[vad.index], gen_oof.loc[vad.index] = predecir(m, vad), predecir(mg, vad)
-        notas_cv.append(metricas_regresion(vad["target"], oof.loc[vad.index]))
-    # Conservar el calendario completo: una hora eliminada del ajuste no puede
-    # desaparecer del denominador de cobertura al calibrar un día completo.
-    calendario_train = d[d["plant_id"].isin(conocidas) & d["fecha"].lt(TRAIN_END)].copy()
-    pred_oof = oof.reindex(calendario_train.index)
-    calendario_train["valido"] &= pred_oof.notna()
-    e_train = tabla_diaria(calendario_train, pred_oof)
-    ref = e_train[e_train["decide"]].groupby("plant_id")["esperada"].quantile(0.9).to_dict()
-    cal = {p: umbral_boxplot(g["residuo"]) for p, g in e_train.groupby("plant_id")}
-    gen = umbral_boxplot(tabla_diaria(calendario_train, gen_oof.reindex(calendario_train.index))["residuo"])
-    generico = crear_modelo(elegido, con_planta=False).fit(train, train["target"])
-    todas = predecir(generico, d)
-    conocidas_mask = d["plant_id"].isin(conocidas)
-    todas[conocidas_mask] = predecir(modelo, d[conocidas_mask])
-    ref.update({p: float(np.median(list(ref.values()))) for p in d["plant_id"].unique() if p not in ref})
-    e = agregar_alertas(tabla_diaria(d, todas, ref), cal, gen)
-    e["particion"] = np.select([e["fecha"].lt(TRAIN_END), e["fecha"].lt(TEST_START)],
-                               ["entrenamiento", "validación"], default="prueba")
-    e["referencia"] = np.where(e["plant_id"].isin(conocidas), "modelo con planta", "modelo genérico")
-    # Regresión horaria evalúa horas válidas; la regla diaria necesita además
-    # saber cuáles faltaron. Usar aquí test filtrado inventaría cobertura completa.
-    calendario_test = d[d["plant_id"].isin(conocidas) & d["fecha"].ge(TEST_START)]
-    base_test = tabla_diaria(calendario_test, predecir(modelo, calendario_test), ref)
-    simulaciones = evaluar_simulaciones(base_test, cal, gen)
-    resumen = {"elegido": elegido, "nombre": MODELOS[elegido], "comparacion": comparacion,
-               "cv": notas_cv, "calibracion": cal, "calibracion_generica": gen,
-               "por_planta": {p: metricas_regresion(g["target"], predecir(modelo, g)) for p, g in test.groupby("plant_id")},
-               "particiones": {"entrenamiento": {"desde": train["fecha"].min(), "hasta": train["fecha"].max(), "n": len(train)},
-                                "validacion": {"desde": validacion["fecha"].min(), "hasta": validacion["fecha"].max(), "n": len(validacion)},
-                                "prueba": {"desde": test["fecha"].min(), "hasta": test["fecha"].max(), "n": len(test)}},
-               "plantas_entrenamiento": conocidas, "features": FEATURES + ["plant_id (One-Hot)"],
-               "unidad_target": "potencia / potencia nominal (MW/MW)",
-               "protocolo": "Evaluación retrospectiva; selección por RMSE de abril; test mayo–junio ya explorado en versiones previas.",
-               "regla_eleccion": "Mínimo RMSE de validación; si RF queda a menos del 1% del mínimo se prefiere RF.",
-               "detector": "Boxplot de residuos: Q1 − 1,5 × IQR, calibrado con 5 folds por mes de entrenamiento.",
-               "hiperparametros": modelo[-1].get_params()}
-    if hasattr(modelo[-1], "feature_importances_"):
-        names = modelo[0].get_feature_names_out()
-        resumen["importancias"] = sorted([{"variable": str(n.split("__")[-1]), "valor": float(v)}
-                                            for n, v in zip(names, modelo[-1].feature_importances_)], key=lambda r: -r["valor"])
-    else:
-        resumen["importancias"] = []
-    # Nube de prueba con muestreo determinista; las métricas siempre usan la muestra completa.
-    pos = np.linspace(0, len(test) - 1, min(len(test), 700), dtype=int)
-    yt = predecir(modelo, test)
-    resumen["nube"] = [{"real": float(test.iloc[i]["target"]), "pred": float(yt[i]),
-                         "planta": test.iloc[i]["plant_id"]} for i in pos]
-    diario_test = agregar_alertas(base_test, cal, gen)
-    resumen["regresion_diaria"] = metricas_regresion(base_test.loc[base_test["decide"], "real"], base_test.loc[base_test["decide"], "esperada"])
-    resumen["baseline_sin_inyeccion"] = {"alertas": int(diario_test["alerta"].sum()),
-                                        "dias_con_decision": int(diario_test["decide"].sum()),
-                                        "dias_sin_decision": int((~diario_test["decide"]).sum()),
-                                        "nota": "Alertas sin inyección; no hay etiquetas operativas para llamarlas falsas alarmas confirmadas."}
-    return d, e, resumen, simulaciones
-
-
-def argentina(b):
-    """Regresión mensual sin sensores: ceros conservados y evidencia distinta de China."""
-    b = b.copy()
-    b["fecha"] = pd.to_datetime(b["fecha"]).dt.strftime("%Y-%m-%d")
-    coords = ["SE_CAMMESA_via_WRI", "osm_parque", "WikiSolar_via_GPPD_aprox", "osm_localidad_inferida_del_nombre"]
-    ok = b["coord_source"].isin(coords) & b["potencia_mw"].gt(0) & b["factor_capacidad"].between(0, 0.45)
-    ampliadas = b["central"].isin(["CUM2FV", "PINFFV", "VANGFV"])
-    ok &= ~ampliadas | b["fecha"].between("2022-01-01", "2025-09-01")
-    feats = ["om_ghi_kwh_m2_mes", "om_temp_max_media_c", "om_nubosidad_media_pct", "mes"]
-    b["plant_id"] = b["central"]
-    d = b[ok & b[feats].notna().all(axis=1)].copy()
-    # Quitar meses anteriores al primer mes con generación, conservando paradas posteriores.
-    inicio = d[d["energia_mwh"].gt(0)].groupby("central")["fecha"].min()
-    d = d[d["fecha"].ge(d["central"].map(inicio))].copy()
-    train = d[d["fecha"].lt("2024-01-01") & d["energia_mwh"].gt(0)]
+def entrenar(d: pd.DataFrame):
+    train = d[(d["fecha"] < "2024-01-01") & d["energia_mwh"].gt(0)]
     val = d[d["fecha"].between("2024-01-01", "2024-12-31")]
-    test = d[d["fecha"].ge("2025-01-01")]
-    comparacion, modelos = [], {}
-    # Sin ID de parque: estima un parque típico y permite incluir parques nuevos.
-    for tipo in ["lineal_multiple", "arbol", "rf"]:
-        m = crear_modelo(tipo, con_planta=False, features=feats).fit(train, train["factor_capacidad"])
-        modelos[tipo] = m
-        comparacion.append({"id": tipo, "nombre": MODELOS[tipo],
-                            "train": metricas_regresion(train["factor_capacidad"], predecir(m, train)),
-                            "validacion": metricas_regresion(val["factor_capacidad"], predecir(m, val))})
-    elegido = min(comparacion, key=lambda r: r["validacion"]["rmse"])["id"]
-    for r in comparacion:
-        r["test"] = metricas_regresion(test["factor_capacidad"], predecir(modelos[r["id"]], test))
-    d["pred"] = predecir(modelos[elegido], d)
-    d["ratio"] = d["factor_capacidad"] / d["pred"].where(d["pred"].gt(0))
-    # La referencia se aprende en train, no se centra utilizando el año de prueba.
-    normal = d[d["fecha"].lt("2024-01-01")].groupby("central")["ratio"].median()
-    d["normal"] = d["central"].map(normal)
-    d["indice"] = d["ratio"] / d["normal"].where(d["normal"].gt(0))
-    cal = {}
-    for p, g in d[d["fecha"].lt("2024-01-01")].groupby("central"):
-        if g["indice"].notna().sum() >= 12:
-            cal[p] = umbral_boxplot(g["indice"] - 1)
-    d["umbral"] = d["central"].map({p: v["umbral"] for p, v in cal.items()})
-    d["decide"] = d["umbral"].notna() & d["indice"].notna()
-    d["alerta"] = d["decide"] & (d["indice"] - 1).lt(d["umbral"])
-    d["particion"] = np.select([d["fecha"].lt("2024-01-01"), d["fecha"].lt("2025-01-01")], ["entrenamiento", "validación"], default="prueba")
-    # Referencia calibrada dentro de muestra: se declara; no hay matriz con etiquetas reales.
+    test = d[d["fecha"] >= "2025-01-01"]
+    if train.empty or val.empty or test.empty:
+        raise ValueError("Falta alguna partición")
+    medianas = train[NUM].median().to_dict()
+    comparacion, ajustados = [], {}
+    for tipo in ORDEN:
+        print("Entrenando", MODELOS[tipo], flush=True)
+        est = crear_modelo(tipo).fit(matriz(train, medianas, tipo), train["factor_capacidad"])
+        ajustados[tipo] = est
+        fila = {"id": tipo, "nombre": MODELOS[tipo]}
+        for nombre, parte in (("train", train), ("validacion", val), ("test", test)):
+            pred = np.clip(est.predict(matriz(parte, medianas, tipo)), 0, 1)
+            fila[nombre] = metricas_regresion(parte["factor_capacidad"], pred)
+        comparacion.append(fila)
+    elegido = sorted(comparacion, key=lambda r: (r["validacion"]["rmse"], ORDEN.index(r["id"])))[0]["id"]
+    est = ajustados[elegido]
+    pred = np.clip(est.predict(matriz(d, medianas, elegido)), 0, 1)
+    notas = []
+    for tr, va in GroupKFold(5).split(train, groups=train["central"]):
+        trd, vad = train.iloc[tr], train.iloc[va]
+        med = trd[NUM].median().to_dict()
+        m = crear_modelo(elegido).fit(matriz(trd, med, elegido), trd["factor_capacidad"])
+        p = np.clip(m.predict(matriz(vad, med, elegido)), 0, 1)
+        notas.append(metricas_regresion(vad["factor_capacidad"], p))
+    parques_train = train.groupby("central")[["lat", "lon"]].first()
     resumen = {"elegido": elegido, "nombre": MODELOS[elegido], "comparacion": comparacion,
-               "features": feats, "unidad_target": "factor de capacidad (MWh / MW / horas del mes)",
-               "protocolo": "Train hasta 2023; selección en 2024; prueba retrospectiva 2025–septiembre 2026.",
-               "limite": "Calibración histórica descriptiva por parque. Sin etiquetas de fallas: no se informa matriz de confusión real ni causa confirmada.",
-               "ceros_conservados": int(d["energia_mwh"].eq(0).sum()), "n": len(d), "parques": d["central"].nunique()}
-    return d, resumen
+               "entradas": entradas_de(elegido), "unidad_target": "factor de capacidad (MWh / MW / horas del mes)",
+               "protocolo": "Entrenamiento hasta 2023, solo meses con generación. Selección por RMSE en 2024. Prueba retrospectiva desde 2025.",
+               "cv_parques": {"rmse": float(np.mean([n["rmse"] for n in notas])),
+                              "mae": float(np.mean([n["mae"] for n in notas])), "folds": notas,
+                              "nota": "Cinco grupos por parque, solo con años de entrenamiento. Describe un parque que no entró a ese ajuste. No se usó para elegir el modelo."},
+               "rango": {"lat_min": float(parques_train.lat.min()), "lat_max": float(parques_train.lat.max()),
+                         "lon_min": float(parques_train.lon.min()), "lon_max": float(parques_train.lon.max())},
+               "ceros_conservados": int(d["energia_mwh"].eq(0).sum()), "n": int(len(d)),
+               "parques": int(d["central"].nunique()), "umbral_km": UMBRAL_KM}
+    if hasattr(est, "feature_importances_"):
+        nombres = nombres_columnas(elegido)
+        resumen["importancias"] = sorted(
+            [{"variable": n, "valor": float(v)} for n, v in zip(nombres, est.feature_importances_)],
+            key=lambda r: -r["valor"])[:8]
+    print("Elegido por validación:", MODELOS[elegido], flush=True)
+    return est, {k: float(v) for k, v in medianas.items()}, resumen, pred
+
+
+def tablas_clima(d: pd.DataFrame) -> tuple[list, list, list]:
+    """Un parque, su clima mensual y el promedio anterior a 2024.
+
+    ponytail: un sitio nuevo copia el clima del parque más cercano. Una grilla
+    meteorológica local haría falta si la distancia entre parques importa.
+    """
+    base = d.groupby("central", as_index=False).agg(
+        nombre=("central_descripcion", "first"), provincia=("provincia", "first"),
+        lat=("lat", "first"), lon=("lon", "first"), potencia_mw=("potencia_mw", "median"),
+        coord_source=("coord_source", "first"))
+    base["nombre"] = base["nombre"].fillna(base["central"])
+    base["provincia"] = base["provincia"].fillna("")
+    base["i"] = np.arange(len(base))
+    idx = dict(zip(base["central"], base["i"]))
+    clima = []
+    for r in d.itertuples(index=False):
+        clima.append({"i": int(idx[r.central]), "anio": int(r.anio), "mes": int(r.mes),
+                      "ghi": float(r.om_ghi_kwh_m2_mes), "temp": float(r.om_temp_max_media_c),
+                      "nub": float(r.om_nubosidad_media_pct)})
+    # ponytail: si el parque cercano no tiene historia anterior a 2024, el promedio usa todos sus años.
+    tipico = []
+    for central, g in d.groupby("central"):
+        hist = g[g["fecha"] < "2024-01-01"]
+        uso = hist if len(hist) else g
+        for mes, m in uso.groupby("mes"):
+            tipico.append({"i": int(idx[central]), "mes": int(mes), "ghi": float(m.om_ghi_kwh_m2_mes.mean()),
+                           "temp": float(m.om_temp_max_media_c.mean()), "nub": float(m.om_nubosidad_media_pct.mean())})
+    parques = base.to_dict("records")
+    for p in parques:
+        p["i"] = int(p["i"])
+        p["potencia_mw"] = float(p["potencia_mw"])
+        p["lat"], p["lon"] = float(p["lat"]), float(p["lon"])
+    return parques, clima, tipico
+
+
+def _eje(a: float, b: float, paso: float) -> np.ndarray:
+    n = int(np.floor((b - a) / paso + 1e-9)) + 1
+    xs = a + np.arange(n) * paso
+    if xs[-1] < b - 1e-6:
+        xs = np.append(xs, b)
+    return np.round(xs, 5)
+
+
+def _indice_clima(clima, tipico):
+    return ({(r["i"], r["anio"], r["mes"]): r for r in clima}, {(r["i"], r["mes"]): r for r in tipico})
+
+
+def construir_grilla(est, tipo: str, medianas: dict, parques: list, clima: list, tipico: list, rango: dict) -> dict:
+    """Factor de capacidad en celdas de 0,2°. El navegador lee esta tabla; no reimplementa el modelo.
+
+    ponytail: paso fijo de 0,2°. Una celda más fina si la defensa necesita un punto intermedio.
+    """
+    lats, lons = _eje(rango["lat_min"], rango["lat_max"], PASO), _eje(rango["lon_min"], rango["lon_max"], PASO)
+    clat, clon = np.meshgrid(lats, lons, indexing="ij")
+    clat, clon = clat.ravel(), clon.ravel()
+    plat = np.array([p["lat"] for p in parques])
+    plon = np.array([p["lon"] for p in parques])
+    lat1, lon1 = np.radians(clat)[:, None], np.radians(clon)[:, None]
+    lat2, lon2 = np.radians(plat)[None, :], np.radians(plon)[None, :]
+    dist = 6371 * np.hypot((lon2 - lon1) * np.cos((lat1 + lat2) / 2), lat2 - lat1)
+    cercano = dist.argmin(axis=1)
+    obs, tip = _indice_clima(clima, tipico)
+    anios = sorted({r["anio"] for r in clima})
+    n, factores = len(clat), {}
+    for anio in [0, *anios]:
+        ghi = np.full(n * 12, np.nan)
+        temp, nub, mes = ghi.copy(), ghi.copy(), np.zeros(n * 12)
+        lat = np.repeat(clat, 12)
+        lon = np.repeat(clon, 12)
+        for c in range(n):
+            park = int(parques[int(cercano[c])]["i"])
+            for m in range(1, 13):
+                fila = obs.get((park, anio, m)) if anio else None
+                if fila is None:
+                    fila = tip.get((park, m))
+                if fila is None:
+                    continue
+                k = c * 12 + (m - 1)
+                ghi[k], temp[k], nub[k], mes[k] = fila["ghi"], fila["temp"], fila["nub"], m
+        df = pd.DataFrame({"om_ghi_kwh_m2_mes": ghi, "lat": lat, "lon": lon,
+                           "om_temp_max_media_c": temp, "om_nubosidad_media_pct": nub, "mes": mes})
+        valid = df[NUM].notna().all(axis=1) & df["mes"].gt(0)
+        pred = np.full(len(df), np.nan)
+        if valid.any():
+            pred[valid.to_numpy()] = np.clip(est.predict(matriz(df.loc[valid], medianas, tipo)), 0, 1)
+        factores[str(anio)] = [None if not np.isfinite(v) else round(float(v), 6) for v in pred]
+        print("Grilla", anio or "típico", flush=True)
+    return {"paso": PASO, "lats": lats.tolist(), "lons": lons.tolist(), "anios": anios, "factores": factores}
+
+
+def consultar(grilla: dict, parques: list, clima: list, tipico: list, rango: dict,
+              lat: float, lon: float, anio: int, potencia_mw: float) -> dict:
+    if potencia_mw <= 0:
+        raise ValueError("La potencia tiene que ser mayor que cero")
+    anio = int(anio)
+    lats, lons = np.asarray(grilla["lats"], float), np.asarray(grilla["lons"], float)
+    i, j = int(np.argmin(np.abs(lats - lat))), int(np.argmin(np.abs(lons - lon)))
+    slat, slon = float(lats[i]), float(lons[j])
+    distancias = [km(slat, slon, p["lat"], p["lon"]) for p in parques]
+    parque = parques[int(np.argmin(distancias))]
+    obs, tip = _indice_clima(clima, tipico)
+    clave = str(anio) if anio in grilla["anios"] else "0"
+    base = (i * len(lons) + j) * 12
+    tabla = grilla["factores"][clave]
+    meses, modos = [], []
+    energia = horas = 0.0
+    for mes in range(1, 13):
+        factor = tabla[base + mes - 1]
+        fila = obs.get((parque["i"], anio, mes))
+        modo = "observado" if fila is not None else "tipico"
+        if fila is None and tip.get((parque["i"], mes)) is None:
+            modo = None
+        if factor is None or modo is None:
+            continue
+        h = calendar.monthrange(anio, mes)[1] * 24
+        gwh = factor * potencia_mw * h / 1000
+        energia += gwh
+        horas += h
+        modos.append(modo)
+        meses.append({"mes": mes, "factor": factor, "gwh": gwh, "clima": modo})
+    if not meses:
+        raise ValueError("Ese sitio no tiene clima de referencia")
+    modo = modos[0] if len(set(modos)) == 1 else "mixto"
+    dentro = rango["lat_min"] <= lat <= rango["lat_max"] and rango["lon_min"] <= lon <= rango["lon_max"]
+    return {"lat": float(lat), "lon": float(lon), "anio": anio, "potencia_mw": float(potencia_mw),
+            "lat_celda": slat, "lon_celda": slon, "distancia_celda_km": km(lat, lon, slat, slon),
+            "energia_gwh": energia, "factor": energia * 1000 / (potencia_mw * horas),
+            "modo": modo, "dentro": bool(dentro), "distancia_km": float(min(distancias)),
+            "nombre": parque["nombre"], "provincia": parque["provincia"], "central": parque["central"],
+            "meses": meses, "incompleto": len(meses) < 12}
+
+
+def _presets(grilla, parques, clima, tipico, rango) -> list:
+    lats, lons = np.asarray(grilla["lats"], float), np.asarray(grilla["lons"], float)
+    centro = min(parques, key=lambda p: (p["lat"] - float(np.median(lats))) ** 2 + (p["lon"] - float(np.median(lons))) ** 2)
+    i, j = int(np.argmin(np.abs(lats - centro["lat"]))), int(np.argmin(np.abs(lons - centro["lon"])))
+    j = min(j + 1, len(lons) - 1) if j + 1 < len(lons) else j - 1
+    lat, lon = float(lats[i]), float(lons[j])
+    base = [
+        {"nombre": "Sitio nuevo, 2023", "lat": lat, "lon": lon, "anio": 2023, "potencia_mw": 10},
+        {"nombre": "Mismo sitio, 2028", "lat": lat, "lon": lon, "anio": 2028, "potencia_mw": 10},
+        {"nombre": "Mismo sitio, 2026", "lat": lat, "lon": lon, "anio": 2026, "potencia_mw": 10},
+        {"nombre": "Ushuaia", "lat": -54.8, "lon": -68.3, "anio": 2023, "potencia_mw": 10},
+        {"nombre": "Sitio nuevo, 20 MW", "lat": lat, "lon": lon, "anio": 2023, "potencia_mw": 20},
+    ]
+    for item in base:
+        item["resultado"] = consultar(grilla, parques, clima, tipico, rango,
+                                     item["lat"], item["lon"], item["anio"], item["potencia_mw"])
+    return base
 
 
 def serializable(x):
@@ -346,37 +325,28 @@ def serializable(x):
 def construir(destino: Path | None = None):
     destino = destino or DATA_PROCESSED
     destino.mkdir(parents=True, exist_ok=True)
-    a = pd.read_parquet(DATA_PROCESSED / "dataset_A_pvod_hourly.parquet")
-    b = pd.read_parquet(DATA_PROCESSED / "dataset_B_argentina_mensual.parquet")
-    d, diario, regresion, sims = ajustar_y_evaluar(a)
-    arg, reg_arg = argentina(b)
-    diario.to_parquet(destino / "defensa_diario.parquet", index=False)
-    arg.to_parquet(destino / "defensa_argentina.parquet", index=False)
-    plantas = []
-    for p, g in a.groupby("plant_id"):
-        plantas.append({"id": p, "mw": float(g["plant_capacity_mw"].iloc[0]),
-                        "lat": float(g["plant_lat"].iloc[0]), "lon": float(g["plant_lon"].iloc[0]),
-                        "desde": str(g["date_local"].min()), "hasta": str(g["date_local"].max()), "horas": len(g)})
-    corr_cols = ["pvod_power_norm", "pvod_lmd_totalirrad", "pvod_lmd_temperature", "om_shortwave_radiation"]
-    muestra = d.sample(min(1000, len(d)), random_state=SEED)
-    datos = {"version": 1, "fecha_datos": "2026-10-22", "fecha_evaluacion": "2026-10-29",
-             "defensa": "2026-11-12", "clases": CLASES, "plantas": plantas,
-             "regresion": regresion, "simulaciones": sims, "regresion_argentina": reg_arg,
-             "diario": diario.to_dict("records"),
-             "argentina": arg[["central", "central_descripcion", "provincia", "fecha", "lat", "lon", "energia_gwh",
-                                "factor_capacidad", "pred", "indice", "umbral", "decide", "alerta", "particion",
-                                "potencia_mw", "coord_source"]].to_dict("records"),
-             "eda": {"n_horario": len(a), "n_mensual": len(b), "plantas_argentina": b["central"].nunique(),
-                     "duplicados_horario": int(a.duplicated(["plant_id", "timestamp_utc"]).sum()),
-                     "duplicados_mensual": int(b.duplicated(["central", "fecha"]).sum()),
-                     "faltantes_horario": int(a.isna().sum().sum()),
-                     "correlacion": a[a["is_daylight"].eq(1)][corr_cols].corr().values.tolist(), "correlacion_columnas": corr_cols,
-                     "nube": muestra[["plant_id", "irradiancia", "target", "temperatura"]].to_dict("records")},
-             "economia": {"precio": 42.84, "nota": "Precio ilustrativo RenovAr Ronda 2; no es el ingreso real de plantas chinas. Déficit respecto del modelo, no energía recuperable demostrada."},
-             "nacional": b.groupby("anio", as_index=False).agg(gwh=("energia_gwh", "sum"), parques=("central", "nunique"), meses=("mes", "nunique")).to_dict("records")}
+    d = preparar(pd.read_parquet(DATA_PROCESSED / "dataset_B_argentina_mensual.parquet"))
+    est, medianas, resumen, pred = entrenar(d)
+    d = d.assign(pred=pred)
+    d["particion"] = np.select([d["fecha"] < "2024-01-01", d["fecha"] < "2025-01-01"],
+                               ["entrenamiento", "validación"], default="prueba")
+    parques, clima, tipico = tablas_clima(d)
+    grilla = construir_grilla(est, resumen["elegido"], medianas, parques, clima, tipico, resumen["rango"])
+    presets = _presets(grilla, parques, clima, tipico, resumen["rango"])
+    ceros = d[d["energia_mwh"].eq(0) & d["particion"].eq("prueba")]
+    ejemplo_parque = ceros["central"].iloc[0] if len(ceros) else d["central"].iloc[0]
+    serie = d[["central", "central_descripcion", "provincia", "fecha", "factor_capacidad", "pred",
+               "energia_gwh", "particion", "potencia_mw"]].rename(columns={"central_descripcion": "nombre"})
+    datos = {"version": 2, "pais": "Argentina", "fecha_evaluacion": "2026-10-29", "defensa": "2026-11-12",
+             "regresion": resumen, "grilla": grilla, "parques": parques, "clima": clima, "tipico": tipico,
+             "umbral_km": UMBRAL_KM, "rango": resumen["rango"], "presets": presets,
+             "ejemplo_parque": ejemplo_parque,
+             "serie": serie.to_dict("records"),
+             "pregunta": "Con un lugar, un año y una potencia, estima la energía del año usando el clima de ese lugar."}
     datos = serializable(datos)
     ruta = destino / "defensa_evidencia.json"
     ruta.write_text(json.dumps(datos, ensure_ascii=False, allow_nan=False, separators=(",", ":")))
+    d.to_parquet(destino / "defensa_argentina.parquet", index=False)
     print("Evidencia guardada:", ruta, flush=True)
     return datos
 

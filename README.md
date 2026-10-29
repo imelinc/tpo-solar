@@ -1,12 +1,12 @@
 # Solar / Datos · TPO Ciencia de Datos
 
-Estimación de generación solar y análisis de desvíos con técnicas de las clases de Ciencia de Datos de UADE, segundo cuatrimestre 2026.
+Estimación de la generación mensual de un parque solar en Argentina, según el lugar, el año y la potencia, con técnicas de Ciencia de Datos de UADE, segundo cuatrimestre 2026.
 
 **Defensa:** 12/11/2026. **Integrantes:** Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio. Trabajo compartido en todas las etapas.
 
 ## Recorrido
 
-Resumen → Datos → Modelos → Evaluación → Casos. China tiene observaciones horarias y análisis diario; Argentina, comparación mensual. Se distingue regresión (MAE, RMSE, R²) de la regla de alertas (matriz de confusión, accuracy, precision, recall, F1).
+Modelos → Sitio → Serie. El target es el factor de capacidad. La energía anual sale de multiplicar por la potencia y por las horas de cada mes. Las métricas son MAE, RMSE y R².
 
 [Alcance curricular y clases de Notion](docs/alineacion_materia.md) · [Protocolo](docs/plan_modelado.md) · [Guion](docs/guion_defensa.md).
 
@@ -23,7 +23,7 @@ python app/build_dashboard.py
 
 Abrir `app/index.html` en un navegador. La aplicación usa datos, biblioteca y tipografía locales. No consulta APIs durante la defensa.
 
-Los notebooks 01–05 siguen extracción, EDA, modelos, evaluación y casos. Sus salidas están vacías en Git; ejecutarlos antes de la defensa. La celda inicial admite Colab y también ejecución local desde la raíz o `notebooks/`.
+Los notebooks construyen y revisan los archivos. La defensa usa el comando de arriba y `app/index.html`. Ver `notebooks/LEEME.md`.
 
 ## Pruebas de interfaz (opcionales, Node 22)
 
@@ -32,7 +32,7 @@ npm ci
 npm run test:dashboard
 ```
 
-Estas pruebas verifican DOM, navegación, matrices y datos enviados a Plotly; no sustituyen una prueba visual en navegador. La aplicación se abre sin Node.
+Estas pruebas verifican DOM, navegación y que la consulta de un sitio coincida con la grilla. No sustituyen una prueba visual en navegador. La aplicación se abre sin Node.
 
 ## Fuentes y reproducción desde cero
 
@@ -46,19 +46,18 @@ Por defecto los crudos se guardan en `data/raw/` y los procesados en `data/proce
 
 ## Estructura
 
-- `src/academico.py`: entrenamiento, selección, calibración, evaluación y evidencia.
-- `data/processed/defensa_*`: tablas y resultados de la defensa.
-- `notebooks/`: explicación ejecutable por etapas.
-- `app/`: aplicación estática para la exposición.
-- `tests/`: matrices, decisiones inválidas e identidades de simulación.
-- `docs/`: respaldo curricular, metodología y guion.
+- `src/academico.py`: entrenamiento, selección, grilla de consulta y evidencia.
+- `data/processed/defensa_*`: resultados de la defensa.
+- `app/`: Modelos, Sitio y Serie, sin red.
+- `tests/`: métricas, filtros y la consulta de un sitio.
+- `docs/`: alcance, protocolo y guion.
 
-La evaluación es retrospectiva: los períodos ya se exploraron anteriormente. Las caídas controladas sirven solo para evaluar, nunca para entrenar. Una alerta no confirma la causa física de un desvío. El equipo informó cuatro integrantes; queda confirmar la aceptación del docente porque la consigna escrita indica cinco o seis.
+La evaluación es retrospectiva. Un año futuro usa el clima promedio, no un pronóstico meteorológico. Fuera del rectángulo de parques el resultado es un caso límite. El equipo informó cuatro integrantes; la consigna escrita pide cinco o seis.
 
 [Diagrama de arquitectura](docs/arquitectura.md).
 
 ## Respaldo de exposición
 
-Abrir `docs/respaldo/index.html`: presentación de ocho pantallas con seis figuras PNG, sin JavaScript ni red. Se regenera con `python scripts/generar_respaldo.py`. El guion asigna bloques de exposición a los cuatro integrantes, manteniendo trabajo compartido.
+Abrir `docs/respaldo/index.html`: pantallas estáticas sin JavaScript ni red. Se regenera con `python scripts/generar_respaldo.py`. El guion está en `docs/guion_presentacion_10min.md`.
 
 [Verificación realizada y pendientes](docs/verificacion.md).

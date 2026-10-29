@@ -4,9 +4,11 @@ TPO de Ciencia de Datos de UADE. Español argentino. El alcance autoritativo est
 
 ## Motor actual
 
-`src/academico.py` usa regresión lineal simple/múltiple, árbol de regresión, Random Forest y XGBoost. Selección por validación. Regla de alertas con boxplot de residuos. Clasificación y regresión tienen métricas distintas. Se entrena solo con datos observados; las inyecciones son únicamente pruebas controladas.
+Solo Argentina. `src/academico.py` estima el factor de capacidad mensual con ubicación y clima: regresión lineal simple/múltiple, árbol, Random Forest y XGBoost. Elige el menor RMSE de 2024. La prueba es desde 2025 y es retrospectiva. La energía es factor × potencia × horas del mes.
 
-La app consume `defensa_evidencia.json` a través de `app/build_dashboard.py`. No debe mostrar cifras calculadas por otra versión. Cada vista identifica fuente, modelo, partición, métricas y clase de respaldo.
+Un sitio nuevo copia el clima del parque más cercano. Si el año no está medido, usa el promedio anterior a 2024. La pantalla lee una grilla de 0,2° calculada con el modelo elegido. Fuera del rectángulo de entrenamiento el número es un caso límite.
+
+La app consume `defensa_evidencia.json` a través de `app/build_dashboard.py`. No debe mostrar cifras de otra versión. Cada vista identifica fuente, modelo, partición y métricas.
 
 ## Comandos
 
@@ -25,7 +27,7 @@ Los crudos van en data/raw y los procesados en data/processed, usando src/config
 - Estado desconocido no equivale a normalidad. Capacidad no confiable excluye interpretación económica.
 - Los ceros operativos se conservan en evaluación. No confundir ausente y cero.
 - Toda evaluación es retrospectiva; no afirmar independencia ciega después de haber explorado el período.
-- No inventar etiquetas de fallas reales ni una matriz de confusión para Argentina.
-- No presentar déficit estimado como recuperación o ahorro demostrado.
+- No inventar etiquetas de fallas ni una matriz de confusión.
+- No presentar la energía estimada como producción ya medida.
 - Usuario autorizó commits y pushes periódicos directos a main. Verificar remoto y no forzar historia.
 - Defensa 12/11/2026. Cuatro integrantes, trabajo compartido: Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio.
