@@ -2,12 +2,12 @@
 
 Equipo de trabajo compartido: **Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio**. Este reparto es solo de exposición y se puede intercambiar al ensayar.
 
-| Expositor propuesto | Pantallas / contenido | Duración |
+| Expositor propuesto | Clics | Duración |
 |---|---|---:|
-| Ignacio | Resumen: problema, destinatario, valor y arquitectura ETL | 3:00 |
-| Matias | Datos: fuentes, calidad, EDA y features | 3:00 |
-| Francisco | Modelos: comparar, seleccionar y explicar MAE/RMSE/R² | 3:30 |
-| Malena | Evaluación y casos: matriz, límites y decisión de negocio | 4:00 |
+| Ignacio | Resumen: pregunta, recorrido de cuatro pasos, China frente a Argentina y matriz del 50% | 3:00 |
+| Matias | Datos: diagrama de cinco pasos, station04 y un gráfico de EDA | 3:00 |
+| Francisco | Modelos: validación, luego prueba; China y un cambio a Argentina | 3:30 |
+| Malena | Evaluación al 50% y al 10%; Casos en station09 y un parque | 4:00 |
 | Todos | Margen para transición y cierre | 1:30 |
 
 ## Apertura
@@ -20,7 +20,7 @@ La hipótesis es acotada: estimar generación y señalar desvíos. No se promete
 
 Clases 2–4: extracción, limpieza, transformación, modelado, evaluación y presentación. PVOD entrega potencia horaria y sensores de diez plantas chinas. CAMMESA permite comparación mensual argentina. Open-Meteo aporta contexto meteorológico. No se mezclan frecuencias ni unidades.
 
-Mostrar el diagrama y un hallazgo de calidad: la capacidad de station04 no es consistente. Luego el boxplot y la dispersión irradiancia/potencia. Un outlier indica dónde investigar; no demuestra una causa.
+En Resumen, el recorrido de cuatro pasos alcanza para la apertura. El diagrama de cinco pasos está en Datos: Fuentes → Preparación → Modelado → Evaluación → Aplicación. Ahí también está la capacidad inconsistente de station04 y, en Exploración, el boxplot y la dispersión irradiancia/potencia. Un outlier indica dónde investigar; no demuestra una causa.
 
 ## Modelos
 
@@ -61,4 +61,6 @@ Argentina: mostrar su modelo y sus propias métricas, frecuencia mensual y un pa
 
 ## Ensayo sin conexión
 
-Abrir todo antes de empezar. Probar navegación, filtros, matriz y casos. Tener gráficos exportados como respaldo. Ensayar con reloj y pasar al respaldo si una falla no se resuelve en quince segundos. Confirmar con el docente el grupo de cuatro frente a los 5–6 indicados en la consigna.
+Abrir `app/index.html` antes de empezar. Recorrer Resumen → Datos → Modelos → Evaluación → Casos. En Modelos, leer la fila elegida y abrir el detalle para MAE, MSE, RMSE y R². En Evaluación, pasar de 50% a 10%. En Casos, station09 y después Argentina. Si algo no se resuelve en quince segundos, abrir `docs/respaldo/index.html`.
+
+El respaldo tiene ocho pantallas y seis figuras. Cubren la pregunta, el diagrama, el EDA, la elección del modelo, la matriz, el límite de la regla, los dos casos y la conclusión. Eso alcanza los requisitos de problema, arquitectura, exploración, técnica, conclusiones y aplicación de `revision_tpo.md`. No afirma que el docente haya aceptado el grupo de cuatro: la consigna escrita pide 5–6.

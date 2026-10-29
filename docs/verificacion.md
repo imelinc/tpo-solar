@@ -19,9 +19,15 @@ Fecha: 29/10/2026.
 - Lint de diseño sobre tres archivos: cero fallos y cero advertencias. El detector mecánico adicional señaló texto de 11 px; se elevó el mínimo a 12 px. Esto no sustituye inspección visual.
 - Se generaron seis figuras PNG desde la evidencia y se inspeccionaron las seis imágenes. Hay una presentación de respaldo local de ocho pantallas en `respaldo/index.html`.
 
+## Revisión de cierre del 29/10/2026
+
+`main` local y `origin/main` coincidían en `c1557c9` antes de esta pasada. Se midieron anchos de texto con la fuente local contra las cajas de 390 px: el título de Datos más «Descargar evidencia JSON» no entra en el panel, y la barra superior queda a unos 16 px del borde. El modo exposición dejaba en 12 px rótulos de matriz, contexto y pasos que el cuerpo ya había agrandado. Esas correcciones están en CSS. El rastro decía «Evaluacion». station04 mostraba un valor ilustrativo de USD 0 pese a la capacidad no confiable. El detalle de modelos ahora incluye el MSE de la partición visible. El respaldo escribe los decimales como la aplicación y agrega las métricas de prueba de Argentina.
+
+La herramienta de navegador volvió a rechazar `file://`. No se abrió otro navegador, servidor ni renderizador. No hay capturas nuevas a 1440, 768 ni 390 px. La comparación de anchos no reemplaza esa inspección. Los ticks de Plotly siguen en 12 px: agrandarlos sin ver el gráfico podía cortar las etiquetas.
+
 ## Límites que siguen abiertos
 
-La herramienta de navegador bloqueó una apertura `file://` por política. No se intentó eludir el rechazo por otro navegador, servidor o renderizador. Por eso no se dispone de capturas automatizadas finales a 1440, 768 y 390 px. El usuario sí confirmó visualmente la aplicación en su navegador. Siguen sin comprobarse la legibilidad en el proyector del aula y el comportamiento de cada viewport mediante capturas. Las pruebas de DOM y el código responsive no bastan para afirmar que esa verificación pasó.
+No hay capturas automatizadas a 1440, 768 y 390 px ni prueba del proyector del aula. El usuario confirmó antes que el dashboard se ve bien en su navegador; esta pasada no repitió esa mirada. Las pruebas de DOM y las medidas de texto no alcanzan para afirmar que cada viewport quedó verificado.
 
 Se verificó la instalación tanto en el entorno existente como en uno nuevo desde una copia versionada, con los procesados incluidos. No se descargaron todas las fuentes de nuevo ni se probó Colab. La entrega permite ejecutar los modelos con datos locales, pero el acceso futuro a fuentes externas requiere una comprobación adicional.
 
