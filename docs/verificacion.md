@@ -7,6 +7,7 @@
 - Render real: la app se sirvió con `python -m http.server` y se recorrieron las cuatro vistas en el navegador integrado a 1440 × 900 y a 375 × 812. Sin errores de consola y sin scroll horizontal en móvil. Se probó el preset de Ushuaia: el total sale tachado y el aviso de caso límite aparece.
 - El detector de diseño de Impeccable no marca problemas de calidad reales. Los avisos de contraste toman un fondo blanco que no existe (el texto gris sobre el azul noche da 5,6:1). Las rayas son la leyenda de los meses con clima promedio.
 - Los cinco notebooks se reescribieron para Argentina y se ejecutaron completos con nbclient y el intérprete del proyecto, sin errores. No se guardan salidas.
+- `src/build_datasets.py` arma solo el dataset argentino. Se retiraron la descarga de PVOD (China), NASA POWER y los archivos `dataset_A_*` y `pvod_plantas_metadata.csv`. Se rearmó desde cero en una carpeta temporal, con descargas nuevas: 5.036 filas y las mismas columnas; todos los valores coinciden con la versión del repo salvo la precipitación de 523 meses, que Open-Meteo revisó después del 22/10. La precipitación no entra al modelo.
 - El dashboard ya no tiene franja de bandera ni selector de país. Los contornos de los países son Natural Earth 1:50m, locales en `app/geo-argentina.js`. La tipografía de títulos es EB Garamond (OFL), local en `app/fonts/`.
 
 ## Recorte a Argentina — 29/10/2026
@@ -16,6 +17,5 @@ El modelo elegido por validación es XGBoost: RMSE 0,0499 en 2024; en la prueba 
 ## Límites que siguen abiertos
 
 - No hay prueba en el proyector del aula. El fondo es oscuro; usar «Modo exposición» y revisar el brillo antes de la defensa.
-- `src/build_datasets.py` todavía descarga y arma los datos de PVOD (China). La defensa no los usa; quitarlo queda pendiente de decisión.
 - Los casos reales no cuentan con etiquetas independientes y sus causas no se verificaron en campo. La evaluación es retrospectiva.
 - Confirmar con el docente la aceptación de cuatro integrantes frente a los 5–6 de la consigna.

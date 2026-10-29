@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 TPO Ciencia de Datos (UADE) - Construcción de datasets para
-"estimar la generación mensual argentina según lugar y clima". La defensa usa el dataset B.
+"estimar la generación mensual argentina según lugar y clima".
 
 Genera:
-  dataset_A_pvod_15min.csv              PVOD (10 plantas, China) cada 15 min, sin clima externo
-  dataset_A_pvod_hourly.csv/.parquet    PVOD agregado a hora + Open-Meteo + NASA POWER
   dataset_B_argentina_mensual.csv/.parquet  CAMMESA (parques solares AR, mensual) + potencia + coordenadas + Open-Meteo mensual
   parques_coordenadas.csv               tabla de coordenadas de parques (con coord_source)
   reporte_calidad.md                    reporte rápido de calidad
@@ -16,7 +14,7 @@ Uso (local o Colab):
   !python -m src.build_datasets       # descarga a data/raw y procesa en data/processed
 Las descargas se cachean en data/raw/. TPO_DIR y TPO_RAW permiten salidas temporales.
 """
-import io, json, math, os, re, sys, time, unicodedata, zipfile
+import io, json, os, re, sys, time, unicodedata, zipfile
 from pathlib import Path
 
 import numpy as np
@@ -29,13 +27,11 @@ from src.config import DATA_PROCESSED, DATA_RAW
 BASE = Path(os.environ.get("TPO_DIR", DATA_PROCESSED))
 RAW = Path(os.environ.get("TPO_RAW", DATA_RAW))
 BASE.mkdir(parents=True, exist_ok=True)
-for d in ["pvod", "cammesa", "openmeteo_A", "nasa_A", "openmeteo_B", "geocode"]:
+for d in ["cammesa", "openmeteo_B", "geocode"]:
     (RAW / d).mkdir(parents=True, exist_ok=True)
 
 UA = {"User-Agent": "UADE-TPO-CienciaDeDatos/1.0 (proyecto academico)"}
 
-URL_PVOD = ("https://download.scidb.cn/download?fileId=591c58f20a621dbc4526dc91c0214cf6"
-            "&path=/V5/PVODdatasets_v1.0.zip&fileName=PVODdatasets_v1.0.zip")
 URL_CAMMESA_ERB = ("https://microfe.cammesa.com/static-content/CammesaWeb/download-manager-files/"
                    "historica renovables/Energía Renovables - Base de Datos 2026-09.zip")
 URL_CAMMESA_GRV = ("https://microfe.cammesa.com/static-content/CammesaWeb/download-manager-files/"
@@ -43,14 +39,9 @@ URL_CAMMESA_GRV = ("https://microfe.cammesa.com/static-content/CammesaWeb/downlo
 ERB_XLSX = RAW / "cammesa" / "Energía Renovables - Base de Datos 2026-09.xlsx"
 GRV_XLSX = RAW / "cammesa" / "Generación Renovable Variable - Base de Datos 2025-09.xlsx"
 
-OM_HOURLY_VARS = ["shortwave_radiation", "direct_radiation", "diffuse_radiation", "temperature_2m",
-                  "cloud_cover", "relative_humidity_2m", "wind_speed_10m", "precipitation"]
-# Promedio (radiación) o suma (precipitación) de la hora PREVIA: se corren -1 h al alinear.
-OM_RAD_VARS = ["shortwave_radiation", "direct_radiation", "diffuse_radiation", "precipitation"]
 OM_DAILY_VARS = ["shortwave_radiation_sum", "temperature_2m_mean", "temperature_2m_max", "cloud_cover_mean",
                  "sunshine_duration", "precipitation_sum"]
 MM_LLUVIA_LIMPIA = 5  # mm/día: umbral de lluvia que se considera que limpia los paneles
-NASA_VARS = ["ALLSKY_SFC_SW_DWN", "T2M"]
 
 
 def log(*a):
@@ -76,203 +67,11 @@ def get(url, params=None, tries=6, timeout=180):
 
 
 # ----------------------------------------------------------------------------- utilidades
-def solar_elevation_deg(ts_utc: pd.Series, lat, lon):
-    """Elevación solar aproximada (algoritmo NOAA simplificado, error < ~0.5°)."""
-    ts = pd.to_datetime(ts_utc)
-    doy = ts.dt.dayofyear.values
-    hr = (ts.dt.hour + ts.dt.minute / 60 + ts.dt.second / 3600).values
-    g = 2 * np.pi / 365 * (doy - 1 + (hr - 12) / 24)
-    eqt = 229.18 * (0.000075 + 0.001868 * np.cos(g) - 0.032077 * np.sin(g)
-                    - 0.014615 * np.cos(2 * g) - 0.040849 * np.sin(2 * g))
-    decl = (0.006918 - 0.399912 * np.cos(g) + 0.070257 * np.sin(g) - 0.006758 * np.cos(2 * g)
-            + 0.000907 * np.sin(2 * g) - 0.002697 * np.cos(3 * g) + 0.00148 * np.sin(3 * g))
-    tst = hr * 60 + eqt + 4 * np.asarray(lon)          # tiempo solar verdadero (min)
-    ha = np.radians(tst / 4 - 180)
-    latr = np.radians(np.asarray(lat))
-    cosz = np.sin(latr) * np.sin(decl) + np.cos(latr) * np.cos(decl) * np.cos(ha)
-    return np.degrees(np.arcsin(np.clip(cosz, -1, 1)))
 
 
 def norm_txt(s):
     s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().upper()
     return re.sub(r"\s+", " ", s).strip()
-
-
-# ============================================================================= DATASET A
-def load_pvod():
-    zp = RAW / "pvod" / "pvod.zip"
-    if not (RAW / "pvod" / "metadata.csv").exists():
-        if not zp.exists():
-            log("Descargando PVOD (ScienceDB)...")
-            zp.write_bytes(get(URL_PVOD).content)
-        zipfile.ZipFile(zp).extractall(RAW / "pvod")
-    meta = pd.read_csv(RAW / "pvod" / "metadata.csv")
-    frames = []
-    for _, m in meta.iterrows():
-        d = pd.read_csv(RAW / "pvod" / f"{m.Station_ID}.csv")
-        d.insert(0, "plant_id", m.Station_ID)
-        frames.append(d)
-    df = pd.concat(frames, ignore_index=True)
-    # Los CSV originales están en UTC (el toolkit oficial los convierte a UTC+8 con utc_2_pk);
-    # verificado: el pico medio de potencia ocurre ~04:00-04:30 UTC = mediodía solar local (~12:20 hora China).
-    df["timestamp_utc"] = pd.to_datetime(df.pop("date_time"))
-    n0 = len(df)
-    df = df.sort_values(["plant_id", "timestamp_utc"]).drop_duplicates(["plant_id", "timestamp_utc"], keep="first")
-    dups = n0 - len(df)
-    df = df.rename(columns={c: "pvod_" + c for c in df.columns if c not in ("plant_id", "timestamp_utc")})
-    df = df.rename(columns={"pvod_nwp_dirrectirrad": "pvod_nwp_directirrad"})
-    md = pd.DataFrame({
-        "plant_id": meta.Station_ID,
-        "plant_capacity_mw": meta.Capacity / 1000.0,          # metadata en kW
-        "plant_pv_technology": meta.PV_Technology,
-        "plant_panel_size_m2": meta.Panel_Size,
-        "plant_panel_number": meta.Panel_Number,
-        "plant_array_area_m2": meta.Panel_Size * meta.Panel_Number,
-        "plant_array_tilt_deg": meta.Array_Tilt.str.extract(r"(\d+)").astype(float)[0],
-        "plant_array_azimuth": meta.Array_Tilt.str.extract(r"^(\w+)")[0].str.lower(),
-        "plant_lat": meta.Latitude, "plant_lon": meta.Longitude,
-        "plant_module_info": meta.Module.str.replace(r"\s*\n\s*", " | ", regex=True),
-        "plant_inverter_info": meta.Inverters.str.replace(r"\s*\n\s*", " | ", regex=True),
-    })
-    return df, md, dups
-
-
-def add_time_features(df, ts_col, lat, lon, interval_minutes):
-    t = df[ts_col]
-    loc = t + pd.Timedelta(hours=8)   # hora local China (UTC+8, sin horario de verano)
-    df["timestamp_local_utc8"] = loc
-    df["hour_local"] = loc.dt.hour
-    df["minute"] = loc.dt.minute
-    df["day_of_year"] = loc.dt.dayofyear
-    df["month"] = loc.dt.month
-    df["date_local"] = loc.dt.date.astype(str)
-    mid = t + pd.Timedelta(minutes=interval_minutes / 2)
-    df["solar_elevation_deg"] = solar_elevation_deg(mid, lat, lon).round(2)
-    df["is_daylight"] = (df["solar_elevation_deg"] > 0).astype(int)
-    return df
-
-
-def fetch_openmeteo_hourly(pid, lat, lon, start, end):
-    f = RAW / "openmeteo_A" / f"{pid}.json"
-    if not f.exists() or any(v not in json.loads(f.read_text())["hourly"] for v in OM_HOURLY_VARS):
-        log(f"  Open-Meteo horario {pid}")
-        r = get("https://archive-api.open-meteo.com/v1/archive", params=dict(
-            latitude=lat, longitude=lon, start_date=start, end_date=end,
-            hourly=",".join(OM_HOURLY_VARS), timezone="GMT"))
-        f.write_text(r.text)
-        time.sleep(2)
-    j = json.loads(f.read_text())
-    d = pd.DataFrame(j["hourly"])
-    d["time"] = pd.to_datetime(d["time"])
-    d.attrs["grid"] = (j["latitude"], j["longitude"], j.get("elevation"))
-    return d
-
-
-def fetch_nasa_hourly(pid, lat, lon, start, end):
-    f = RAW / "nasa_A" / f"{pid}.json"
-    if not f.exists():
-        log(f"  NASA POWER horario {pid}")
-        r = get("https://power.larc.nasa.gov/api/temporal/hourly/point", params=dict(
-            parameters=",".join(NASA_VARS), community="RE", longitude=lon, latitude=lat,
-            start=start.replace("-", ""), end=end.replace("-", ""), format="JSON", **{"time-standard": "UTC"}))
-        f.write_text(r.text)
-        time.sleep(1)
-    j = json.loads(f.read_text())
-    p = j["properties"]["parameter"]
-    d = pd.DataFrame({k: pd.Series(v) for k, v in p.items()})
-    d.index = pd.to_datetime(d.index, format="%Y%m%d%H")
-    d = d.replace(-999.0, np.nan).reset_index().rename(columns={"index": "time"})
-    return d
-
-
-def best_lag(a: pd.Series, b: pd.Series, lags=range(-3, 4)):
-    """Devuelve el corrimiento (horas) de b que maximiza la correlación con a (ambos indexados por hora)."""
-    res = {L: a.corr(b.shift(L, freq="h").reindex(a.index)) for L in lags}
-    return max(res, key=lambda k: res[k]), res
-
-
-def build_A():
-    log("== Dataset A (PVOD)")
-    df, md, dups = load_pvod()
-    df = df.merge(md, on="plant_id", how="left")
-    df["power_norm"] = df["pvod_power"] / df["plant_capacity_mw"]
-    parts = []
-    for pid, g in df.groupby("plant_id", sort=True):
-        g = add_time_features(g.copy(), "timestamp_utc", g.plant_lat.iloc[0], g.plant_lon.iloc[0], 15)
-        parts.append(g)
-    a15 = pd.concat(parts, ignore_index=True)
-    md.to_csv(BASE / "pvod_plantas_metadata.csv", index=False)
-    lead = ["plant_id", "timestamp_utc", "timestamp_local_utc8", "date_local", "hour_local", "minute",
-            "day_of_year", "month", "solar_elevation_deg", "is_daylight"]
-    pv_cols = [c for c in a15.columns if c.startswith("pvod_")]
-    plant_cols = [c for c in md.columns if c not in ("plant_id", "plant_module_info", "plant_inverter_info")]
-    a15 = a15[lead + pv_cols + ["power_norm"] + plant_cols]
-    a15 = a15.rename(columns={"power_norm": "pvod_power_norm"})
-
-    # --- agregación horaria: intervalo [H, H+1) etiquetado al inicio de la hora (UTC)
-    num = [c for c in pv_cols + ["pvod_power_norm"]]
-    a15["hour_utc"] = a15["timestamp_utc"].dt.floor("h")
-    agg = {c: "mean" for c in num}
-    # dirección del viento: promedio vectorial
-    h = a15.groupby(["plant_id", "hour_utc"]).agg(agg)
-    for wd in ["pvod_nwp_winddirection", "pvod_lmd_winddirection"]:
-        rad = np.radians(a15[wd])
-        tmp = pd.DataFrame({"s": np.sin(rad), "c": np.cos(rad), "plant_id": a15.plant_id, "hour_utc": a15.hour_utc})
-        tmp = tmp.groupby(["plant_id", "hour_utc"]).mean()
-        h[wd] = (np.degrees(np.arctan2(tmp.s, tmp.c)) % 360).round(1)
-    h["pvod_n_obs_15min"] = a15.groupby(["plant_id", "hour_utc"]).size()
-    h["pvod_energy_mwh"] = h["pvod_power"] * h["pvod_n_obs_15min"] * 0.25  # energía medida en la hora
-    h = h.reset_index().rename(columns={"hour_utc": "timestamp_utc"})
-    h = h.merge(md, on="plant_id", how="left")
-
-    lag_info = {}
-    hourly = []
-    for pid, g in h.groupby("plant_id", sort=True):
-        g = g.copy()
-        lat, lon = g.plant_lat.iloc[0], g.plant_lon.iloc[0]
-        start = (g.timestamp_utc.min() - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        end = (g.timestamp_utc.max() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        om = fetch_openmeteo_hourly(pid, lat, lon, start, end).set_index("time")
-        nasa = fetch_nasa_hourly(pid, lat, lon, start, end).set_index("time")
-        # Open-Meteo: radiación = promedio de la hora anterior (etiqueta = fin de hora) -> se corre -1h
-        #             para que la etiqueta sea el inicio de la hora, como en la agregación de PVOD.
-        #             Variables instantáneas (temp, nubes, humedad, viento): valor a la hora H+0:30 aprox ->
-        #             promedio de los instantes H y H+1.
-        om_al = pd.DataFrame(index=om.index)
-        for v in OM_RAD_VARS:
-            om_al[v] = om[v].shift(-1)
-        for v in [x for x in OM_HOURLY_VARS if x not in OM_RAD_VARS]:
-            om_al[v] = (om[v] + om[v].shift(-1)) / 2
-        om_al["wind_speed_10m"] = om_al["wind_speed_10m"] / 3.6   # km/h -> m/s
-        om_al.columns = ["om_" + c for c in om_al.columns]
-        om_al = om_al.rename(columns={"om_wind_speed_10m": "om_wind_speed_10m_ms", "om_precipitation": "om_precipitacion_mm"})
-        # NASA POWER: se determina empíricamente el corrimiento contra la irradiancia medida en planta
-        meas = g.set_index("timestamp_utc")["pvod_lmd_totalirrad"]
-        lag_n, res_n = best_lag(meas, nasa["ALLSKY_SFC_SW_DWN"])
-        lag_o, res_o = best_lag(meas, om["shortwave_radiation"])
-        lag_info[pid] = dict(nasa_lag_h=lag_n, nasa_corr=round(res_n[lag_n], 3), nasa_corr_lag0=round(res_n[0], 3),
-                             om_lag_h=lag_o, om_corr=round(res_o[lag_o], 3),
-                             om_grid=om.attrs.get("grid") if hasattr(om, "attrs") else None)
-        nasa_al = nasa.shift(lag_n, freq="h")
-        nasa_al.columns = ["nasa_" + c for c in nasa_al.columns]
-        g = g.set_index("timestamp_utc").join(om_al, how="left").join(nasa_al, how="left").reset_index()
-        g = add_time_features(g, "timestamp_utc", lat, lon, 60)
-        hourly.append(g)
-    ah = pd.concat(hourly, ignore_index=True)
-    ah = ah.drop(columns=["minute"])
-    lead_h = ["plant_id", "timestamp_utc", "timestamp_local_utc8", "date_local", "hour_local", "day_of_year",
-              "month", "solar_elevation_deg", "is_daylight"]
-    pv_h = [c for c in ah.columns if c.startswith("pvod_")]
-    om_h = [c for c in ah.columns if c.startswith("om_")]
-    na_h = [c for c in ah.columns if c.startswith("nasa_")]
-    ah = ah[lead_h + pv_h + om_h + na_h + plant_cols]
-    a15 = a15.drop(columns=["hour_utc"])
-    # redondeo para tamaño
-    for d in (a15, ah):
-        for c in d.select_dtypes("float").columns:
-            if not c.startswith("plant_lat") and not c.startswith("plant_lon"):
-                d[c] = d[c].round(4)
-    return a15, ah, lag_info, dups
 
 
 # ============================================================================= DATASET B
@@ -544,34 +343,8 @@ def miss_table(df):
     return "\n".join(f"| {c} | {v} |" for c, v in m.items())
 
 
-def report(a15, ah, lag_info, dups, b, coords):
-    L = ["# Reporte de calidad - datasets TPO solar", f"Generado: {pd.Timestamp.now():%Y-%m-%d %H:%M} (hora Buenos Aires)", ""]
-    L += ["## Dataset A 15 min", f"- Filas: {len(a15):,} | columnas: {a15.shape[1]} | plantas: {a15.plant_id.nunique()}",
-          f"- Período (UTC): {a15.timestamp_utc.min()} a {a15.timestamp_utc.max()}",
-          f"- Timestamps duplicados eliminados: {dups}", ""]
-    per = a15.groupby("plant_id").agg(filas=("pvod_power", "size"), desde=("timestamp_utc", "min"),
-                                      hasta=("timestamp_utc", "max"), cap_mw=("plant_capacity_mw", "first"),
-                                      p_max=("pvod_power", "max"))
-    per["p_max/cap"] = (per.p_max / per.cap_mw).round(2)
-    per["corr_power_vs_lmd_ghi"] = a15.groupby("plant_id").apply(lambda g: g.pvod_power.corr(g.pvod_lmd_totalirrad)).round(3)
-    per["corr_power_vs_nwp_ghi"] = a15.groupby("plant_id").apply(lambda g: g.pvod_power.corr(g.pvod_nwp_globalirrad)).round(3)
-    per["potencia_nocturna_media_mw"] = a15[a15.is_daylight == 0].groupby("plant_id").pvod_power.mean().round(3)
-    L += [per.to_markdown(), ""]
-    L += ["## Dataset A horario", f"- Filas: {len(ah):,} | columnas: {ah.shape[1]}",
-          f"- Horas con 4 registros de 15 min: {(ah.pvod_n_obs_15min == 4).mean() * 100:.2f}%", ""]
-    per = ah.groupby("plant_id").apply(lambda g: pd.Series({
-        "corr_power_vs_om_ghi": g.pvod_power.corr(g.om_shortwave_radiation),
-        "corr_power_vs_nasa_ghi": g.pvod_power.corr(g.nasa_ALLSKY_SFC_SW_DWN),
-        "corr_power_vs_lmd_ghi": g.pvod_power.corr(g.pvod_lmd_totalirrad),
-        "corr_lmd_ghi_vs_om_ghi": g.pvod_lmd_totalirrad.corr(g.om_shortwave_radiation),
-        "corr_temp_lmd_vs_om": g.pvod_lmd_temperature.corr(g.om_temperature_2m),
-        "corr_temp_lmd_vs_nasa": g.pvod_lmd_temperature.corr(g.nasa_T2M)})).round(3)
-    lag = pd.DataFrame(lag_info).T[["om_lag_h", "om_corr", "nasa_lag_h", "nasa_corr", "nasa_corr_lag0"]]
-    L += ["Correlaciones (Pearson, todas las horas):", per.to_markdown(), "",
-          "Verificación de alineación temporal (corrimiento en horas que maximiza corr. con la irradiancia medida en planta):",
-          "om_lag_h sobre la serie cruda de Open-Meteo (se espera -1 porque la radiación es promedio de la hora previa; "
-          "en el dataset ya está corregido). nasa_lag_h es el corrimiento aplicado a NASA POWER.",
-          lag.to_markdown(), "", "% faltantes por columna (horario):", "", "| columna | % NA |", "|---|---|", miss_table(ah), ""]
+def report(b, coords):
+    L = ["# Reporte de calidad - dataset TPO solar", f"Generado: {pd.Timestamp.now():%Y-%m-%d %H:%M} (hora Buenos Aires)", ""]
     L += ["## Dataset B Argentina mensual", f"- Filas: {len(b):,} | columnas: {b.shape[1]} | parques: {b.central.nunique()}",
           f"- Período: {b.fecha.min()} a {b.fecha.max()}",
           f"- Filas con potencia: {b.potencia_mw.notna().mean() * 100:.1f}% (mismo mes GRV: {(b.potencia_source == 'GRV_mismo_mes').mean() * 100:.1f}%)",
@@ -588,24 +361,9 @@ def report(a15, ah, lag_info, dups, b, coords):
 
 
 def agregar_precipitacion():
-    """Suma la precipitación de Open-Meteo a los datasets ya armados SIN rehacer el resto
-    (no vuelve a bajar PVOD ni CAMMESA). Usa las mismas ubicaciones, fechas y alineación
-    que build_A y build_B. Uso: TPO_DIR=data/processed python src/build_datasets.py precipitacion"""
-    log("== Precipitación Open-Meteo -> datasets A (horario) y B (mensual)")
-    ah = pd.read_parquet(BASE / "dataset_A_pvod_hourly.parquet").drop(columns=["om_precipitacion_mm"], errors="ignore")
-    partes = []
-    for pid, g in ah.groupby("plant_id", sort=True):
-        start = (g.timestamp_utc.min() - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        end = (g.timestamp_utc.max() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-        om = fetch_openmeteo_hourly(pid, g.plant_lat.iloc[0], g.plant_lon.iloc[0], start, end).set_index("time")
-        partes.append(g.join(om["precipitation"].shift(-1).rename("om_precipitacion_mm"), on="timestamp_utc"))
-    ah = pd.concat(partes, ignore_index=True)
-    cols = list(ah.columns[:-1])
-    cols.insert(cols.index("om_diffuse_radiation") + 1, "om_precipitacion_mm")
-    ah = ah[cols]
-    ah.to_csv(BASE / "dataset_A_pvod_hourly.csv", index=False)
-    ah.to_parquet(BASE / "dataset_A_pvod_hourly.parquet", index=False)
-
+    """Suma la precipitación de Open-Meteo al dataset ya armado SIN rehacer el resto
+    (no vuelve a bajar CAMMESA). Usa las mismas ubicaciones y fechas que build_B. Uso: TPO_DIR=data/processed python src/build_datasets.py precipitacion"""
+    log("== Precipitación Open-Meteo -> dataset B (mensual)")
     b = pd.read_parquet(BASE / "dataset_B_argentina_mensual.parquet").drop(
         columns=["om_precip_mm_mes", "om_dias_lluvia_5mm"], errors="ignore")
     b["loc_key"] = b.lat.round(2).astype(str) + "_" + b.lon.round(2).astype(str)
@@ -629,31 +387,19 @@ def agregar_precipitacion():
     b = b[cols[:i] + ["om_precip_mm_mes", "om_dias_lluvia_5mm"] + cols[i:]]
     b.to_csv(BASE / "dataset_B_argentina_mensual.csv", index=False)
     b.to_parquet(BASE / "dataset_B_argentina_mensual.parquet", index=False)
-    log(f"A: {ah.om_precipitacion_mm.notna().mean():.1%} horas con precipitación | "
-        f"B: {b.om_precip_mm_mes.notna().mean():.1%} meses con precipitación")
+    log(f"B: {b.om_precip_mm_mes.notna().mean():.1%} meses con precipitación")
 
 
 def main():
-    a15, ah, lag_info, dups = build_A()
-    a15.to_csv(BASE / "dataset_A_pvod_15min.csv", index=False)
-    ah.to_csv(BASE / "dataset_A_pvod_hourly.csv", index=False)
-    ah.to_parquet(BASE / "dataset_A_pvod_hourly.parquet", index=False)
     b, coords = build_B()
     b.to_csv(BASE / "dataset_B_argentina_mensual.csv", index=False)
     b.to_parquet(BASE / "dataset_B_argentina_mensual.parquet", index=False)
-    report(a15, ah, lag_info, dups, b, coords)
-    for f in ["dataset_A_pvod_15min.csv", "dataset_A_pvod_hourly.csv", "dataset_B_argentina_mensual.csv"]:
-        mb = (BASE / f).stat().st_size / 1e6
-        log(f"{f}: {mb:.1f} MB")
-        if mb > 100:
-            with zipfile.ZipFile(BASE / (f + ".zip"), "w", zipfile.ZIP_DEFLATED) as z:
-                z.write(BASE / f, f)
+    report(b, coords)
+    log(f"dataset_B_argentina_mensual.csv: {(BASE / 'dataset_B_argentina_mensual.csv').stat().st_size / 1e6:.1f} MB")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "A":
-        build_A()
-    elif len(sys.argv) > 1 and sys.argv[1] == "precipitacion":
+    if len(sys.argv) > 1 and sys.argv[1] == "precipitacion":
         agregar_precipitacion()
     else:
         main()
