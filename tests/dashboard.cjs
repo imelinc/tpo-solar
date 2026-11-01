@@ -22,7 +22,7 @@ assert.equal($('.view:not([hidden])').id,'vista-atlas');
 assert(!w.document.body.dataset.pais,'sin selector de país');
 assert.equal($('#indice tbody').children.length,w.DEFENSA.parques.length,'índice con todos los parques');
 assert.equal($('#atlas-carta').querySelectorAll('[data-central]').length,w.DEFENSA.parques.length,'una estrella por parque');
-assert(plots.has('eda-hist')&&plots.has('eda-mes')&&plots.has('eda-disp')&&plots.has('eda-corr'),'exploración dibujada');
+assert(plots.has('eda-prov')&&plots.has('eda-mes')&&plots.has('eda-disp')&&plots.has('eda-corr'),'exploración dibujada');
 const fila=$('#indice tbody tr');
 assert.equal($('#atlas-reset').hidden,true,'la carta empieza sin zoom');
 fila.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));

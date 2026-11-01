@@ -270,10 +270,13 @@ function seleccionarParque(id,abrir,acercar){
 function pearson(a,b){const n=a.length,ma=a.reduce((s,v)=>s+v,0)/n,mb=b.reduce((s,v)=>s+v,0)/n;let sab=0,sa=0,sb=0;for(let i=0;i<n;i++){const x=a[i]-ma,y=b[i]-mb;sab+=x*y;sa+=x*x;sb+=y*y;}return sab/Math.sqrt(sa*sb);}
 function eda(){
   if(S.dibujado.eda)return;S.dibujado.eda=true;
+  const prov=new Map();
+  for(const r of D.serie){const k=provincia(r.provincia);if(!prov.has(k))prov.set(k,{suma:0,n:0,parques:new Set()});const v=prov.get(k);v.suma+=r.factor_capacidad;v.n++;v.parques.add(r.central);}
+  const filas=[...prov].map(([k,v])=>({k,media:v.suma/v.n,n:v.n,parques:v.parques.size})).sort((a,b)=>b.media-a.media);
+  $('#eda-prov-meta').textContent=`factor medio · ${filas.length} provincias`;
+  plot('eda-prov',[{type:'bar',orientation:'h',x:filas.map(r=>r.media),y:filas.map(r=>`${r.k} (${r.parques})`),marker:{color:C.ink},text:filas.map(r=>fmt(r.media,3)),textposition:'outside',cliponaxis:false,textfont:{size:12,color:C.ink,family:SANS},customdata:filas.map(r=>[r.parques,r.n]),hovertemplate:'%{y}<br>factor medio %{x:.3f}<br>%{customdata[1]} meses-parque<extra></extra>'}],
+    {xaxis:eje({title:{text:'Factor de capacidad medio (entre paréntesis, cantidad de parques)'},tickformat:'.2f',range:[0,Math.max(...filas.map(r=>r.media))*1.18]}),yaxis:eje({autorange:'reversed',tickfont:{size:12,color:C.ink,family:SANS}}),margin:{l:8,r:40,t:6,b:46},bargap:.3});
   const f=D._eda.map(r=>r.factor);
-  $('#eda-hist-meta').textContent=`histograma · ${fmt(f.length,0)} meses-parque`;
-  plot('eda-hist',[{type:'histogram',x:f,xbins:{start:0,end:.46,size:.015},marker:{color:C.blue,line:{color:C.paper,width:1}},hovertemplate:'Factor %{x}<br>%{y} meses<extra></extra>'}],
-    {xaxis:eje({title:{text:'Factor de capacidad del mes'},tickformat:'.2f'}),yaxis:eje({title:{text:'Meses-parque'}}),bargap:0});
   plot('eda-mes',MESES.map((m,k)=>({type:'box',name:m,y:D._eda.filter(r=>r.mes===k+1).map(r=>r.factor),marker:{color:C.ink,size:3,opacity:.5},line:{color:k>=4&&k<=7?C.muted:C.blue,width:1.4},fillcolor:'rgba(31,63,191,.09)',boxpoints:'outliers',hoverinfo:'y'})),
     {yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f'}),xaxis:eje()});
   const g=D._eda.map(r=>r.ghi),rr=pearson(g,f);

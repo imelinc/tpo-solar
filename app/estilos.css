@@ -119,6 +119,7 @@ h1{font:700 clamp(40px,4.4vw,64px)/.98 var(--cond);letter-spacing:-.005em;text-w
 .index-table td.rango b{color:var(--ink);font-weight:700}
 .number{text-align:right;white-space:nowrap}
 .grid-eda{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap)}
+.grid-eda .chart{height:340px}
 
 /* Modelos */
 .timeline{display:grid;grid-template-columns:1995fr 508fr 1105fr;gap:0}
