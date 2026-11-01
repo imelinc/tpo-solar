@@ -10,7 +10,7 @@ const DIAS = [0,31,28,31,30,31,30,31,31,30,31,30,31];
 const C = {paper:'#f5f9f4',plate:'#ffffff',plate2:'#e4efe7',line:'#cfe0d4',lineStrong:'#7fa992',ink:'#111b16',muted:'#34463c',faint:'#53665b',blue:'#1f3fbf',grid:'#2e9c6a'};
 const SANS = 'Barlow, Helvetica Neue, Arial, sans-serif';
 const TITULOS = {
-  atlas:['La carta de los parques','Dónde están los 56 parques, cuánto rinden y qué muestra la exploración antes de modelar.'],
+  atlas:['Los datos de los parques','Dónde están los 56 parques, cuánto rinden y qué muestra la exploración antes de modelar.'],
   modelos:['Qué modelo estima mejor','El menor RMSE de validation (2024) elige el modelo. El test es desde 2025 y es retrospectivo: esos meses ya se exploraron.'],
   sitio:['Cuánto generaría un parque','Hacé clic en el mapa donde iría el parque. El modelo estima el factor con la ubicación, el clima y el mes; la energía sale de la potencia y las horas.'],
   serie:['Un parque real','Factor de capacidad observado contra el estimado, mes a mes. Los ceros operativos siguen en la serie.']
@@ -220,7 +220,7 @@ function mostrar(){
   if(enfocado?.matches?.('#navegacion a') && enfocado.hash==='#'+S.vista)enfocado.focus();
 }
 
-/* Atlas: carta, índice, exploración */
+/* Datos (#atlas): carta, índice, exploración */
 function atlas(){
   dibujarCarta($('#atlas-carta'),MARCOS.carta,{campo:true,rotulos:true,seleccion:S.parque});
   dibujarCarta($('#atlas-inset'),MARCOS.pais,{});

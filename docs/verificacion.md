@@ -3,7 +3,7 @@
 ## Rediseño del dashboard y revisión del TP — 29/10/2026
 
 - `python -m unittest discover -s tests -v` pasa 10 pruebas.
-- `node tests/dashboard.cjs` recorre Atlas, Modelos, Sitio y Parque: una estrella por parque en la carta, índice completo, los cuatro gráficos de exploración, cinco modelos en tabla, los cinco presets coinciden con la grilla (energía, modo de clima y rango), ceros marcados en la serie y una serie chica por parque. Plotly se reemplaza por un stub: verifica los datos enviados, no el render.
+- `node tests/dashboard.cjs` recorre Datos, Modelos, Sitio y Parque: una estrella por parque en la carta, índice completo, los cuatro gráficos de exploración, cinco modelos en tabla, los cinco presets coinciden con la grilla (energía, modo de clima y rango), ceros marcados en la serie y una serie chica por parque. Plotly se reemplaza por un stub: verifica los datos enviados, no el render.
 - Render real: la app se sirvió con `python -m http.server` y se recorrieron las cuatro vistas en el navegador integrado a 1440 × 900 y a 375 × 812. Sin errores de consola y sin scroll horizontal en móvil. Se probó el preset de Ushuaia: el total sale tachado y el aviso de caso límite aparece.
 - El detector de diseño de Impeccable no marca problemas de calidad reales. Los avisos de contraste toman un fondo blanco que no existe (el texto gris sobre el azul noche da 5,6:1). Las rayas son la leyenda de los meses con clima promedio.
 - Los cinco notebooks se reescribieron para Argentina y se ejecutaron completos con nbclient y el intérprete del proyecto, sin errores. No se guardan salidas.

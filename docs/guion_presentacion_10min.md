@@ -25,11 +25,11 @@ MAE, RMSE y R² están en factor de capacidad. R² no es un porcentaje de aciert
 
 ## Demostración — 5:00
 
-Abrir `app/index.html`; arranca en Atlas. Una persona maneja la máquina. «Modo exposición» agranda el texto para el proyector.
+Abrir `app/index.html`; arranca en Datos. Una persona maneja la máquina. «Modo exposición» agranda el texto para el proyector.
 
 | Tiempo | Vista y acción | Qué decir |
 |---|---|---|
-| 0:00–1:00 | Atlas | La carta: cada estrella es un parque y su tamaño es la potencia. El campo ámbar es el factor típico estimado; el rectángulo punteado es el rango de entrenamiento. Bajar a la exploración: el boxplot muestra el invierno bajo y la dispersión la relación con el sol. |
+| 0:00–1:00 | Datos | La carta: cada estrella es un parque y su tamaño es la potencia. El campo ámbar es el factor típico estimado; el rectángulo punteado es el rango de entrenamiento. Bajar a la exploración: el boxplot muestra el invierno bajo y la dispersión la relación con el sol. |
 | 1:00–2:00 | Modelos | Validación (aro) contra prueba (punto) de los cinco modelos. XGBoost elegido; RF casi empata. Importancias y el RMSE de un parque no visto. |
 | 2:00–3:15 | Sitio → «Sitio nuevo, 2023», luego «Mismo sitio, 2028» | Clic en la carta mueve el retículo. La línea roja va al parque que presta el clima. 2028 usa el clima promedio y las barras quedan rayadas. |
 | 3:15–4:00 | Sitio → «Ushuaia» | Fuera del rango: el número sale tachado y el aviso explica que el modelo no extrapola. |

@@ -67,7 +67,7 @@ spacing:
 
 Barra superior fija: marca, cuatro vistas como celdas (la activa en tinta llena), Grilla y Modo exposición. Debajo, el **cajetín**: título de la vista con su bajada a la izquierda y una grilla de celdas rotuladas a la derecha con el modelo elegido, RMSE, MAE y R² de prueba, RMSE de parque nuevo y el alcance (factor de capacidad mensual, prueba retrospectiva desde 2025).
 
-- **Atlas:** carta a la altura de la pantalla (600 × 887) e índice ordenable; cuatro figuras de exploración.
+- **Datos** (antes Atlas): carta a la altura de la pantalla (600 × 887) e índice ordenable; cuatro figuras de exploración.
 - **Modelos:** partición temporal con ancho proporcional a los meses, la tabla de métricas de los cinco modelos y, abajo, una explicación corta de por qué se eligió el modelo (generada desde la evidencia: validación 2024, prueba y límites).
 - **Sitio:** el sitio se elige solo haciendo clic en la carta (o con las flechas del teclado, de a una celda de 0,2°); no hay campos de latitud ni longitud. Quedan Año y Potencia. La carta marca la celda que usa el cálculo y la línea al parque real que presta el clima. A la derecha: sitio elegido, energía del año como resultado de un cálculo, avisos, energía de cada mes y el sol (irradiación) que usa el modelo.
 - **Parque:** encabezado con coordenadas, serie con la prueba sombreada, residuos y la grilla de series de todos los parques.

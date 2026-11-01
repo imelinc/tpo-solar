@@ -26,4 +26,4 @@ Ushuaia, o cualquier punto fuera del rectángulo, se muestra como caso límite. 
 
 ## Recorrido de la demo
 
-Atlas → Modelos → Sitio (2023, 2028, Ushuaia) → Parque real (Chepes).
+Datos → Modelos → Sitio (2023, 2028, Ushuaia) → Parque real (Chepes).

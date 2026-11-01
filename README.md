@@ -6,7 +6,7 @@ Estimación de la generación mensual de un parque solar en Argentina, según el
 
 ## Recorrido
 
-Atlas → Modelos → Sitio → Parque. El target es el factor de capacidad. La energía anual sale de multiplicar por la potencia y por las horas de cada mes. Las métricas son MAE, RMSE y R².
+Datos → Modelos → Sitio → Parque. El target es el factor de capacidad. La energía anual sale de multiplicar por la potencia y por las horas de cada mes. Las métricas son MAE, RMSE y R².
 
 [Alcance curricular y clases de Notion](docs/alineacion_materia.md) · [Protocolo](docs/plan_modelado.md) · [Guion](docs/guion_defensa.md).
 
@@ -48,7 +48,7 @@ Por defecto los crudos se guardan en `data/raw/` y los procesados en `data/proce
 
 - `src/academico.py`: entrenamiento, selección, grilla de consulta y evidencia.
 - `data/processed/defensa_*`: resultados de la defensa.
-- `app/`: Atlas, Modelos, Sitio y Parque, sin red.
+- `app/`: Datos, Modelos, Sitio y Parque, sin red.
 - `tests/`: métricas, filtros y la consulta de un sitio.
 - `docs/`: alcance, protocolo y guion.
 
