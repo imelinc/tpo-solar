@@ -22,6 +22,7 @@ const DESCRIPCION = {
   lineal_multiple:'Suma ubicación, clima y mes en una recta. Enero queda como referencia del mes.',
   lineal_simple:'Una recta que usa solo la irradiación. Es la línea de base.'
 };
+const ZOOM = 5;
 const S = {vista:'atlas',foco:null,parque:null,orden:'mw',desc:true,dibujado:{}};
 const config = {responsive:true,displaylogo:false,displayModeBar:'hover',modeBarButtonsToRemove:['lasso2d','select2d','autoScale2d'],toImageButtonOptions:{format:'png',filename:'solar-datos',scale:2}};
 
@@ -114,7 +115,7 @@ const MARCOS = {
   pais:{lon0:-74.2,lon1:-53.2,lat0:-21.2,lat1:-55.4,w:150}
 };
 function proyeccion(m){
-  const k=Math.cos((m.lat0+m.lat1)/2*Math.PI/180);
+  const k=m.k||Math.cos((m.lat0+m.lat1)/2*Math.PI/180);
   const s=m.w/((m.lon1-m.lon0)*k),h=(m.lat0-m.lat1)*s;
   return {w:m.w,h,k,s,x:lon=>(lon-m.lon0)*k*s,y:lat=>(m.lat0-lat)*s,lon:x=>m.lon0+x/(k*s),lat:y=>m.lat0-y/s};
 }
@@ -129,16 +130,28 @@ function contornos(P){
 }
 const CAMPO = [0.20,0.34];
 const radio = mw => 2.6+Math.sqrt(Math.max(mw,0))*0.82;
+function graticula(m){
+  const span=m.lon1-m.lon0,paso=span>8?2:span>3?1:.5,lats=[],lons=[];
+  for(let v=Math.ceil(m.lat1/paso)*paso;v<=m.lat0+1e-9;v+=paso)lats.push(+v.toFixed(2));
+  for(let v=Math.ceil(m.lon0/paso)*paso;v<=m.lon1+1e-9;v+=paso)lons.push(+v.toFixed(2));
+  return {paso,lats,lons};
+}
+// Marco de la carta centrado en un parque; conserva la proporción 600 × 887
+function marcoZoom(p){
+  const c=MARCOS.carta,dl=(c.lon1-c.lon0)/ZOOM,dt=(c.lat0-c.lat1)/ZOOM;
+  const lon0=Math.min(Math.max(p.lon-dl/2,c.lon0),c.lon1-dl),lat0=Math.min(Math.max(p.lat+dt/2,c.lat1+dt),c.lat0);
+  return {lon0,lon1:lon0+dl,lat0,lat1:lat0-dt,w:c.w,k:proyeccion(c).k};
+}
 function dibujarCarta(svg,m,opts={}){
-  const P=proyeccion(m),grande=m.w>300;
+  const P=proyeccion(m),grande=m.w>300,lineas=graticula(m);
   svg.setAttribute('viewBox',`0 0 ${P.w.toFixed(0)} ${P.h.toFixed(0)}`);
   svg._P=P;
   let s=`<defs><clipPath id="clip-${svg.id}"><rect width="${P.w}" height="${P.h}"/></clipPath></defs>`;
   s+=`<rect width="${P.w}" height="${P.h}" fill="#fff"/>`;
   s+=`<g clip-path="url(#clip-${svg.id})">`;
   if(grande){
-    for(let lat=-22;lat>=-40;lat-=2)s+=`<line x1="0" x2="${P.w}" y1="${P.y(lat)}" y2="${P.y(lat)}" stroke="${C.grid}" stroke-opacity=".35" stroke-width=".7"/>`;
-    for(let lon=-72;lon<=-56;lon+=2)s+=`<line y1="0" y2="${P.h}" x1="${P.x(lon)}" x2="${P.x(lon)}" stroke="${C.grid}" stroke-opacity=".35" stroke-width=".7"/>`;
+    for(const lat of lineas.lats)s+=`<line x1="0" x2="${P.w}" y1="${P.y(lat)}" y2="${P.y(lat)}" stroke="${C.grid}" stroke-opacity=".35" stroke-width=".7"/>`;
+    for(const lon of lineas.lons)s+=`<line y1="0" y2="${P.h}" x1="${P.x(lon)}" x2="${P.x(lon)}" stroke="${C.grid}" stroke-opacity=".35" stroke-width=".7"/>`;
   }
   s+=contornos(P);
   if(grande&&opts.campo){
@@ -151,7 +164,7 @@ function dibujarCarta(svg,m,opts={}){
   if(opts.restringir&&grande){const x0=P.x(r.lon_min),x1=P.x(r.lon_max),y0=P.y(r.lat_max),y1=P.y(r.lat_min);s+=`<path d="M0,0H${P.w}V${P.h}H0Z M${x0.toFixed(1)},${y0.toFixed(1)}V${y1.toFixed(1)}H${x1.toFixed(1)}V${y0.toFixed(1)}Z" fill="#fff" fill-opacity=".62" fill-rule="evenodd" pointer-events="none"/>`;}
   s+=`<rect x="${P.x(r.lon_min)}" y="${P.y(r.lat_max)}" width="${P.x(r.lon_max)-P.x(r.lon_min)}" height="${P.y(r.lat_min)-P.y(r.lat_max)}" fill="none" stroke="${C.blue}" stroke-width="${grande?1.4:.9}" stroke-dasharray="7 4"/>`;
   if(grande)s+=`<text x="${P.x(r.lon_min)+4}" y="${P.y(r.lat_min)+16}" fill="${C.blue}">RANGO DEL TRAIN SET</text>`;
-  if(!grande){const c=MARCOS.carta;s+=`<rect x="${P.x(c.lon0)}" y="${P.y(c.lat0)}" width="${P.x(c.lon1)-P.x(c.lon0)}" height="${P.y(c.lat1)-P.y(c.lat0)}" fill="none" stroke="${C.ink}" stroke-width="1"/>`;}
+  if(!grande){const c=opts.marco||MARCOS.carta;s+=`<rect x="${P.x(c.lon0)}" y="${P.y(c.lat0)}" width="${P.x(c.lon1)-P.x(c.lon0)}" height="${P.y(c.lat1)-P.y(c.lat0)}" fill="none" stroke="${C.ink}" stroke-width="1"/>`;}
   const q=opts.consulta;
   if(q&&grande){const g=D.grilla,cw=g.paso*P.k*P.s,ch=g.paso*P.s;s+=`<rect x="${(P.x(q.lon_celda)-cw/2).toFixed(1)}" y="${(P.y(q.lat_celda)-ch/2).toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" fill="${C.ink}" fill-opacity=".14" stroke="${C.ink}" stroke-width="1.4"/>`;}
   // Línea al parque que presta el clima
@@ -166,7 +179,8 @@ function dibujarCarta(svg,m,opts={}){
   }
   if(grande&&opts.rotulos){
     const ya=new Set([opts.seleccion]);
-    for(const p of parques.slice(0,4)){if(ya.has(p.central))continue;s+=`<text class="nombre" x="${P.x(p.lon)+radio(p.potencia_mw)+5}" y="${P.y(p.lat)+4}">${esc(titulo(p.nombre).replace(/^(Parque Solar( Fotovoltaico)?|P\.S\.( F\.V\.)?)\s+/i,''))}</text>`;}
+    const visibles=opts.zoom?parques.filter(p=>p.lon>=m.lon0&&p.lon<=m.lon1&&p.lat<=m.lat0&&p.lat>=m.lat1):parques.slice(0,4);
+    for(const p of visibles){if(ya.has(p.central))continue;s+=`<text class="nombre" x="${P.x(p.lon)+radio(p.potencia_mw)+5}" y="${P.y(p.lat)+4}">${esc(titulo(p.nombre).replace(/^(Parque Solar( Fotovoltaico)?|P\.S\.( F\.V\.)?)\s+/i,''))}</text>`;}
   }
   // Retículo del sitio consultado
   if(q){
@@ -177,8 +191,8 @@ function dibujarCarta(svg,m,opts={}){
   }
   s+='</g>';
   if(grande){
-    for(let lat=-22;lat>=-40;lat-=2)s+=`<text x="4" y="${P.y(lat)-4}">${Math.abs(lat)}° S</text>`;
-    for(let lon=-70;lon<=-58;lon+=4)s+=`<text x="${P.x(lon)+4}" y="${P.h-6}">${Math.abs(lon)}° O</text>`;
+    for(const lat of lineas.lats)s+=`<text x="4" y="${P.y(lat)-4}">${fmt(Math.abs(lat),lineas.paso<1?1:0)}° S</text>`;
+    for(const lon of lineas.lons)if(lineas.paso!==2||Math.abs(lon/2)%2===1)s+=`<text x="${P.x(lon)+4}" y="${P.h-6}">${fmt(Math.abs(lon),lineas.paso<1?1:0)}° O</text>`;
   }
   s+=`<rect x=".5" y=".5" width="${P.w-1}" height="${P.h-1}" fill="none" stroke="${C.ink}" stroke-width="1.2"/>`;
   svg.innerHTML=s;
@@ -221,9 +235,15 @@ function mostrar(){
 }
 
 /* Datos (#atlas): carta, índice, exploración */
+function dibujarAtlas(){
+  const p=S.zoom&&D._idx.get(S.zoom),marco=p?marcoZoom(p):MARCOS.carta;
+  dibujarCarta($('#atlas-carta'),marco,{campo:true,rotulos:true,seleccion:S.parque,zoom:!!p});
+  dibujarCarta($('#atlas-inset'),MARCOS.pais,{marco:p?marco:null});
+  $('#atlas-reset').hidden=!p;
+  $('#atlas-meta').textContent=p?`acercado ${ZOOM}× · ${titulo(p.nombre)}`:'graticula de 2°';
+}
 function atlas(){
-  dibujarCarta($('#atlas-carta'),MARCOS.carta,{campo:true,rotulos:true,seleccion:S.parque});
-  dibujarCarta($('#atlas-inset'),MARCOS.pais,{});
+  dibujarAtlas();
   leyendaCarta();
   indice();
   eda();
@@ -237,12 +257,13 @@ function indice(){
   document.querySelectorAll('#indice th button').forEach(b=>{if(b.dataset.orden===k)b.setAttribute('aria-sort',S.desc?'descending':'ascending');else b.removeAttribute('aria-sort');});
   const fuera=D.parques.filter(p=>!dentroRango(p)).length;
   $('#indice-meta').textContent=`${D.parques.length} parques`;
-  $('#indice-nota').textContent=`${fuera} parques quedan fuera del rectángulo del train set: entraron después de 2023. Clic en una fila o en una estrella para marcarla; doble clic abre su serie.`;
+  $('#indice-nota').textContent=`${fuera} parques quedan fuera del rectángulo del train set: entraron después de 2023. Clic en una fila marca el parque y acerca la carta; clic en una estrella lo marca; doble clic abre su serie.`;
 }
-function seleccionarParque(id,abrir){
+function seleccionarParque(id,abrir,acercar){
   S.parque=id;
   if(abrir){location.hash='#serie';return;}
-  dibujarCarta($('#atlas-carta'),MARCOS.carta,{campo:true,rotulos:true,seleccion:S.parque});
+  if(acercar)S.zoom=id;
+  dibujarAtlas();
   document.querySelectorAll('#indice tbody tr').forEach(tr=>tr.setAttribute('aria-selected',String(tr.dataset.central===id)));
   document.querySelector(`#indice tr[data-central="${CSS.escape(id)}"]`)?.scrollIntoView({block:'nearest'});
 }
@@ -396,7 +417,7 @@ function iniciar(){
   $('#serie-parque').innerHTML=parques.map(([id,n,pv])=>`<option value="${esc(id)}">${esc(n)} · ${esc(pv)}</option>`).join('');
   $('#serie-parque').value=S.parque;
   $('#indice thead').addEventListener('click',e=>{const b=e.target.closest('[data-orden]');if(!b)return;S.desc=S.orden===b.dataset.orden?!S.desc:b.dataset.orden!=='nombre'&&b.dataset.orden!=='provincia';S.orden=b.dataset.orden;indice();});
-  $('#indice tbody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-central]');if(tr)seleccionarParque(tr.dataset.central);});
+  $('#indice tbody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-central]');if(tr)seleccionarParque(tr.dataset.central,false,true);});
   $('#indice tbody').addEventListener('dblclick',e=>{const tr=e.target.closest('tr[data-central]');if(tr)seleccionarParque(tr.dataset.central,true);});
   $('#indice tbody').addEventListener('keydown',e=>{const tr=e.target.closest('tr[data-central]');if(!tr)return;if(e.key==='Enter')seleccionarParque(tr.dataset.central,true);if(e.key===' '){e.preventDefault();seleccionarParque(tr.dataset.central);}});
   $('#atlas-carta').addEventListener('click',e=>{const c=e.target.closest('[data-central]');if(c)seleccionarParque(c.dataset.central);});
@@ -404,6 +425,7 @@ function iniciar(){
   $('#sitio-carta').addEventListener('click',e=>fijarSitio(puntoCarta($('#sitio-carta'),e)));
   $('#sitio-carta').addEventListener('mousemove',e=>{const pt=puntoCarta($('#sitio-carta'),e);$('#sitio-carta').classList.toggle('fuera',!!pt&&!dentroRango(pt));});
   $('#sitio-carta').addEventListener('mouseleave',()=>$('#sitio-carta').classList.remove('fuera'));
+  $('#atlas-reset').addEventListener('click',()=>{S.zoom=null;dibujarAtlas();});
   $('#sitio-form').addEventListener('input',sitio);
   $('#sitio-carta').addEventListener('keydown',e=>{const d={ArrowUp:[1,0],ArrowDown:[-1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];if(!d)return;e.preventDefault();const v=valoresSitio(),p=D.grilla.paso;fijarSitio({lat:+(v.lat+d[0]*p).toFixed(2),lon:+(v.lon+d[1]*p).toFixed(2)});});
   leyendaSitio();
