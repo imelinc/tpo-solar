@@ -231,9 +231,9 @@ function atlas(){
 function indice(){
   const filas=D.parques.map(p=>({p,st:D._stats.get(p.central)})).filter(x=>x.st);
   const k=S.orden,dir=S.desc?-1:1;
-  const val={nombre:x=>titulo(x.p.nombre),provincia:x=>x.p.provincia,mw:x=>x.p.potencia_mw,factor:x=>x.st.media};
+  const val={nombre:x=>titulo(x.p.nombre),provincia:x=>x.p.provincia,mw:x=>x.p.potencia_mw,factor:x=>x.st.media,rango:x=>dentroRango(x.p)?0:1};
   filas.sort((a,b)=>{const va=val[k](a),vb=val[k](b);return (typeof va==='string'?va.localeCompare(vb,'es'):va-vb)*dir;});
-  $('#indice tbody').innerHTML=filas.map(({p,st})=>`<tr data-central="${esc(p.central)}" tabindex="0" aria-selected="${p.central===S.parque}"><td>${esc(titulo(p.nombre))}${dentroRango(p)?'':'<span class="fuera">fuera del rango</span>'}</td><td>${esc(provincia(p.provincia))}</td><td class="number">${fmt(p.potencia_mw,1)}</td><td class="number">${fmt(st.media,3)}</td></tr>`).join('');
+  $('#indice tbody').innerHTML=filas.map(({p,st})=>`<tr data-central="${esc(p.central)}" tabindex="0" aria-selected="${p.central===S.parque}"><td>${esc(titulo(p.nombre))}</td><td>${esc(provincia(p.provincia))}</td><td class="number">${fmt(p.potencia_mw,1)}</td><td class="number">${fmt(st.media,3)}</td><td class="rango">${dentroRango(p)?'dentro':'<b>fuera</b>'}</td></tr>`).join('');
   document.querySelectorAll('#indice th button').forEach(b=>{if(b.dataset.orden===k)b.setAttribute('aria-sort',S.desc?'descending':'ascending');else b.removeAttribute('aria-sort');});
   const fuera=D.parques.filter(p=>!dentroRango(p)).length;
   $('#indice-meta').textContent=`${D.parques.length} parques`;
