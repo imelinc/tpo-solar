@@ -23,6 +23,27 @@ Apertura: «Si alguien quiere un parque en un punto de Argentina, en un año, de
 
 MAE, RMSE y R² están en factor de capacidad. R² no es un porcentaje de acierto. El RMSE de parque nuevo no se usó para elegir el modelo. Un año sin clima medido usa el promedio mensual anterior a 2024: no es un pronóstico.
 
+## Términos para explicar antes de usarlos
+
+El público no conoce estos términos. Cada uno se dice **la primera vez que aparece**, en una frase, con el ejemplo de la derecha. En la materia los vimos en inglés (train, validation, test, RMSE, MAE, R²); se dejan así.
+
+| Término | Qué decir (una frase) | Con qué número o ejemplo | Cuándo |
+|---|---|---|---|
+| **Potencia (MW) y energía (GWh)** | La potencia es lo máximo que el parque puede entregar en un instante; la energía es lo que entregó en un período. 1 GWh = 1.000 MWh. | Un parque de 10 MW produce 22,44 GWh en un año. | Diap. 1 |
+| **Factor de capacidad** (*capacity factor*) | Qué parte de su potencia máxima entrega un parque en promedio. Saca el tamaño de la comparación: queda solo lo que depende del lugar y del clima. | Un parque típico entrega cerca de un cuarto de su máximo (mediana de 0,25). En enero 0,33 y en junio 0,17. | Diap. 1–2 |
+| **Cuenta de la energía** | La energía sale de multiplicar el factor por la potencia y por las horas. | 10 MW × 8.760 h × 25,6 % = 22,44 GWh. | Diap. 1 y 6 |
+| **Irradiación** (kWh/m²) | Cuánto sol llegó a la superficie en el mes. Es la entrada principal del modelo. | Más sol, más factor: relación de 0,68. | Diap. 3 |
+| **CAMMESA y Open-Meteo** | CAMMESA informa cuánto generó cada parque; Open-Meteo, el clima de cada lugar. | 56 parques, 3.610 meses. | Diap. 2 |
+| **Train, validation y test** | Train: los meses con los que el modelo aprende. Validation: los meses con los que se compara y elige el modelo. Test: los meses que no vio, para medir el error. | Train hasta 2023, validation 2024, test desde 2025. | Diap. 4 |
+| **Regresión lineal, árbol, Random Forest y XGBoost** | Regresión lineal: una recta. Árbol: una cadena de preguntas. Random Forest: muchos árboles que se promedian. XGBoost: árboles en secuencia, cada uno corrige el error del anterior. | Se compararon cinco modelos y quedó XGBoost. | Diap. 4 |
+| **RMSE y MAE** | Los dos miden cuánto se equivoca el modelo, en puntos de factor de capacidad. El MAE es el error promedio; el RMSE castiga más los errores grandes. Menos es mejor. | En test: MAE 0,0425 (unos 4 puntos de factor) y RMSE 0,0664. | Diap. 4–5 |
+| **R²** | Qué parte de la variación entre meses explica el modelo. No es un porcentaje de acierto. | R² de 0,487: explica cerca de la mitad. | Diap. 5 |
+| **Retrospectivo** | El test son meses que ya pasaron y que el equipo ya había explorado: no es una prueba ciega. | Test desde 2025. | Diap. 5 |
+| **Rango del train set y «no extrapola»** | El modelo solo estima dentro de la zona donde hay parques de entrenamiento. Afuera repite lo que sabe del borde, así que no es confiable. La aplicación no deja elegir un punto afuera. | El recuadro punteado de la carta. | Diap. 6 |
+| **Celda de 0,2°** | La consulta cae en la celda de la grilla más cercana (unos 22 km de lado). | Se marca en la carta de Sitio. | Diap. 6 |
+| **Clima medido y clima promedio** | Si el año tiene clima medido, se usa; si no (un año futuro), se usa el promedio mensual anterior a 2024. No es un pronóstico. | Las barras rayadas de Sitio. | Diap. 6 |
+| **Cero operativo** | Un mes con generación cero real (parada del parque). Se conserva; no es un mes sin dato. | El cero de marzo de 2026 en Chepes. | Diap. 7 |
+
 ## Demostración — 5:00
 
 Abrir `app/index.html`; arranca en Datos. Una persona maneja la máquina. «Modo exposición» agranda el texto para el proyector.
