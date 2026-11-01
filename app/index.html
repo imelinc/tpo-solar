@@ -41,7 +41,7 @@
   <section id="vista-atlas" class="view" aria-labelledby="titulo">
     <div class="grid-atlas">
       <figure class="plate plate-map">
-        <figcaption class="plate-head"><h2>Dónde está cada parque</h2><span class="plate-meta" id="atlas-meta">graticula de 2°</span><button id="atlas-reset" class="ghost-button" type="button" hidden>Ver toda la carta</button></figcaption>
+        <figcaption class="plate-head"><h2>Dónde está cada parque</h2><span class="plate-meta">graticula de 2°</span></figcaption>
         <div class="map-wrap">
           <svg id="atlas-carta" class="carta" role="img" aria-label="Mapa de Argentina con los parques solares del estudio"></svg>
           <svg id="atlas-inset" class="carta-inset" role="img" aria-label="Ubicación de la carta dentro de Argentina"></svg>
@@ -57,7 +57,6 @@
               <th scope="col"><button type="button" data-orden="provincia">Provincia</button></th>
               <th scope="col" class="number"><button type="button" data-orden="mw">MW</button></th>
               <th scope="col" class="number"><button type="button" data-orden="factor">Factor medio</button></th>
-              <th scope="col"><button type="button" data-orden="rango" title="Si el parque está dentro o fuera del rango del train set">Rango</button></th>
             </tr></thead>
             <tbody></tbody>
           </table>
@@ -69,6 +68,7 @@
       <section class="plate">
         <div class="plate-head"><h2>Dónde rinde más cada provincia</h2><span class="plate-meta" id="eda-prov-meta">factor medio</span></div>
         <div id="eda-prov" class="chart" role="img" aria-label="Factor de capacidad medio de cada provincia"></div>
+        <p class="margin-note" id="eda-prov-nota"></p>
       </section>
       <section class="plate">
         <div class="plate-head"><h2>El año solar</h2><span class="plate-meta">boxplot por mes</span></div>
@@ -144,7 +144,9 @@
       <div class="plate-head"><h2>Observado y estimado</h2><span class="plate-meta" id="serie-alcance"></span></div>
       <div id="serie-chart" class="chart tall" role="img" aria-label="Factor de capacidad observado y estimado del parque"></div>
       <p class="chart-key"><span class="key-line"></span>Observado <span class="key-line dotted"></span>Estimado <span class="key-zero"></span>Mes en cero · el fondo marca el test</p>
-      <div id="serie-residuo" class="chart short" role="img" aria-label="Residuo mensual: observado menos estimado"></div>
+      <div class="subtitulo-chart"><h3>Cuánto se equivocó el modelo cada mes</h3><span class="plate-meta">observado − estimado</span></div>
+      <div id="serie-residuo" class="chart short" role="img" aria-label="Error mensual del modelo: factor observado menos estimado"></div>
+      <p class="chart-key"><span class="key-bar mas"></span>Rindió más de lo estimado <span class="key-bar menos"></span>Rindió menos de lo estimado · el fondo marca el test</p>
     </section>
     <section class="plate">
       <div class="plate-head"><h2>Todos los parques</h2><span class="plate-meta">clic para abrir</span></div>

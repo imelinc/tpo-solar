@@ -22,7 +22,6 @@ const DESCRIPCION = {
   lineal_multiple:'Suma ubicación, clima y mes en una recta. Enero queda como referencia del mes.',
   lineal_simple:'Una recta que usa solo la irradiación. Es la línea de base.'
 };
-const ZOOM = 5;
 const S = {vista:'atlas',foco:null,parque:null,orden:'mw',desc:true,dibujado:{}};
 const config = {responsive:true,displaylogo:false,displayModeBar:'hover',modeBarButtonsToRemove:['lasso2d','select2d','autoScale2d'],toImageButtonOptions:{format:'png',filename:'solar-datos',scale:2}};
 
@@ -115,7 +114,7 @@ const MARCOS = {
   pais:{lon0:-74.2,lon1:-53.2,lat0:-21.2,lat1:-55.4,w:150}
 };
 function proyeccion(m){
-  const k=m.k||Math.cos((m.lat0+m.lat1)/2*Math.PI/180);
+  const k=Math.cos((m.lat0+m.lat1)/2*Math.PI/180);
   const s=m.w/((m.lon1-m.lon0)*k),h=(m.lat0-m.lat1)*s;
   return {w:m.w,h,k,s,x:lon=>(lon-m.lon0)*k*s,y:lat=>(m.lat0-lat)*s,lon:x=>m.lon0+x/(k*s),lat:y=>m.lat0-y/s};
 }
@@ -130,28 +129,16 @@ function contornos(P){
 }
 const CAMPO = [0.20,0.34];
 const radio = mw => 2.6+Math.sqrt(Math.max(mw,0))*0.82;
-function graticula(m){
-  const span=m.lon1-m.lon0,paso=span>8?2:span>3?1:.5,lats=[],lons=[];
-  for(let v=Math.ceil(m.lat1/paso)*paso;v<=m.lat0+1e-9;v+=paso)lats.push(+v.toFixed(2));
-  for(let v=Math.ceil(m.lon0/paso)*paso;v<=m.lon1+1e-9;v+=paso)lons.push(+v.toFixed(2));
-  return {paso,lats,lons};
-}
-// Marco de la carta centrado en un parque; conserva la proporción 600 × 887
-function marcoZoom(p){
-  const c=MARCOS.carta,dl=(c.lon1-c.lon0)/ZOOM,dt=(c.lat0-c.lat1)/ZOOM;
-  const lon0=Math.min(Math.max(p.lon-dl/2,c.lon0),c.lon1-dl),lat0=Math.min(Math.max(p.lat+dt/2,c.lat1+dt),c.lat0);
-  return {lon0,lon1:lon0+dl,lat0,lat1:lat0-dt,w:c.w,k:proyeccion(c).k};
-}
 function dibujarCarta(svg,m,opts={}){
-  const P=proyeccion(m),grande=m.w>300,lineas=graticula(m);
+  const P=proyeccion(m),grande=m.w>300;
   svg.setAttribute('viewBox',`0 0 ${P.w.toFixed(0)} ${P.h.toFixed(0)}`);
   svg._P=P;
   let s=`<defs><clipPath id="clip-${svg.id}"><rect width="${P.w}" height="${P.h}"/></clipPath></defs>`;
   s+=`<rect width="${P.w}" height="${P.h}" fill="#fff"/>`;
   s+=`<g clip-path="url(#clip-${svg.id})">`;
   if(grande){
-    for(const lat of lineas.lats)s+=`<line x1="0" x2="${P.w}" y1="${P.y(lat)}" y2="${P.y(lat)}" stroke="${C.grid}" stroke-opacity=".35" stroke-width=".7"/>`;
-    for(const lon of lineas.lons)s+=`<line y1="0" y2="${P.h}" x1="${P.x(lon)}" x2="${P.x(lon)}" stroke="${C.grid}" stroke-opacity=".35" stroke-width=".7"/>`;
+    for(let lat=-22;lat>=-40;lat-=2)s+=`<line x1="0" x2="${P.w}" y1="${P.y(lat)}" y2="${P.y(lat)}" stroke="${C.grid}" stroke-opacity=".35" stroke-width=".7"/>`;
+    for(let lon=-72;lon<=-56;lon+=2)s+=`<line y1="0" y2="${P.h}" x1="${P.x(lon)}" x2="${P.x(lon)}" stroke="${C.grid}" stroke-opacity=".35" stroke-width=".7"/>`;
   }
   s+=contornos(P);
   if(grande&&opts.campo){
@@ -164,7 +151,7 @@ function dibujarCarta(svg,m,opts={}){
   if(opts.restringir&&grande){const x0=P.x(r.lon_min),x1=P.x(r.lon_max),y0=P.y(r.lat_max),y1=P.y(r.lat_min);s+=`<path d="M0,0H${P.w}V${P.h}H0Z M${x0.toFixed(1)},${y0.toFixed(1)}V${y1.toFixed(1)}H${x1.toFixed(1)}V${y0.toFixed(1)}Z" fill="#fff" fill-opacity=".62" fill-rule="evenodd" pointer-events="none"/>`;}
   s+=`<rect x="${P.x(r.lon_min)}" y="${P.y(r.lat_max)}" width="${P.x(r.lon_max)-P.x(r.lon_min)}" height="${P.y(r.lat_min)-P.y(r.lat_max)}" fill="none" stroke="${C.blue}" stroke-width="${grande?1.4:.9}" stroke-dasharray="7 4"/>`;
   if(grande)s+=`<text x="${P.x(r.lon_min)+4}" y="${P.y(r.lat_min)+16}" fill="${C.blue}">RANGO DEL TRAIN SET</text>`;
-  if(!grande){const c=opts.marco||MARCOS.carta;s+=`<rect x="${P.x(c.lon0)}" y="${P.y(c.lat0)}" width="${P.x(c.lon1)-P.x(c.lon0)}" height="${P.y(c.lat1)-P.y(c.lat0)}" fill="none" stroke="${C.ink}" stroke-width="1"/>`;}
+  if(!grande){const c=MARCOS.carta;s+=`<rect x="${P.x(c.lon0)}" y="${P.y(c.lat0)}" width="${P.x(c.lon1)-P.x(c.lon0)}" height="${P.y(c.lat1)-P.y(c.lat0)}" fill="none" stroke="${C.ink}" stroke-width="1"/>`;}
   const q=opts.consulta;
   if(q&&grande){const g=D.grilla,cw=g.paso*P.k*P.s,ch=g.paso*P.s;s+=`<rect x="${(P.x(q.lon_celda)-cw/2).toFixed(1)}" y="${(P.y(q.lat_celda)-ch/2).toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" fill="${C.ink}" fill-opacity=".14" stroke="${C.ink}" stroke-width="1.4"/>`;}
   // Línea al parque que presta el clima
@@ -179,8 +166,7 @@ function dibujarCarta(svg,m,opts={}){
   }
   if(grande&&opts.rotulos){
     const ya=new Set([opts.seleccion]);
-    const visibles=opts.zoom?parques.filter(p=>p.lon>=m.lon0&&p.lon<=m.lon1&&p.lat<=m.lat0&&p.lat>=m.lat1):parques.slice(0,4);
-    for(const p of visibles){if(ya.has(p.central))continue;s+=`<text class="nombre" x="${P.x(p.lon)+radio(p.potencia_mw)+5}" y="${P.y(p.lat)+4}">${esc(titulo(p.nombre).replace(/^(Parque Solar( Fotovoltaico)?|P\.S\.( F\.V\.)?)\s+/i,''))}</text>`;}
+    for(const p of parques.slice(0,4)){if(ya.has(p.central))continue;s+=`<text class="nombre" x="${P.x(p.lon)+radio(p.potencia_mw)+5}" y="${P.y(p.lat)+4}">${esc(titulo(p.nombre).replace(/^(Parque Solar( Fotovoltaico)?|P\.S\.( F\.V\.)?)\s+/i,''))}</text>`;}
   }
   // Retículo del sitio consultado
   if(q){
@@ -191,8 +177,8 @@ function dibujarCarta(svg,m,opts={}){
   }
   s+='</g>';
   if(grande){
-    for(const lat of lineas.lats)s+=`<text x="4" y="${P.y(lat)-4}">${fmt(Math.abs(lat),lineas.paso<1?1:0)}° S</text>`;
-    for(const lon of lineas.lons)if(lineas.paso!==2||Math.abs(lon/2)%2===1)s+=`<text x="${P.x(lon)+4}" y="${P.h-6}">${fmt(Math.abs(lon),lineas.paso<1?1:0)}° O</text>`;
+    for(let lat=-22;lat>=-40;lat-=2)s+=`<text x="4" y="${P.y(lat)-4}">${Math.abs(lat)}° S</text>`;
+    for(let lon=-70;lon<=-58;lon+=4)s+=`<text x="${P.x(lon)+4}" y="${P.h-6}">${Math.abs(lon)}° O</text>`;
   }
   s+=`<rect x=".5" y=".5" width="${P.w-1}" height="${P.h-1}" fill="none" stroke="${C.ink}" stroke-width="1.2"/>`;
   svg.innerHTML=s;
@@ -235,15 +221,9 @@ function mostrar(){
 }
 
 /* Datos (#atlas): carta, índice, exploración */
-function dibujarAtlas(){
-  const p=S.zoom&&D._idx.get(S.zoom),marco=p?marcoZoom(p):MARCOS.carta;
-  dibujarCarta($('#atlas-carta'),marco,{campo:true,rotulos:true,seleccion:S.parque,zoom:!!p});
-  dibujarCarta($('#atlas-inset'),MARCOS.pais,{marco:p?marco:null});
-  $('#atlas-reset').hidden=!p;
-  $('#atlas-meta').textContent=p?`acercado ${ZOOM}× · ${titulo(p.nombre)}`:'graticula de 2°';
-}
 function atlas(){
-  dibujarAtlas();
+  dibujarCarta($('#atlas-carta'),MARCOS.carta,{campo:true,rotulos:true,seleccion:S.parque});
+  dibujarCarta($('#atlas-inset'),MARCOS.pais,{});
   leyendaCarta();
   indice();
   eda();
@@ -251,19 +231,18 @@ function atlas(){
 function indice(){
   const filas=D.parques.map(p=>({p,st:D._stats.get(p.central)})).filter(x=>x.st);
   const k=S.orden,dir=S.desc?-1:1;
-  const val={nombre:x=>titulo(x.p.nombre),provincia:x=>x.p.provincia,mw:x=>x.p.potencia_mw,factor:x=>x.st.media,rango:x=>dentroRango(x.p)?0:1};
+  const val={nombre:x=>titulo(x.p.nombre),provincia:x=>x.p.provincia,mw:x=>x.p.potencia_mw,factor:x=>x.st.media};
   filas.sort((a,b)=>{const va=val[k](a),vb=val[k](b);return (typeof va==='string'?va.localeCompare(vb,'es'):va-vb)*dir;});
-  $('#indice tbody').innerHTML=filas.map(({p,st})=>`<tr data-central="${esc(p.central)}" tabindex="0" aria-selected="${p.central===S.parque}"><td>${esc(titulo(p.nombre))}</td><td>${esc(provincia(p.provincia))}</td><td class="number">${fmt(p.potencia_mw,1)}</td><td class="number">${fmt(st.media,3)}</td><td class="rango">${dentroRango(p)?'dentro':'<b>fuera</b>'}</td></tr>`).join('');
+  $('#indice tbody').innerHTML=filas.map(({p,st})=>`<tr data-central="${esc(p.central)}" tabindex="0" aria-selected="${p.central===S.parque}"><td><div class="nombre-parque"><span>${esc(titulo(p.nombre))}</span>${dentroRango(p)?'':'<span class="pill">fuera de rango</span>'}</div></td><td>${esc(provincia(p.provincia))}</td><td class="number">${fmt(p.potencia_mw,1)}</td><td class="number">${fmt(st.media,3)}</td></tr>`).join('');
   document.querySelectorAll('#indice th button').forEach(b=>{if(b.dataset.orden===k)b.setAttribute('aria-sort',S.desc?'descending':'ascending');else b.removeAttribute('aria-sort');});
   const fuera=D.parques.filter(p=>!dentroRango(p)).length;
   $('#indice-meta').textContent=`${D.parques.length} parques`;
-  $('#indice-nota').textContent=`${fuera} parques quedan fuera del rectángulo del train set: entraron después de 2023. Clic en una fila marca el parque y acerca la carta; clic en una estrella lo marca; doble clic abre su serie.`;
+  $('#indice-nota').textContent=`${fuera} parques quedan fuera del rectángulo del train set: entraron después de 2023. Clic en una fila o en una estrella para marcarla; doble clic abre su serie.`;
 }
-function seleccionarParque(id,abrir,acercar){
+function seleccionarParque(id,abrir){
   S.parque=id;
   if(abrir){location.hash='#serie';return;}
-  if(acercar)S.zoom=id;
-  dibujarAtlas();
+  dibujarCarta($('#atlas-carta'),MARCOS.carta,{campo:true,rotulos:true,seleccion:S.parque});
   document.querySelectorAll('#indice tbody tr').forEach(tr=>tr.setAttribute('aria-selected',String(tr.dataset.central===id)));
   document.querySelector(`#indice tr[data-central="${CSS.escape(id)}"]`)?.scrollIntoView({block:'nearest'});
 }
@@ -271,11 +250,20 @@ function pearson(a,b){const n=a.length,ma=a.reduce((s,v)=>s+v,0)/n,mb=b.reduce((
 function eda(){
   if(S.dibujado.eda)return;S.dibujado.eda=true;
   const prov=new Map();
-  for(const r of D.serie){const k=provincia(r.provincia);if(!prov.has(k))prov.set(k,{suma:0,n:0,parques:new Set()});const v=prov.get(k);v.suma+=r.factor_capacidad;v.n++;v.parques.add(r.central);}
+  let suma=0,total=0;
+  for(const r of D.serie){const k=provincia(r.provincia);if(!prov.has(k))prov.set(k,{suma:0,n:0,parques:new Set()});const v=prov.get(k);v.suma+=r.factor_capacidad;v.n++;v.parques.add(r.central);suma+=r.factor_capacidad;total++;}
+  const media=suma/total;
   const filas=[...prov].map(([k,v])=>({k,media:v.suma/v.n,n:v.n,parques:v.parques.size})).sort((a,b)=>b.media-a.media);
+  const etiqueta=r=>`${r.k} · ${r.parques} ${r.parques===1?'parque':'parques'}`;
   $('#eda-prov-meta').textContent=`factor medio · ${filas.length} provincias`;
-  plot('eda-prov',[{type:'bar',orientation:'h',x:filas.map(r=>r.media),y:filas.map(r=>`${r.k} (${r.parques})`),marker:{color:C.ink},text:filas.map(r=>fmt(r.media,3)),textposition:'outside',cliponaxis:false,textfont:{size:12,color:C.ink,family:SANS},customdata:filas.map(r=>[r.parques,r.n]),hovertemplate:'%{y}<br>factor medio %{x:.3f}<br>%{customdata[1]} meses-parque<extra></extra>'}],
-    {xaxis:eje({title:{text:'Factor de capacidad medio (entre paréntesis, cantidad de parques)'},tickformat:'.2f',range:[0,Math.max(...filas.map(r=>r.media))*1.18]}),yaxis:eje({autorange:'reversed',tickfont:{size:12,color:C.ink,family:SANS}}),margin:{l:8,r:40,t:6,b:46},bargap:.3});
+  plot('eda-prov',[
+    {type:'scatter',mode:'lines',x:filas.flatMap(r=>[media,r.media,null]),y:filas.flatMap(r=>[etiqueta(r),etiqueta(r),null]),line:{color:C.lineStrong,width:2},hoverinfo:'skip'},
+    {type:'scatter',mode:'markers+text',x:filas.map(r=>r.media),y:filas.map(etiqueta),text:filas.map(r=>fmt(r.media,3)),textposition:filas.map(r=>r.media>=media?'middle right':'middle left'),textfont:{size:12,color:C.ink,family:SANS},cliponaxis:false,
+      marker:{symbol:filas.map(r=>r.parques===1?'circle-open':'circle'),size:13,color:C.ink,line:{color:C.ink,width:2}},customdata:filas.map(r=>[r.n]),hovertemplate:'%{y}<br>factor medio %{x:.3f}<br>%{customdata[0]} meses-parque<extra></extra>'}
+  ],{xaxis:eje({title:{text:'Factor de capacidad medio'},tickformat:'.2f',range:[Math.min(...filas.map(r=>r.media))-.035,Math.max(...filas.map(r=>r.media))+.035]}),yaxis:eje({autorange:'reversed',showgrid:false,tickfont:{size:12,color:C.ink,family:SANS}}),margin:{l:8,r:16,t:26,b:46},
+    shapes:[{type:'line',xref:'x',yref:'paper',x0:media,x1:media,y0:0,y1:1,line:{color:C.blue,width:1.6,dash:'dash'}}],
+    annotations:[{xref:'x',yref:'paper',x:media,y:1,yanchor:'bottom',showarrow:false,text:`promedio de todos los parques ${fmt(media,2)}`,font:{color:C.blue,size:12,family:SANS}}]});
+  $('#eda-prov-nota').textContent='Cada punto es una provincia; la línea azul es el promedio de todos los parques, y cada provincia se mide contra ese promedio. Un círculo vacío es una provincia con un solo parque: su número depende de ese parque.';
   const f=D._eda.map(r=>r.factor);
   plot('eda-mes',MESES.map((m,k)=>({type:'box',name:m,y:D._eda.filter(r=>r.mes===k+1).map(r=>r.factor),marker:{color:C.ink,size:3,opacity:.5},line:{color:k>=4&&k<=7?C.muted:C.blue,width:1.4},fillcolor:'rgba(31,63,191,.09)',boxpoints:'outliers',hoverinfo:'y'})),
     {yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f'}),xaxis:eje()});
@@ -391,7 +379,7 @@ function serie(){
   ],{yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f',rangemode:'tozero'}),xaxis:eje(),shapes:fondo,
      annotations:corte?[{x:corte.fecha,xanchor:'left',yref:'paper',y:1,yanchor:'top',text:'test',showarrow:false,font:{color:C.blue,size:12},xshift:6}]:[]});
   plot('serie-residuo',[{type:'bar',x,y:rows.map(r=>r.factor_capacidad-r.pred),marker:{color:rows.map(r=>r.factor_capacidad-r.pred<0?C.lineStrong:C.ink),opacity:.9},hovertemplate:'%{x|%b %Y}<br>observado − estimado: %{y:.3f}<extra></extra>'}],
-    {yaxis:eje({title:{text:'Residuo'},tickformat:'.2f',zeroline:true,zerolinecolor:C.faint}),xaxis:eje(),shapes:fondo,bargap:.1});
+    {yaxis:eje({title:{text:'Error (observado − estimado)'},tickformat:'.2f',zeroline:true,zerolinecolor:C.faint}),xaxis:eje(),shapes:fondo,bargap:.1});
   multiples();
 }
 function multiples(){
@@ -420,7 +408,7 @@ function iniciar(){
   $('#serie-parque').innerHTML=parques.map(([id,n,pv])=>`<option value="${esc(id)}">${esc(n)} · ${esc(pv)}</option>`).join('');
   $('#serie-parque').value=S.parque;
   $('#indice thead').addEventListener('click',e=>{const b=e.target.closest('[data-orden]');if(!b)return;S.desc=S.orden===b.dataset.orden?!S.desc:b.dataset.orden!=='nombre'&&b.dataset.orden!=='provincia';S.orden=b.dataset.orden;indice();});
-  $('#indice tbody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-central]');if(tr)seleccionarParque(tr.dataset.central,false,true);});
+  $('#indice tbody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-central]');if(tr)seleccionarParque(tr.dataset.central);});
   $('#indice tbody').addEventListener('dblclick',e=>{const tr=e.target.closest('tr[data-central]');if(tr)seleccionarParque(tr.dataset.central,true);});
   $('#indice tbody').addEventListener('keydown',e=>{const tr=e.target.closest('tr[data-central]');if(!tr)return;if(e.key==='Enter')seleccionarParque(tr.dataset.central,true);if(e.key===' '){e.preventDefault();seleccionarParque(tr.dataset.central);}});
   $('#atlas-carta').addEventListener('click',e=>{const c=e.target.closest('[data-central]');if(c)seleccionarParque(c.dataset.central);});
@@ -428,7 +416,6 @@ function iniciar(){
   $('#sitio-carta').addEventListener('click',e=>fijarSitio(puntoCarta($('#sitio-carta'),e)));
   $('#sitio-carta').addEventListener('mousemove',e=>{const pt=puntoCarta($('#sitio-carta'),e);$('#sitio-carta').classList.toggle('fuera',!!pt&&!dentroRango(pt));});
   $('#sitio-carta').addEventListener('mouseleave',()=>$('#sitio-carta').classList.remove('fuera'));
-  $('#atlas-reset').addEventListener('click',()=>{S.zoom=null;dibujarAtlas();});
   $('#sitio-form').addEventListener('input',sitio);
   $('#sitio-carta').addEventListener('keydown',e=>{const d={ArrowUp:[1,0],ArrowDown:[-1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];if(!d)return;e.preventDefault();const v=valoresSitio(),p=D.grilla.paso;fijarSitio({lat:+(v.lat+d[0]*p).toFixed(2),lon:+(v.lon+d[1]*p).toFixed(2)});});
   leyendaSitio();
