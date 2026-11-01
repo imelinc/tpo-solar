@@ -11,13 +11,13 @@ const C = {paper:'#f5f9f4',plate:'#ffffff',plate2:'#e4efe7',line:'#cfe0d4',lineS
 const SANS = 'Barlow, Helvetica Neue, Arial, sans-serif';
 const TITULOS = {
   atlas:['La carta de los parques','Dónde están los 56 parques, cuánto rinden y qué muestra la exploración antes de modelar.'],
-  modelos:['Qué modelo estima mejor','El menor RMSE de 2024 elige el modelo. La prueba es desde 2025 y es retrospectiva: esos meses ya se exploraron.'],
+  modelos:['Qué modelo estima mejor','El menor RMSE de validation (2024) elige el modelo. El test es desde 2025 y es retrospectivo: esos meses ya se exploraron.'],
   sitio:['Cuánto generaría un parque','Hacé clic en el mapa donde iría el parque. El modelo estima el factor con la ubicación, el clima y el mes; la energía sale de la potencia y las horas.'],
   serie:['Un parque real','Factor de capacidad observado contra el estimado, mes a mes. Los ceros operativos siguen en la serie.']
 };
 const DESCRIPCION = {
   rf:'Promedia muchos árboles. Cada uno ve una muestra y un subconjunto de variables. Dentro del rango observado responde; afuera no extrapola.',
-  xgb:'Suma árboles en secuencia: cada uno corrige el error del anterior. La validación de 2024 limita la complejidad. Afuera del rango de los parques no extrapola.',
+  xgb:'Suma árboles en secuencia: cada uno corrige el error del anterior. El RMSE de validation (2024) limita la complejidad. Afuera del rango de los parques no extrapola.',
   arbol:'Parte los datos con preguntas. Cada hoja predice un promedio. Afuera del rango repite la hoja del borde.',
   lineal_multiple:'Suma ubicación, clima y mes en una recta. Enero queda como referencia del mes.',
   lineal_simple:'Una recta que usa solo la irradiación. Es la línea de base.'
@@ -67,7 +67,11 @@ function estimar(lat,lon,anio,mw){
 }
 
 /* Datos derivados */
+const NOMBRES = {lineal_simple:'Simple linear regression',lineal_multiple:'Multiple linear regression',arbol:'Decision tree',rf:'Random Forest',xgb:'XGBoost'};
+const ingles = t => String(t).replace(/Prueba retrospectiva/g,'Test retrospectivo').replace(/Entrenamiento/g,'Train').replace(/entrenamiento/g,'train').replace(/Validación/g,'Validation').replace(/validación/g,'validation').replace(/Prueba/g,'Test').replace(/prueba/g,'test');
 function preparar(){
+  D.regresion.comparacion.forEach(m=>{m.nombre=NOMBRES[m.id]||m.nombre;});
+  D.regresion.nombre=NOMBRES[D.regresion.elegido]||D.regresion.nombre;
   D._obs=new Map(D.clima.map(r=>[r.i+'|'+r.anio+'|'+r.mes,r]));
   D._tip=new Map(D.tipico.map(r=>[r.i+'|'+r.mes,r]));
   D._idx=new Map(D.parques.map(p=>[p.central,p]));
@@ -144,8 +148,9 @@ function dibujarCarta(svg,m,opts={}){
     s+='</g>';
   }
   const r=D.rango;
+  if(opts.restringir&&grande){const x0=P.x(r.lon_min),x1=P.x(r.lon_max),y0=P.y(r.lat_max),y1=P.y(r.lat_min);s+=`<path d="M0,0H${P.w}V${P.h}H0Z M${x0.toFixed(1)},${y0.toFixed(1)}V${y1.toFixed(1)}H${x1.toFixed(1)}V${y0.toFixed(1)}Z" fill="#fff" fill-opacity=".62" fill-rule="evenodd" pointer-events="none"/>`;}
   s+=`<rect x="${P.x(r.lon_min)}" y="${P.y(r.lat_max)}" width="${P.x(r.lon_max)-P.x(r.lon_min)}" height="${P.y(r.lat_min)-P.y(r.lat_max)}" fill="none" stroke="${C.blue}" stroke-width="${grande?1.4:.9}" stroke-dasharray="7 4"/>`;
-  if(grande)s+=`<text x="${P.x(r.lon_min)+4}" y="${P.y(r.lat_min)+16}" fill="${C.blue}">RANGO DE ENTRENAMIENTO</text>`;
+  if(grande)s+=`<text x="${P.x(r.lon_min)+4}" y="${P.y(r.lat_min)+16}" fill="${C.blue}">RANGO DEL TRAIN SET</text>`;
   if(!grande){const c=MARCOS.carta;s+=`<rect x="${P.x(c.lon0)}" y="${P.y(c.lat0)}" width="${P.x(c.lon1)-P.x(c.lon0)}" height="${P.y(c.lat1)-P.y(c.lat0)}" fill="none" stroke="${C.ink}" stroke-width="1"/>`;}
   const q=opts.consulta;
   if(q&&grande){const g=D.grilla,cw=g.paso*P.k*P.s,ch=g.paso*P.s;s+=`<rect x="${(P.x(q.lon_celda)-cw/2).toFixed(1)}" y="${(P.y(q.lat_celda)-ch/2).toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" fill="${C.ink}" fill-opacity=".14" stroke="${C.ink}" stroke-width="1.4"/>`;}
@@ -182,7 +187,7 @@ function leyendaCarta(){
   const est=[5,20,50,100].map(mw=>{const r=radio(mw);return `<svg width="${2*r+4}" height="${2*r+4}" aria-hidden="true"><circle cx="${r+2}" cy="${r+2}" r="${r}" fill="${C.ink}"/></svg><span>${mw}</span>`;}).join('');
   $('#atlas-leyenda').innerHTML=`<div class="grp"><span class="ttl">Potencia (MW)</span>${est}</div>`+
     `<div class="grp"><span class="ttl">Factor típico estimado</span><span>${fmt(CAMPO[0],2)}</span><span class="ramp" aria-hidden="true"></span><span>${fmt(CAMPO[1],2)}</span></div>`+
-    `<div class="grp"><svg width="28" height="12" aria-hidden="true"><rect x="1" y="1" width="26" height="10" fill="none" stroke="${C.blue}" stroke-dasharray="5 3"/></svg><span>Rango de parques de entrenamiento</span></div>`;
+    `<div class="grp"><svg width="28" height="12" aria-hidden="true"><rect x="1" y="1" width="26" height="10" fill="none" stroke="${C.blue}" stroke-dasharray="5 3"/></svg><span>Rango de parques del train set</span></div>`;
 }
 function puntoCarta(svg,ev){
   const P=svg._P;if(!P)return null;
@@ -196,7 +201,7 @@ function puntoCarta(svg,ev){
 function barraEvidencia(){
   const r=D.regresion,m=r.comparacion.find(x=>x.id===r.elegido).test,cv=r.cv_parques;
   const celda=(k,v,c='')=>`<div class="celda ${c}"><span>${k}</span><b>${v}</b></div>`;
-  $('#evidencia').innerHTML=celda('Modelo elegido',esc(r.nombre),'modelo')+celda('RMSE prueba',fmt(m.rmse,4))+celda('MAE prueba',fmt(m.mae,4))+celda('R² prueba',fmt(m.r2,3))+celda('RMSE parque nuevo',fmt(cv.rmse,4))+celda('Alcance','Factor de capacidad mensual · prueba retrospectiva desde 2025','alcance');
+  $('#evidencia').innerHTML=celda('Modelo elegido',esc(r.nombre),'modelo')+celda('RMSE test',fmt(m.rmse,4))+celda('MAE test',fmt(m.mae,4))+celda('R² test',fmt(m.r2,3))+celda('RMSE new park',fmt(cv.rmse,4))+celda('Alcance','Factor de capacidad mensual · test retrospectivo desde 2025','alcance');
 }
 function mostrar(){
   const enfocado=document.activeElement;
@@ -232,7 +237,7 @@ function indice(){
   document.querySelectorAll('#indice th button').forEach(b=>{if(b.dataset.orden===k)b.setAttribute('aria-sort',S.desc?'descending':'ascending');else b.removeAttribute('aria-sort');});
   const fuera=D.parques.filter(p=>!dentroRango(p)).length;
   $('#indice-meta').textContent=`${D.parques.length} parques`;
-  $('#indice-nota').textContent=`${fuera} parques quedan fuera del rectángulo de entrenamiento: entraron después de 2023. Clic en una fila o en una estrella para marcarla; doble clic abre su serie.`;
+  $('#indice-nota').textContent=`${fuera} parques quedan fuera del rectángulo del train set: entraron después de 2023. Clic en una fila o en una estrella para marcarla; doble clic abre su serie.`;
 }
 function seleccionarParque(id,abrir){
   S.parque=id;
@@ -265,21 +270,21 @@ function modelos(){
   const r=D.regresion,el=r.comparacion.find(m=>m.id===r.elegido);
   const n=[el.train.n,el.validacion.n,el.test.n];
   $('#split').style.gridTemplateColumns=n.map(v=>v+'fr').join(' ');
-  $('#split').innerHTML=`<div><b>Entrenamiento</b><p>Hasta 2023 · ${fmt(n[0],0)} meses con generación</p></div><div><b>Validación</b><p>2024 · ${fmt(n[1],0)} · elige</p></div><div><b>Prueba</b><p>Desde 2025 · ${fmt(n[2],0)} · retrospectiva</p></div>`;
+  $('#split').innerHTML=`<div><b>Train</b><p>Hasta 2023 · ${fmt(n[0],0)} meses con generación</p></div><div><b>Validation</b><p>2024 · ${fmt(n[1],0)} · elige</p></div><div><b>Test</b><p>Desde 2025 · ${fmt(n[2],0)} · retrospectivo</p></div>`;
   $('#modelos-unidades').textContent=r.unidad_target;
   $('#modelos-tabla tbody').innerHTML=r.comparacion.map(m=>`<tr class="${m.id===r.elegido?'selected-model':''}"><td>${esc(m.nombre)}${m.id===r.elegido?'<span class="chosen-tag">elegido</span>':''}</td><td class="number">${fmt(m.train.rmse,4)}</td><td class="number">${fmt(m.validacion.rmse,4)}</td><td class="number">${fmt(m.test.rmse,4)}</td><td class="number">${fmt(m.test.mae,4)}</td><td class="number">${fmt(m.test.r2,3)}</td><td class="number">${fmt(m.test.n,0)}</td></tr>`).join('');
-  $('#modelo-detalles').textContent=`${r.protocolo} Si dos modelos empatan, queda el más simple. Se conservaron ${fmt(r.ceros_conservados,0)} ceros operativos.`;
+  $('#modelo-detalles').textContent=`${ingles(r.protocolo)} Si dos modelos empatan, queda el más simple. Se conservaron ${fmt(r.ceros_conservados,0)} ceros operativos.`;
   $('#porque-titulo').textContent=`Por qué ${el.nombre}`;
   const por=f=>[...r.comparacion].sort((x,y)=>f(x)-f(y))[0];
   const seg=[...r.comparacion].filter(m=>m.id!==el.id).sort((a,b)=>a.validacion.rmse-b.validacion.rmse)[0];
   const resto=r.comparacion.filter(m=>m.id!==el.id&&m.id!==seg.id).map(m=>m.validacion.rmse);
   const mejorTest=por(m=>m.test.rmse),mejorMae=por(m=>m.test.mae);
-  const prueba=mejorTest.id===el.id?`En la prueba desde 2025, también tiene el menor RMSE (${fmt(el.test.rmse,4)}).`
-    :`En la prueba desde 2025, ${mejorTest.nombre} queda apenas mejor en RMSE (${fmt(mejorTest.test.rmse,4)} contra ${fmt(el.test.rmse,4)}): prácticamente un empate.`+(mejorMae.id===el.id?` ${el.nombre} tiene el menor MAE (${fmt(el.test.mae,4)}).`:'');
+  const prueba=mejorTest.id===el.id?`En el test desde 2025, también tiene el menor RMSE (${fmt(el.test.rmse,4)}).`
+    :`En el test desde 2025, ${mejorTest.nombre} queda apenas mejor en RMSE (${fmt(mejorTest.test.rmse,4)} contra ${fmt(el.test.rmse,4)}): prácticamente un empate.`+(mejorMae.id===el.id?` ${el.nombre} tiene el menor MAE (${fmt(el.test.mae,4)}).`:'');
   $('#modelo-porque').innerHTML=[
-    `La regla se fijó antes de mirar la prueba: gana el menor RMSE de validación en 2024. ${el.nombre} tuvo ${fmt(el.validacion.rmse,4)} y ${seg.nombre}, ${fmt(seg.validacion.rmse,4)}. Los demás quedaron entre ${fmt(Math.min(...resto),4)} y ${fmt(Math.max(...resto),4)}.`,
+    `La regla se fijó antes de mirar el test: gana el menor RMSE de validation en 2024. ${el.nombre} tuvo ${fmt(el.validacion.rmse,4)} y ${seg.nombre}, ${fmt(seg.validacion.rmse,4)}. Los demás quedaron entre ${fmt(Math.min(...resto),4)} y ${fmt(Math.max(...resto),4)}.`,
     DESCRIPCION[el.id],
-    `${prueba} Con R² de ${fmt(el.test.r2,3)} explica ${fmt(el.test.r2*100,0)} % de la variación mensual, y la prueba es retrospectiva: no equivale a un período nunca visto.`
+    `${prueba} Con R² de ${fmt(el.test.r2,3)} explica ${fmt(el.test.r2*100,0)} % de la variación mensual, y el test es retrospectivo: no equivale a un período nunca visto.`
   ].map(t=>`<p>${esc(t)}</p>`).join('');
 }
 
@@ -287,7 +292,7 @@ function modelos(){
 function valoresSitio(){return {lat:parseFloat($('#sitio-lat').value),lon:parseFloat($('#sitio-lon').value),anio:parseInt($('#sitio-anio').value,10),mw:parseFloat($('#sitio-mw').value)};}
 function avisos(r){
   const L=[],rg=D.rango;
-  if(!r.dentro)L.push(['alerta',`Caso límite: el punto queda fuera del rango de los parques de entrenamiento (latitud ${fmt(rg.lat_min,1)} a ${fmt(rg.lat_max,1)}, longitud ${fmt(rg.lon_min,1)} a ${fmt(rg.lon_max,1)}). El modelo no extrapola: el número no vale como estimación.`]);
+  if(!r.dentro)L.push(['alerta',`Caso límite: el punto queda fuera del rango de los parques del train set (latitud ${fmt(rg.lat_min,1)} a ${fmt(rg.lat_max,1)}, longitud ${fmt(rg.lon_min,1)} a ${fmt(rg.lon_max,1)}). El modelo no extrapola: el número no vale como estimación.`]);
   if(r.distancia_km>D.umbral_km)L.push(['alerta',`El parque que presta el clima está a ${fmt(r.distancia_km,0)} km de la celda: más de ${D.umbral_km} km, la copia es débil.`]);
   if(r.distancia_celda_km>1)L.push(['',`Se usa la celda de ${fmt(D.grilla.paso,1)}° más cercana, a ${fmt(r.distancia_celda_km,0)} km del punto pedido.`]);
   if(r.modo==='tipico')L.push(['',`${r.anio} no tiene clima medido: se usa el promedio mensual anterior a 2024. No es un pronóstico del clima de ese año.`]);
@@ -302,7 +307,7 @@ function sitio(){
   if(!r){
     aviso.dataset.modo='';aviso.dataset.dentro='';aviso.textContent='Elegí un año y una potencia mayor que cero.';
     lectura.innerHTML='';$('#sitio-avisos').innerHTML='';$('#sitio-clima-nota').textContent='';
-    dibujarCarta($('#sitio-carta'),MARCOS.carta,{campo:true});dibujarCarta($('#sitio-inset'),MARCOS.pais,{});
+    dibujarCarta($('#sitio-carta'),MARCOS.carta,{campo:true,restringir:true});dibujarCarta($('#sitio-inset'),MARCOS.pais,{});
     plot('sitio-chart',[],{});plot('sitio-clima',[],{});return;
   }
   aviso.dataset.modo=r.modo;aviso.dataset.dentro=String(r.dentro);aviso.dataset.energia=String(r.energia_gwh);
@@ -313,7 +318,7 @@ function sitio(){
   lectura.innerHTML=`<h2>${r.incompleto?'Energía de los meses con clima':`Un parque de ${fmt(r.potencia_mw,1)} MW generaría`}</h2><div class="energy"><strong>${fmt(r.energia_gwh,2)} GWh</strong><span>${r.incompleto?'':`en ${r.anio} · `}factor anual ${fmt(r.factor*100,1)} %</span></div><p>${esc(clima)}, copiado de ${esc(titulo(r.nombre))} (${esc(provincia(r.provincia))}), el parque real más cercano, a ${fmt(r.distancia_km,0)} km. Ese parque tuvo un factor medio de ${fmt(st.media*100,1)} %.</p>`;
   $('#sitio-avisos').innerHTML=avisos(r).map(([c,t])=>`<li class="${c}">${esc(t)}</li>`).join('');
   $('#sitio-clima-nota').textContent=`Además del sol, el modelo usa la temperatura máxima y la nubosidad de ${titulo(r.nombre)}, más la latitud, la longitud y el mes.`;
-  dibujarCarta($('#sitio-carta'),MARCOS.carta,{campo:true,consulta:r});
+  dibujarCarta($('#sitio-carta'),MARCOS.carta,{campo:true,consulta:r,restringir:true});
   dibujarCarta($('#sitio-inset'),MARCOS.pais,{consulta:r});
   const trama=r.meses.map(m=>m.clima==='observado'?'':'/');
   plot('sitio-chart',[{type:'bar',x:r.meses.map(m=>MESES[m.mes-1]),y:r.meses.map(m=>m.gwh),customdata:r.meses.map(m=>[m.factor,m.clima==='observado'?'clima medido':'clima promedio']),
@@ -327,11 +332,18 @@ function leyendaSitio(){
     `<div class="grp"><svg width="22" height="14" aria-hidden="true"><rect x="1" y="1" width="20" height="12" fill="${C.ink}" fill-opacity=".14" stroke="${C.ink}" stroke-width="1.4"/></svg><span>Celda de 0,2° del cálculo</span></div>`+
     `<div class="grp"><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="${C.ink}"/></svg><span>Parque real</span></div>`+
     `<div class="grp"><span class="ttl">Factor típico estimado</span><span>${fmt(CAMPO[0],2)}</span><span class="ramp" aria-hidden="true"></span><span>${fmt(CAMPO[1],2)}</span></div>`+
-    `<div class="grp"><svg width="28" height="12" aria-hidden="true"><rect x="1" y="1" width="26" height="10" fill="none" stroke="${C.blue}" stroke-dasharray="5 3"/></svg><span>Rango de parques de entrenamiento</span></div>`;
+    `<div class="grp"><svg width="28" height="12" aria-hidden="true"><rect x="1" y="1" width="26" height="10" fill="none" stroke="${C.blue}" stroke-dasharray="5 3"/></svg><span>Rango de parques del train set</span></div>`;
 }
 const LIMITES={lat:[-56,-21],lon:[-74,-53]};
 function fijarSitio(pt){
   if(!pt)return;
+  const aviso=$('#sitio-rechazo');
+  if(!dentroRango(pt)){
+    const rg=D.rango;
+    aviso.textContent=`Ese punto queda fuera del rango de los parques del train set (latitud ${fmt(rg.lat_min,1)} a ${fmt(rg.lat_max,1)}, longitud ${fmt(rg.lon_min,1)} a ${fmt(rg.lon_max,1)}). El modelo no extrapola, así que ahí no se estima. Elegí un punto dentro del recuadro punteado.`;
+    aviso.hidden=false;return;
+  }
+  aviso.hidden=true;
   $('#sitio-lat').value=Math.min(LIMITES.lat[1],Math.max(LIMITES.lat[0],pt.lat));
   $('#sitio-lon').value=Math.min(LIMITES.lon[1],Math.max(LIMITES.lon[0],pt.lon));
   sitio();
@@ -342,10 +354,10 @@ function serie(){
   const rows=D._serie.get(id)||[];
   if(!rows.length){$('#serie-lectura').innerHTML='<p class="empty">Ese parque no tiene meses comparables.</p>';return;}
   const p=D._idx.get(id),st=D._stats.get(id),ultimo=rows.at(-1);
-  $('#serie-lectura').innerHTML=`<div><h2>${esc(titulo(ultimo.nombre))}</h2><p class="coords">${esc(provincia(ultimo.provincia))} · ${coords(p.lat,p.lon)}${dentroRango(p)?'':' · fuera del rango de entrenamiento'}</p></div>`+
-    `<dl><div><dt>Potencia</dt><dd>${fmt(ultimo.potencia_mw,1)} MW</dd></div><div><dt>Meses</dt><dd>${fmt(st.n,0)}</dd></div><div><dt>Factor medio</dt><dd>${fmt(st.media,3)}</dd></div><div><dt>MAE en prueba</dt><dd>${fmt(st.mae,3)}</dd></div><div><dt>Meses en cero</dt><dd>${fmt(st.ceros,0)}</dd></div></dl>`;
+  $('#serie-lectura').innerHTML=`<div><h2>${esc(titulo(ultimo.nombre))}</h2><p class="coords">${esc(provincia(ultimo.provincia))} · ${coords(p.lat,p.lon)}${dentroRango(p)?'':' · fuera del rango del train set'}</p></div>`+
+    `<dl><div><dt>Potencia</dt><dd>${fmt(ultimo.potencia_mw,1)} MW</dd></div><div><dt>Meses</dt><dd>${fmt(st.n,0)}</dd></div><div><dt>Factor medio</dt><dd>${fmt(st.media,3)}</dd></div><div><dt>MAE en test</dt><dd>${fmt(st.mae,3)}</dd></div><div><dt>Meses en cero</dt><dd>${fmt(st.ceros,0)}</dd></div></dl>`;
   const prueba=rows.filter(r=>r.particion==='prueba');
-  $('#serie-alcance').textContent=`${rows[0].fecha.slice(0,7)} a ${ultimo.fecha.slice(0,7)} · ${prueba.length} meses en prueba`;
+  $('#serie-alcance').textContent=`${rows[0].fecha.slice(0,7)} a ${ultimo.fecha.slice(0,7)} · ${prueba.length} meses en test`;
   const corte=prueba[0],x=rows.map(r=>r.fecha),ceros=rows.filter(r=>r.factor_capacidad===0);
   const fondo=corte?[{type:'rect',xref:'x',x0:corte.fecha,x1:ultimo.fecha,yref:'paper',y0:0,y1:1,fillcolor:'rgba(31,63,191,.07)',line:{width:0}}]:[];
   plot('serie-chart',[
@@ -353,7 +365,7 @@ function serie(){
     {type:'scatter',mode:'lines',name:'Estimado',x,y:rows.map(r=>r.pred),line:{color:C.blue,width:2.4,dash:'dot'},hovertemplate:'%{x|%b %Y}<br>estimado %{y:.3f}<extra></extra>'},
     {type:'scatter',mode:'markers',name:'Cero',x:ceros.map(r=>r.fecha),y:ceros.map(()=>0),marker:{symbol:'circle-open',size:16,line:{width:2.6},color:C.ink},hovertemplate:'%{x|%b %Y}: cero operativo<extra></extra>'}
   ],{yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f',rangemode:'tozero'}),xaxis:eje(),shapes:fondo,
-     annotations:corte?[{x:corte.fecha,xanchor:'left',yref:'paper',y:1,yanchor:'top',text:'prueba',showarrow:false,font:{color:C.blue,size:12},xshift:6}]:[]});
+     annotations:corte?[{x:corte.fecha,xanchor:'left',yref:'paper',y:1,yanchor:'top',text:'test',showarrow:false,font:{color:C.blue,size:12},xshift:6}]:[]});
   plot('serie-residuo',[{type:'bar',x,y:rows.map(r=>r.factor_capacidad-r.pred),marker:{color:rows.map(r=>r.factor_capacidad-r.pred<0?C.lineStrong:C.ink),opacity:.9},hovertemplate:'%{x|%b %Y}<br>observado − estimado: %{y:.3f}<extra></extra>'}],
     {yaxis:eje({title:{text:'Residuo'},tickformat:'.2f',zeroline:true,zerolinecolor:C.faint}),xaxis:eje(),shapes:fondo,bargap:.1});
   multiples();
@@ -390,7 +402,8 @@ function iniciar(){
   $('#atlas-carta').addEventListener('click',e=>{const c=e.target.closest('[data-central]');if(c)seleccionarParque(c.dataset.central);});
   $('#atlas-carta').addEventListener('dblclick',e=>{const c=e.target.closest('[data-central]');if(c)seleccionarParque(c.dataset.central,true);});
   $('#sitio-carta').addEventListener('click',e=>fijarSitio(puntoCarta($('#sitio-carta'),e)));
-  $('#sitio-inset').addEventListener('click',e=>fijarSitio(puntoCarta($('#sitio-inset'),e)));
+  $('#sitio-carta').addEventListener('mousemove',e=>{const pt=puntoCarta($('#sitio-carta'),e);$('#sitio-carta').classList.toggle('fuera',!!pt&&!dentroRango(pt));});
+  $('#sitio-carta').addEventListener('mouseleave',()=>$('#sitio-carta').classList.remove('fuera'));
   $('#sitio-form').addEventListener('input',sitio);
   $('#sitio-carta').addEventListener('keydown',e=>{const d={ArrowUp:[1,0],ArrowDown:[-1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];if(!d)return;e.preventDefault();const v=valoresSitio(),p=D.grilla.paso;fijarSitio({lat:+(v.lat+d[0]*p).toFixed(2),lon:+(v.lon+d[1]*p).toFixed(2)});});
   leyendaSitio();

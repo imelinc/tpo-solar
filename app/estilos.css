@@ -93,6 +93,8 @@ h1{font:700 clamp(40px,4.4vw,64px)/.98 var(--cond);letter-spacing:-.005em;text-w
 .carta .estrella{cursor:pointer}
 .carta .estrella:hover{fill:var(--blue)}
 .clickable{cursor:crosshair}
+.clickable.fuera{cursor:not-allowed}
+.rechazo{margin:0 0 12px;padding:10px 12px;border:2px solid var(--ink);background:#fff;font-weight:600;font-size:15px;max-width:calc(var(--carta-h) * .6765)}
 .map-legend{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center;margin-top:12px;font-size:14px;color:var(--ink-2)}
 .map-legend .grp{display:flex;align-items:center;gap:10px}
 .map-legend .ttl{font:500 13px/1.2 var(--cond);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}

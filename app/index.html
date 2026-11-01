@@ -35,7 +35,7 @@
       <h1 id="titulo">Los parques solares de Argentina</h1>
       <p id="subtitulo"></p>
     </div>
-    <div id="evidencia" class="cajetin-celdas" aria-live="polite" aria-label="Modelo elegido y métricas de prueba"></div>
+    <div id="evidencia" class="cajetin-celdas" aria-live="polite" aria-label="Modelo elegido y métricas de test"></div>
   </section>
 
   <section id="vista-atlas" class="view" aria-labelledby="titulo">
@@ -88,7 +88,7 @@
     <div id="split" class="timeline" aria-label="Particiones temporales"></div>
     <section class="plate">
       <div class="plate-head"><h2>Los cinco modelos, medidos igual</h2><span class="plate-meta" id="modelos-unidades"></span></div>
-      <div class="table-scroll"><table id="modelos-tabla" class="data-table"><thead><tr><th scope="col">Modelo</th><th scope="col" class="number">RMSE entren.</th><th scope="col" class="number">RMSE validación</th><th scope="col" class="number">RMSE prueba</th><th scope="col" class="number">MAE prueba</th><th scope="col" class="number">R² prueba</th><th scope="col" class="number">n prueba</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-scroll"><table id="modelos-tabla" class="data-table"><thead><tr><th scope="col">Modelo</th><th scope="col" class="number">RMSE train</th><th scope="col" class="number">RMSE validation</th><th scope="col" class="number">RMSE test</th><th scope="col" class="number">MAE test</th><th scope="col" class="number">R² test</th><th scope="col" class="number">n test</th></tr></thead><tbody></tbody></table></div>
       <p class="margin-note" id="modelo-detalles"></p>
     </section>
     <section class="plate explica" aria-labelledby="porque-titulo">
@@ -100,10 +100,11 @@
   <section id="vista-sitio" class="view" aria-labelledby="titulo" hidden>
     <div class="grid-site">
       <figure class="plate plate-map">
-        <figcaption class="plate-head"><h2>Hacé clic donde iría el parque</h2><span class="plate-meta">clic o flechas · celda de 0,2°</span></figcaption>
+        <figcaption class="plate-head"><h2>Hacé clic donde iría el parque</h2><span class="plate-meta">clic o flechas · dentro del recuadro punteado</span></figcaption>
+        <p id="sitio-rechazo" class="rechazo" role="status" hidden></p>
         <div class="map-wrap">
           <svg id="sitio-carta" class="carta clickable" tabindex="0" role="application" aria-label="Mapa de Argentina para elegir dónde iría el parque. Con el mouse, hacé clic; con el teclado, usá las flechas."></svg>
-          <svg id="sitio-inset" class="carta-inset clickable" role="img" aria-label="Argentina completa; clic para elegir un sitio fuera de la carta"></svg>
+          <svg id="sitio-inset" class="carta-inset" role="img" aria-label="Ubicación de la carta dentro de Argentina"></svg>
         </div>
         <div class="map-legend" id="sitio-leyenda"></div>
       </figure>
@@ -141,7 +142,7 @@
     <section class="plate">
       <div class="plate-head"><h2>Observado y estimado</h2><span class="plate-meta" id="serie-alcance"></span></div>
       <div id="serie-chart" class="chart tall" role="img" aria-label="Factor de capacidad observado y estimado del parque"></div>
-      <p class="chart-key"><span class="key-line"></span>Observado <span class="key-line dotted"></span>Estimado <span class="key-zero"></span>Mes en cero · el fondo marca la prueba</p>
+      <p class="chart-key"><span class="key-line"></span>Observado <span class="key-line dotted"></span>Estimado <span class="key-zero"></span>Mes en cero · el fondo marca el test</p>
       <div id="serie-residuo" class="chart short" role="img" aria-label="Residuo mensual: observado menos estimado"></div>
     </section>
     <section class="plate">
