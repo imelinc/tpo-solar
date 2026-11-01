@@ -153,7 +153,9 @@ h1{font:700 clamp(40px,4.4vw,64px)/.98 var(--cond);letter-spacing:-.005em;text-w
 .controls input,.controls select{background:var(--white);border:1px solid var(--ink);border-radius:0;padding:8px 11px;min-height:44px;color:var(--ink);font:400 18px/1.2 var(--sans);letter-spacing:0;text-transform:none}
 .controls input{width:8.5rem}
 .controls select{min-width:300px}
-.grid-site{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,1fr);gap:var(--gap);align-items:start}
+.grid-site{--carta-h:min(92vh,1000px);display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--gap);align-items:start}
+.site-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:var(--gap);align-items:start}
+.grid-site .chart,.grid-site .chart.short{height:340px}
 .site-side{display:flex;flex-direction:column;gap:var(--gap)}
 .site-reading h2{font:700 25px/1.1 var(--cond)}
 .site-reading .energy{display:flex;align-items:baseline;gap:6px 16px;flex-wrap:wrap;margin:14px 0 6px}
