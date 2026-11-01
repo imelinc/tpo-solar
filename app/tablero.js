@@ -7,8 +7,8 @@ const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const MESES_LARGO = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DIAS = [0,31,28,31,30,31,30,31,31,30,31,30,31];
-const C = {sky:'#0a1021',plate:'#0f1729',plate2:'#16233d',line:'#24374f',lineStrong:'#3a4e6b',chalk:'#f2f2e9',muted:'#a9b3c6',faint:'#8590a6',red:'#ff4d2e',amber:'#ffb36b'};
-const SANS = 'Plex, Helvetica Neue, Arial, sans-serif';
+const C = {paper:'#f5f9f4',plate:'#ffffff',plate2:'#e4efe7',line:'#cfe0d4',lineStrong:'#7fa992',ink:'#111b16',muted:'#34463c',faint:'#53665b',red:'#cf1f19',blue:'#1f3fbf',grid:'#2e9c6a'};
+const SANS = 'Barlow, Helvetica Neue, Arial, sans-serif';
 const TITULOS = {
   atlas:['La carta de los parques','Dónde están los 56 parques, cuánto rinden y qué muestra la exploración antes de modelar.'],
   modelos:['Qué modelo estima mejor','El menor RMSE de 2024 elige el modelo. La prueba es desde 2025 y es retrospectiva: esos meses ya se exploraron.'],
@@ -28,7 +28,7 @@ const config = {responsive:true,displaylogo:false,displayModeBar:'hover',modeBar
 
 /* Gráficos */
 function eje(extra={}){return {gridcolor:C.line,linecolor:C.lineStrong,zeroline:false,tickfont:{size:12,color:C.muted,family:SANS},title:{font:{size:12,color:C.faint,family:SANS}},automargin:true,...extra};}
-function layout(extra={}){return {font:{family:SANS,size:13,color:C.chalk},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',margin:{l:8,r:12,t:10,b:34},showlegend:false,hoverlabel:{bgcolor:C.plate2,bordercolor:C.lineStrong,font:{color:C.chalk,size:13,family:SANS}},...extra};}
+function layout(extra={}){return {font:{family:SANS,size:13,color:C.ink},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',margin:{l:8,r:12,t:10,b:34},showlegend:false,hoverlabel:{bgcolor:'#fff',bordercolor:C.ink,font:{color:C.ink,size:13,family:SANS}},...extra};}
 function plot(id,traces,extra={}){
   const el=document.getElementById(id);if(!el)return;
   const done=Plotly.react(el,traces,layout(extra),config);
@@ -120,7 +120,7 @@ function contornos(P){
   let out='';
   for(const [pais,anillos] of Object.entries(window.CONTORNOS||{})){
     const d=trazo(P,anillos);
-    out+=pais==='ARG'?`<path d="${d}" fill="${C.plate2}" stroke="${C.lineStrong}" stroke-width="1.2" stroke-linejoin="round"/>`:`<path d="${d}" fill="none" stroke="${C.line}" stroke-width="1" stroke-linejoin="round"/>`;
+    out+=pais==='ARG'?`<path d="${d}" fill="${C.plate2}" stroke="${C.ink}" stroke-width="1.3" stroke-linejoin="round"/>`:`<path d="${d}" fill="none" stroke="${C.lineStrong}" stroke-width="1" stroke-linejoin="round"/>`;
   }
   return out;
 }
@@ -130,24 +130,24 @@ function dibujarCarta(svg,m,opts={}){
   const P=proyeccion(m),grande=m.w>300;
   svg.setAttribute('viewBox',`0 0 ${P.w.toFixed(0)} ${P.h.toFixed(0)}`);
   svg._P=P;
-  let s=`<defs><clipPath id="clip-${svg.id}"><rect width="${P.w}" height="${P.h}"/></clipPath><radialGradient id="halo-${svg.id}"><stop offset="0" stop-color="${C.chalk}" stop-opacity=".35"/><stop offset="1" stop-color="${C.chalk}" stop-opacity="0"/></radialGradient></defs>`;
-  s+=`<rect width="${P.w}" height="${P.h}" fill="${C.sky}"/>`;
+  let s=`<defs><clipPath id="clip-${svg.id}"><rect width="${P.w}" height="${P.h}"/></clipPath></defs>`;
+  s+=`<rect width="${P.w}" height="${P.h}" fill="#fff"/>`;
   s+=`<g clip-path="url(#clip-${svg.id})">`;
   if(grande){
-    for(let lat=-22;lat>=-40;lat-=2)s+=`<line x1="0" x2="${P.w}" y1="${P.y(lat)}" y2="${P.y(lat)}" stroke="${C.line}" stroke-width=".6" stroke-dasharray="2 4"/>`;
-    for(let lon=-72;lon<=-56;lon+=2)s+=`<line y1="0" y2="${P.h}" x1="${P.x(lon)}" x2="${P.x(lon)}" stroke="${C.line}" stroke-width=".6" stroke-dasharray="2 4"/>`;
+    for(let lat=-22;lat>=-40;lat-=2)s+=`<line x1="0" x2="${P.w}" y1="${P.y(lat)}" y2="${P.y(lat)}" stroke="${C.grid}" stroke-opacity=".35" stroke-width=".7"/>`;
+    for(let lon=-72;lon<=-56;lon+=2)s+=`<line y1="0" y2="${P.h}" x1="${P.x(lon)}" x2="${P.x(lon)}" stroke="${C.grid}" stroke-opacity=".35" stroke-width=".7"/>`;
   }
   s+=contornos(P);
   if(grande&&opts.campo){
     const g=D.grilla,cw=g.paso*P.k*P.s,ch=g.paso*P.s;
     s+=`<clipPath id="tierra-${svg.id}"><path d="${trazo(P,(window.CONTORNOS||{}).ARG||[])}"/></clipPath><g clip-path="url(#tierra-${svg.id})">`;
-    for(const c of D._campo){const a=Math.max(0,Math.min(1,(c.f-CAMPO[0])/(CAMPO[1]-CAMPO[0])));s+=`<rect x="${(P.x(c.lon)-cw/2).toFixed(1)}" y="${(P.y(c.lat)-ch/2).toFixed(1)}" width="${(cw+.3).toFixed(1)}" height="${(ch+.3).toFixed(1)}" fill="${C.amber}" fill-opacity="${(0.02+Math.pow(a,1.6)*0.5).toFixed(3)}"><title>Factor típico estimado ${fmt(c.f,3)}</title></rect>`;}
+    for(const c of D._campo){const a=Math.max(0,Math.min(1,(c.f-CAMPO[0])/(CAMPO[1]-CAMPO[0])));s+=`<rect x="${(P.x(c.lon)-cw/2).toFixed(1)}" y="${(P.y(c.lat)-ch/2).toFixed(1)}" width="${(cw+.3).toFixed(1)}" height="${(ch+.3).toFixed(1)}" fill="${C.blue}" fill-opacity="${(0.03+Math.pow(a,1.5)*0.42).toFixed(3)}"><title>Factor típico estimado ${fmt(c.f,3)}</title></rect>`;}
     s+='</g>';
   }
   const r=D.rango;
-  s+=`<rect x="${P.x(r.lon_min)}" y="${P.y(r.lat_max)}" width="${P.x(r.lon_max)-P.x(r.lon_min)}" height="${P.y(r.lat_min)-P.y(r.lat_max)}" fill="none" stroke="${C.amber}" stroke-width="${grande?1.2:.8}" stroke-dasharray="6 4"/>`;
-  if(grande)s+=`<text x="${P.x(r.lon_min)+4}" y="${P.y(r.lat_min)+16}" fill="${C.amber}">RANGO DE ENTRENAMIENTO</text>`;
-  if(!grande){const c=MARCOS.carta;s+=`<rect x="${P.x(c.lon0)}" y="${P.y(c.lat0)}" width="${P.x(c.lon1)-P.x(c.lon0)}" height="${P.y(c.lat1)-P.y(c.lat0)}" fill="none" stroke="${C.chalk}" stroke-opacity=".6" stroke-width=".8"/>`;}
+  s+=`<rect x="${P.x(r.lon_min)}" y="${P.y(r.lat_max)}" width="${P.x(r.lon_max)-P.x(r.lon_min)}" height="${P.y(r.lat_min)-P.y(r.lat_max)}" fill="none" stroke="${C.blue}" stroke-width="${grande?1.4:.9}" stroke-dasharray="7 4"/>`;
+  if(grande)s+=`<text x="${P.x(r.lon_min)+4}" y="${P.y(r.lat_min)+16}" fill="${C.blue}">RANGO DE ENTRENAMIENTO</text>`;
+  if(!grande){const c=MARCOS.carta;s+=`<rect x="${P.x(c.lon0)}" y="${P.y(c.lat0)}" width="${P.x(c.lon1)-P.x(c.lon0)}" height="${P.y(c.lat1)-P.y(c.lat0)}" fill="none" stroke="${C.ink}" stroke-width="1"/>`;}
   // Línea al parque que presta el clima
   const q=opts.consulta;
   if(q){const p=D._idx.get(q.central);if(p)s+=`<line x1="${P.x(q.lon)}" y1="${P.y(q.lat)}" x2="${P.x(p.lon)}" y2="${P.y(p.lat)}" stroke="${C.red}" stroke-width="${grande?1.4:1}" stroke-dasharray="3 4"/>`;}
@@ -155,8 +155,8 @@ function dibujarCarta(svg,m,opts={}){
   const parques=[...D.parques].sort((a,b)=>b.potencia_mw-a.potencia_mw);
   for(const p of parques){
     const rr=grande?radio(p.potencia_mw):Math.max(1.3,radio(p.potencia_mw)/3.2),sel=p.central===opts.seleccion;
-    if(grande&&p.potencia_mw>=50)s+=`<circle cx="${P.x(p.lon)}" cy="${P.y(p.lat)}" r="${rr*2.4}" fill="url(#halo-${svg.id})" pointer-events="none"/>`;
-    s+=`<circle class="${grande?'estrella':''}" data-central="${esc(p.central)}" cx="${P.x(p.lon).toFixed(1)}" cy="${P.y(p.lat).toFixed(1)}" r="${rr.toFixed(1)}" fill="${C.chalk}" fill-opacity="${grande?.92:.85}" stroke="${C.sky}" stroke-width="${grande?1:.4}"><title>${esc(titulo(p.nombre))} · ${esc(provincia(p.provincia))} · ${fmt(p.potencia_mw,1)} MW</title></circle>`;
+    if(grande&&p.potencia_mw>=50)s+=`<circle cx="${P.x(p.lon)}" cy="${P.y(p.lat)}" r="${(rr+4).toFixed(1)}" fill="none" stroke="${C.ink}" stroke-width=".8" pointer-events="none"/>`;
+    s+=`<circle class="${grande?'estrella':''}" data-central="${esc(p.central)}" cx="${P.x(p.lon).toFixed(1)}" cy="${P.y(p.lat).toFixed(1)}" r="${rr.toFixed(1)}" fill="${C.ink}" stroke="#fff" stroke-width="${grande?1.2:.4}"><title>${esc(titulo(p.nombre))} · ${esc(provincia(p.provincia))} · ${fmt(p.potencia_mw,1)} MW</title></circle>`;
     if(sel&&grande)s+=`<circle cx="${P.x(p.lon)}" cy="${P.y(p.lat)}" r="${rr+7}" fill="none" stroke="${C.red}" stroke-width="1.6"/><text class="nombre alerta" x="${P.x(p.lon)+rr+11}" y="${P.y(p.lat)+5}">${esc(titulo(p.nombre))}</text>`;
   }
   if(grande&&opts.rotulos){
@@ -175,14 +175,14 @@ function dibujarCarta(svg,m,opts={}){
     for(let lat=-22;lat>=-40;lat-=2)s+=`<text x="4" y="${P.y(lat)-4}">${Math.abs(lat)}° S</text>`;
     for(let lon=-70;lon<=-58;lon+=4)s+=`<text x="${P.x(lon)+4}" y="${P.h-6}">${Math.abs(lon)}° O</text>`;
   }
-  s+=`<rect x=".5" y=".5" width="${P.w-1}" height="${P.h-1}" fill="none" stroke="${C.lineStrong}"/>`;
+  s+=`<rect x=".5" y=".5" width="${P.w-1}" height="${P.h-1}" fill="none" stroke="${C.ink}" stroke-width="1.2"/>`;
   svg.innerHTML=s;
 }
 function leyendaCarta(){
-  const est=[5,20,50,100].map(mw=>{const r=radio(mw);return `<svg width="${2*r+4}" height="${2*r+4}" aria-hidden="true"><circle cx="${r+2}" cy="${r+2}" r="${r}" fill="${C.chalk}"/></svg><span>${mw}</span>`;}).join('');
+  const est=[5,20,50,100].map(mw=>{const r=radio(mw);return `<svg width="${2*r+4}" height="${2*r+4}" aria-hidden="true"><circle cx="${r+2}" cy="${r+2}" r="${r}" fill="${C.ink}"/></svg><span>${mw}</span>`;}).join('');
   $('#atlas-leyenda').innerHTML=`<div class="grp"><span class="ttl">Potencia (MW)</span>${est}</div>`+
     `<div class="grp"><span class="ttl">Factor típico estimado</span><span>${fmt(CAMPO[0],2)}</span><span class="ramp" aria-hidden="true"></span><span>${fmt(CAMPO[1],2)}</span></div>`+
-    `<div class="grp"><svg width="28" height="12" aria-hidden="true"><rect x="1" y="1" width="26" height="10" fill="none" stroke="${C.amber}" stroke-dasharray="5 3"/></svg><span>Rango de parques de entrenamiento</span></div>`;
+    `<div class="grp"><svg width="28" height="12" aria-hidden="true"><rect x="1" y="1" width="26" height="10" fill="none" stroke="${C.blue}" stroke-dasharray="5 3"/></svg><span>Rango de parques de entrenamiento</span></div>`;
 }
 function puntoCarta(svg,ev){
   const P=svg._P;if(!P)return null;
@@ -195,7 +195,8 @@ function puntoCarta(svg,ev){
 /* Encabezado y navegación */
 function barraEvidencia(){
   const r=D.regresion,m=r.comparacion.find(x=>x.id===r.elegido).test,cv=r.cv_parques;
-  $('#evidencia').innerHTML=`<span class="model-name">${esc(r.nombre)}</span><span>RMSE prueba<b>${fmt(m.rmse,4)}</b></span><span>MAE<b>${fmt(m.mae,4)}</b></span><span>R²<b>${fmt(m.r2,3)}</b></span><span>RMSE parque nuevo<b>${fmt(cv.rmse,4)}</b></span><span class="scope">Factor de capacidad mensual · prueba retrospectiva</span>`;
+  const celda=(k,v,c='')=>`<div class="celda ${c}"><span>${k}</span><b>${v}</b></div>`;
+  $('#evidencia').innerHTML=celda('Modelo elegido',esc(r.nombre),'modelo')+celda('RMSE prueba',fmt(m.rmse,4))+celda('MAE prueba',fmt(m.mae,4))+celda('R² prueba',fmt(m.r2,3))+celda('RMSE parque nuevo',fmt(cv.rmse,4))+celda('Alcance','Factor de capacidad mensual · prueba retrospectiva desde 2025','alcance');
 }
 function mostrar(){
   const enfocado=document.activeElement;
@@ -209,6 +210,8 @@ function mostrar(){
   $('#subtitulo').textContent=TITULOS[S.vista][1];
   barraEvidencia();
   ({atlas,modelos,sitio,serie}[S.vista])();
+  const vista=$('#vista-'+S.vista);vista.classList.remove('entra');void vista.offsetWidth;vista.classList.add('entra');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll('.view:not([hidden]) .js-plotly-plot').forEach(el=>Plotly.Plots.resize(el))));
   if(enfocado?.matches?.('#navegacion a') && enfocado.hash==='#'+S.vista)enfocado.focus();
 }
 
@@ -244,18 +247,18 @@ function eda(){
   if(S.dibujado.eda)return;S.dibujado.eda=true;
   const f=D._eda.map(r=>r.factor);
   $('#eda-hist-meta').textContent=`histograma · ${fmt(f.length,0)} meses-parque`;
-  plot('eda-hist',[{type:'histogram',x:f,xbins:{start:0,end:.46,size:.015},marker:{color:C.amber,line:{color:C.sky,width:1}},hovertemplate:'Factor %{x}<br>%{y} meses<extra></extra>'}],
+  plot('eda-hist',[{type:'histogram',x:f,xbins:{start:0,end:.46,size:.015},marker:{color:C.blue,line:{color:C.paper,width:1}},hovertemplate:'Factor %{x}<br>%{y} meses<extra></extra>'}],
     {xaxis:eje({title:{text:'Factor de capacidad del mes'},tickformat:'.2f'}),yaxis:eje({title:{text:'Meses-parque'}}),bargap:0});
-  plot('eda-mes',MESES.map((m,k)=>({type:'box',name:m,y:D._eda.filter(r=>r.mes===k+1).map(r=>r.factor),marker:{color:C.chalk,size:3,opacity:.5},line:{color:k>=4&&k<=7?C.muted:C.amber,width:1.4},fillcolor:'rgba(255,179,107,.10)',boxpoints:'outliers',hoverinfo:'y'})),
+  plot('eda-mes',MESES.map((m,k)=>({type:'box',name:m,y:D._eda.filter(r=>r.mes===k+1).map(r=>r.factor),marker:{color:C.ink,size:3,opacity:.5},line:{color:k>=4&&k<=7?C.muted:C.blue,width:1.4},fillcolor:'rgba(31,63,191,.09)',boxpoints:'outliers',hoverinfo:'y'})),
     {yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f'}),xaxis:eje()});
   const g=D._eda.map(r=>r.ghi),rr=pearson(g,f);
   $('#eda-r').textContent=`correlación ${fmt(rr,2)}`;
-  plot('eda-disp',[{type:'scattergl',mode:'markers',x:g,y:f,marker:{color:C.chalk,size:4,opacity:.35},hovertemplate:'%{x:.0f} kWh/m² · factor %{y:.3f}<extra></extra>'}],
+  plot('eda-disp',[{type:'scattergl',mode:'markers',x:g,y:f,marker:{color:C.ink,size:4,opacity:.35},hovertemplate:'%{x:.0f} kWh/m² · factor %{y:.3f}<extra></extra>'}],
     {xaxis:eje({title:{text:'Irradiación del mes (kWh/m²)'}}),yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f'})});
   const vars=[['factor','factor'],['ghi','irradiación'],['temp','temp. máx.'],['nub','nubosidad'],['lat','latitud'],['lon','longitud']];
   const cols=vars.map(([k])=>D._eda.map(r=>r[k]));
   const z=cols.map(a=>cols.map(b=>pearson(a,b)));
-  plot('eda-corr',[{type:'heatmap',z,x:vars.map(v=>v[1]),y:vars.map(v=>v[1]),zmin:-1,zmax:1,colorscale:[[0,'#5b8fd9'],[.5,C.plate],[1,C.amber]],showscale:false,text:z.map(r=>r.map(v=>fmt(v,2))),texttemplate:'%{text}',textfont:{size:12,color:C.chalk},hovertemplate:'%{y} y %{x}: %{text}<extra></extra>',xgap:2,ygap:2}],
+  plot('eda-corr',[{type:'heatmap',z,x:vars.map(v=>v[1]),y:vars.map(v=>v[1]),zmin:-1,zmax:1,colorscale:[[0,'#f1948f'],[.5,C.plate],[1,'#8da2ee']],showscale:false,text:z.map(r=>r.map(v=>fmt(v,2))),texttemplate:'%{text}',textfont:{size:12,color:C.ink},hovertemplate:'%{y} y %{x}: %{text}<extra></extra>',xgap:2,ygap:2}],
     {xaxis:eje({showgrid:false,side:'bottom'}),yaxis:eje({showgrid:false,autorange:'reversed'}),margin:{l:8,r:8,t:6,b:30}});
 }
 function calidad(){
@@ -276,9 +279,9 @@ function modelos(){
   const nombres=r.comparacion.map(m=>m.nombre);
   plot('modelos-chart',[
     {type:'scatter',mode:'lines',x:r.comparacion.flatMap(m=>[m.validacion.rmse,m.test.rmse,null]),y:r.comparacion.flatMap(m=>[m.nombre,m.nombre,null]),line:{color:C.lineStrong,width:2},hoverinfo:'skip'},
-    {type:'scatter',mode:'markers',name:'Validación',x:r.comparacion.map(m=>m.validacion.rmse),y:nombres,marker:{symbol:'circle-open',size:16,line:{width:2.4},color:r.comparacion.map(m=>m.id===r.elegido?C.red:C.chalk)},hovertemplate:'%{y}<br>Validación: %{x:.4f}<extra></extra>'},
-    {type:'scatter',mode:'markers',name:'Prueba',x:r.comparacion.map(m=>m.test.rmse),y:nombres,marker:{size:13,color:C.amber},hovertemplate:'%{y}<br>Prueba: %{x:.4f}<extra></extra>'}
-  ],{xaxis:eje({title:{text:'RMSE (factor de capacidad)'},tickformat:'.3f'}),yaxis:eje({autorange:'reversed',tickfont:{size:14,color:C.chalk,family:SANS}}),margin:{l:8,r:16,t:10,b:44},
+    {type:'scatter',mode:'markers',name:'Validación',x:r.comparacion.map(m=>m.validacion.rmse),y:nombres,marker:{symbol:'circle-open',size:16,line:{width:2.4},color:r.comparacion.map(m=>m.id===r.elegido?C.red:C.ink)},hovertemplate:'%{y}<br>Validación: %{x:.4f}<extra></extra>'},
+    {type:'scatter',mode:'markers',name:'Prueba',x:r.comparacion.map(m=>m.test.rmse),y:nombres,marker:{size:13,color:C.blue},hovertemplate:'%{y}<br>Prueba: %{x:.4f}<extra></extra>'}
+  ],{xaxis:eje({title:{text:'RMSE (factor de capacidad)'},tickformat:'.3f'}),yaxis:eje({autorange:'reversed',tickfont:{size:14,color:C.ink,family:SANS}}),margin:{l:8,r:16,t:10,b:44},
     annotations:[{x:el.validacion.rmse,y:el.nombre,text:'elegido',showarrow:false,yshift:-22,font:{color:C.red,size:12}}]});
   const p=foco.test;
   $('#modelo-foco-titulo').textContent=foco.nombre;
@@ -288,7 +291,7 @@ function modelos(){
   $('#modelo-entradas').innerHTML=(foco.id==='lineal_simple'?['irradiación mensual']:r.entradas).map(x=>`<span>${esc(x)}</span>`).join('');
   const imp=(r.importancias||[]).slice().reverse();
   const etiqueta=v=>VARIABLES[v]||(v.startsWith('mes_')?'mes: '+MESES_LARGO[+v.split('_')[1]-1]:v);
-  if(foco.id===r.elegido&&imp.length){$('#modelo-importancias').hidden=false;plot('modelo-importancias',[{type:'bar',orientation:'h',x:imp.map(i=>i.valor),y:imp.map(i=>etiqueta(i.variable)),marker:{color:imp.map(i=>i.variable.startsWith('mes_')?C.muted:C.amber)},hovertemplate:'%{y}: %{x:.3f}<extra></extra>'}],{xaxis:eje({title:{text:'Importancia (ganancia)'}}),yaxis:eje({tickfont:{size:12,color:C.chalk,family:SANS}}),margin:{l:8,r:12,t:4,b:40}});}
+  if(foco.id===r.elegido&&imp.length){$('#modelo-importancias').hidden=false;plot('modelo-importancias',[{type:'bar',orientation:'h',x:imp.map(i=>i.valor),y:imp.map(i=>etiqueta(i.variable)),marker:{color:imp.map(i=>i.variable.startsWith('mes_')?C.muted:C.blue)},hovertemplate:'%{y}: %{x:.3f}<extra></extra>'}],{xaxis:eje({title:{text:'Importancia (ganancia)'}}),yaxis:eje({tickfont:{size:12,color:C.ink,family:SANS}}),margin:{l:8,r:12,t:4,b:40}});}
   else $('#modelo-importancias').hidden=true;
   $('#modelos-unidades').textContent=r.unidad_target;
   $('#modelos-tabla tbody').innerHTML=r.comparacion.map(m=>`<tr data-modelo="${esc(m.id)}" class="${m.id===S.foco?'selected-model':''}" tabindex="0"><td>${esc(m.nombre)}${m.id===r.elegido?'<span class="chosen-tag">elegido</span>':''}</td><td class="number">${fmt(m.train.rmse,4)}</td><td class="number">${fmt(m.validacion.rmse,4)}</td><td class="number">${fmt(m.test.rmse,4)}</td><td class="number">${fmt(m.test.mae,4)}</td><td class="number">${fmt(m.test.r2,3)}</td><td class="number">${fmt(m.test.n,0)}</td></tr>`).join('');
@@ -299,11 +302,11 @@ function modelos(){
     $('#prueba-meta').textContent=`${r.nombre} · ${fmt(pr.length,0)} meses de prueba`;
     plot('modelos-disp',[
       {type:'scatter',mode:'lines',x:[0,.45],y:[0,.45],line:{color:C.faint,dash:'dot',width:1.4},hoverinfo:'skip'},
-      {type:'scattergl',mode:'markers',x:pr.map(x=>x.pred),y:pr.map(x=>x.factor_capacidad),text:pr.map(x=>titulo(x.nombre)+' · '+x.fecha.slice(0,7)),marker:{size:5,color:pr.map(x=>x.factor_capacidad===0?C.red:C.amber),opacity:.55},hovertemplate:'%{text}<br>estimado %{x:.3f} · observado %{y:.3f}<extra></extra>'}
+      {type:'scattergl',mode:'markers',x:pr.map(x=>x.pred),y:pr.map(x=>x.factor_capacidad),text:pr.map(x=>titulo(x.nombre)+' · '+x.fecha.slice(0,7)),marker:{size:5,color:pr.map(x=>x.factor_capacidad===0?C.red:C.blue),opacity:.55},hovertemplate:'%{text}<br>estimado %{x:.3f} · observado %{y:.3f}<extra></extra>'}
     ],{xaxis:eje({title:{text:'Estimado'},range:[0,.45],tickformat:'.2f'}),yaxis:eje({title:{text:'Observado'},range:[0,.45],tickformat:'.2f'}),margin:{l:8,r:12,t:10,b:44},
       annotations:[{x:.40,y:.42,text:'igual',showarrow:false,font:{color:C.faint,size:11}}]});
     const cv=r.cv_parques;
-    plot('cv-chart',[{type:'bar',x:cv.folds.map((_,k)=>'Grupo '+(k+1)),y:cv.folds.map(f=>f.rmse),marker:{color:C.lineStrong,line:{color:C.muted,width:1}},text:cv.folds.map(f=>fmt(f.rmse,3)),textposition:'inside',insidetextanchor:'end',textfont:{color:C.chalk},hovertemplate:'%{x}: RMSE %{y:.4f}<extra></extra>'}],
+    plot('cv-chart',[{type:'bar',x:cv.folds.map((_,k)=>'Grupo '+(k+1)),y:cv.folds.map(f=>f.rmse),marker:{color:C.lineStrong,line:{color:C.muted,width:1}},text:cv.folds.map(f=>fmt(f.rmse,3)),textposition:'inside',insidetextanchor:'end',textfont:{color:C.ink},hovertemplate:'%{x}: RMSE %{y:.4f}<extra></extra>'}],
       {yaxis:eje({title:{text:'RMSE'},range:[0,Math.max(...cv.folds.map(f=>f.rmse))*1.25],tickformat:'.2f'}),xaxis:eje(),
        shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:cv.rmse,y1:cv.rmse,line:{color:C.red,width:1.6,dash:'dash'}}],
        annotations:[{xref:'paper',x:1,y:cv.rmse,xanchor:'right',yshift:10,text:`promedio ${fmt(cv.rmse,4)}`,showarrow:false,font:{color:C.red,size:12}}]});
@@ -342,7 +345,7 @@ function sitio(){
   dibujarCarta($('#sitio-carta'),MARCOS.carta,{campo:true,consulta:r});
   dibujarCarta($('#sitio-inset'),MARCOS.pais,{consulta:r});
   plot('sitio-chart',[{type:'bar',x:r.meses.map(m=>MESES[m.mes-1]),y:r.meses.map(m=>m.gwh),customdata:r.meses.map(m=>[m.factor,m.clima==='observado'?'clima medido':'clima promedio']),
-    marker:{color:r.dentro?C.amber:C.faint,pattern:{shape:r.meses.map(m=>m.clima==='observado'?'':'/'),fgcolor:C.sky,size:6,solidity:.35}},hovertemplate:'%{x}: %{y:.2f} GWh<br>factor %{customdata[0]:.3f} · %{customdata[1]}<extra></extra>'}],
+    marker:{color:r.dentro?C.blue:C.faint,pattern:{shape:r.meses.map(m=>m.clima==='observado'?'':'/'),fgcolor:C.paper,size:6,solidity:.35}},hovertemplate:'%{x}: %{y:.2f} GWh<br>factor %{customdata[0]:.3f} · %{customdata[1]}<extra></extra>'}],
     {yaxis:eje({title:{text:'GWh'}}),xaxis:eje(),bargap:.25});
 }
 function cargarPreset(p){
@@ -362,14 +365,14 @@ function serie(){
   const prueba=rows.filter(r=>r.particion==='prueba');
   $('#serie-alcance').textContent=`${rows[0].fecha.slice(0,7)} a ${ultimo.fecha.slice(0,7)} · ${prueba.length} meses en prueba`;
   const corte=prueba[0],x=rows.map(r=>r.fecha),ceros=rows.filter(r=>r.factor_capacidad===0);
-  const fondo=corte?[{type:'rect',xref:'x',x0:corte.fecha,x1:ultimo.fecha,yref:'paper',y0:0,y1:1,fillcolor:'rgba(255,179,107,.08)',line:{width:0}}]:[];
+  const fondo=corte?[{type:'rect',xref:'x',x0:corte.fecha,x1:ultimo.fecha,yref:'paper',y0:0,y1:1,fillcolor:'rgba(31,63,191,.07)',line:{width:0}}]:[];
   plot('serie-chart',[
-    {type:'scatter',mode:'lines+markers',name:'Observado',x,y:rows.map(r=>r.factor_capacidad),line:{color:C.chalk,width:2},marker:{size:4,color:C.chalk},hovertemplate:'%{x|%b %Y}<br>observado %{y:.3f}<extra></extra>'},
-    {type:'scatter',mode:'lines',name:'Estimado',x,y:rows.map(r=>r.pred),line:{color:C.amber,width:2.4,dash:'dot'},hovertemplate:'%{x|%b %Y}<br>estimado %{y:.3f}<extra></extra>'},
+    {type:'scatter',mode:'lines+markers',name:'Observado',x,y:rows.map(r=>r.factor_capacidad),line:{color:C.ink,width:2},marker:{size:4,color:C.ink},hovertemplate:'%{x|%b %Y}<br>observado %{y:.3f}<extra></extra>'},
+    {type:'scatter',mode:'lines',name:'Estimado',x,y:rows.map(r=>r.pred),line:{color:C.blue,width:2.4,dash:'dot'},hovertemplate:'%{x|%b %Y}<br>estimado %{y:.3f}<extra></extra>'},
     {type:'scatter',mode:'markers',name:'Cero',x:ceros.map(r=>r.fecha),y:ceros.map(()=>0),marker:{symbol:'circle-open',size:14,line:{width:2.2},color:C.red},hovertemplate:'%{x|%b %Y}: cero operativo<extra></extra>'}
   ],{yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f',rangemode:'tozero'}),xaxis:eje(),shapes:fondo,
-     annotations:corte?[{x:corte.fecha,xanchor:'left',yref:'paper',y:1,yanchor:'top',text:'prueba',showarrow:false,font:{color:C.amber,size:12},xshift:6}]:[]});
-  plot('serie-residuo',[{type:'bar',x,y:rows.map(r=>r.factor_capacidad-r.pred),marker:{color:rows.map(r=>r.factor_capacidad-r.pred<0?C.muted:C.chalk),opacity:.8},hovertemplate:'%{x|%b %Y}<br>observado − estimado: %{y:.3f}<extra></extra>'}],
+     annotations:corte?[{x:corte.fecha,xanchor:'left',yref:'paper',y:1,yanchor:'top',text:'prueba',showarrow:false,font:{color:C.blue,size:12},xshift:6}]:[]});
+  plot('serie-residuo',[{type:'bar',x,y:rows.map(r=>r.factor_capacidad-r.pred),marker:{color:rows.map(r=>r.factor_capacidad-r.pred<0?C.lineStrong:C.ink),opacity:.9},hovertemplate:'%{x|%b %Y}<br>observado − estimado: %{y:.3f}<extra></extra>'}],
     {yaxis:eje({title:{text:'Residuo'},tickformat:'.2f',zeroline:true,zerolinecolor:C.faint}),xaxis:eje(),shapes:fondo,bargap:.1});
   multiples();
 }
@@ -382,7 +385,7 @@ function multiples(){
       const rows=D._serie.get(id).filter(r=>r.fecha>='2018'),p=D._idx.get(id);
       const X=f=>((Date.parse(f)-t0)/(t1-t0)*W).toFixed(1),Y=v=>(H-2-v/.42*(H-4)).toFixed(1);
       const lin=k=>rows.map((r,i)=>(i?'L':'M')+X(r.fecha)+','+Y(r[k])).join('');
-      return `<button type="button" data-central="${esc(id)}" aria-pressed="false"><b>${esc(titulo(p.nombre))}</b><small>${esc(provincia(p.provincia))} · ${fmt(p.potencia_mw,0)} MW</small><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${lin('pred')}" fill="none" stroke="${C.amber}" stroke-width="1.2" stroke-dasharray="2 2" vector-effect="non-scaling-stroke"/><path d="${lin('factor_capacidad')}" fill="none" stroke="${C.chalk}" stroke-width="1.2" vector-effect="non-scaling-stroke"/></svg></button>`;
+      return `<button type="button" data-central="${esc(id)}" aria-pressed="false"><b>${esc(titulo(p.nombre))}</b><small>${esc(provincia(p.provincia))} · ${fmt(p.potencia_mw,0)} MW</small><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${lin('pred')}" fill="none" stroke="${C.blue}" stroke-width="1.2" stroke-dasharray="2 2" vector-effect="non-scaling-stroke"/><path d="${lin('factor_capacidad')}" fill="none" stroke="${C.ink}" stroke-width="1.2" vector-effect="non-scaling-stroke"/></svg></button>`;
     }).join('');
     box.dataset.listo='1';
   }
@@ -413,6 +416,9 @@ function iniciar(){
   $('#sitio-presets').addEventListener('click',e=>{const b=e.target.closest('[data-preset]');if(b)cargarPreset(D.presets.find(p=>p.nombre===b.dataset.preset));});
   $('#serie-parque').addEventListener('change',()=>{S.parque=$('#serie-parque').value;serie();});
   $('#multiples').addEventListener('click',e=>{const b=e.target.closest('[data-central]');if(!b)return;S.parque=b.dataset.central;serie();$('#serie-lectura').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});});
+  const grilla=on=>{document.body.classList.toggle('sin-grilla',!on);$('#grilla').setAttribute('aria-pressed',String(on));try{localStorage.setItem('grilla',on?'1':'0');}catch{}};
+  try{if(localStorage.getItem('grilla')==='0')grilla(false);}catch{}
+  $('#grilla').addEventListener('click',()=>grilla($('#grilla').getAttribute('aria-pressed')!=='true'));
   $('#presentar').addEventListener('click',()=>{const on=document.body.classList.toggle('exposicion');$('#presentar').setAttribute('aria-pressed',String(on));$('#presentar').textContent=on?'Vista estándar':'Modo exposición';document.querySelectorAll('.js-plotly-plot').forEach(el=>Plotly.Plots.resize(el));});
   window.addEventListener('hashchange',mostrar);
   Plotly.register({moduleType:'locale',name:'es',dictionary:{},format:{days:['domingo','lunes','martes','miércoles','jueves','viernes','sábado'],shortDays:['dom','lun','mar','mié','jue','vie','sáb'],months:MESES_LARGO,shortMonths:MESES,date:'%d/%m/%Y',decimal:',',thousands:'.'}});

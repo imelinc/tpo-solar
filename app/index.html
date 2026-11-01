@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a1021">
-<title>Solar / Datos · Atlas de parques</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a1021'/%3E%3Cpath d='M16 3l2.2 10.8L29 16l-10.8 2.2L16 29l-2.2-10.8L3 16l10.8-2.2z' fill='%23ff4d2e'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f5f9f4">
+<title>Solar / Datos · Informe de parques</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f5f9f4'/%3E%3Cpath d='M0 8h32M0 16h32M0 24h32M8 0v32M16 0v32M24 0v32' stroke='%232e9c6a' stroke-opacity='.35'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%231f3fbf'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
@@ -13,8 +13,8 @@
 <a class="skip" href="#contenido">Ir al contenido</a>
 <header class="topbar">
   <a class="brand" href="#atlas" aria-label="Solar Datos, inicio">
-    <svg class="brand-star" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13"/><path d="M16 2l2.4 11.6L30 16l-11.6 2.4L16 30l-2.4-11.6L2 16l11.6-2.4z"/></svg>
-    <span class="brand-name">Solar <span>/</span> Datos</span>
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x=".75" y=".75" width="30.5" height="30.5"/><path class="ticks" d="M8 .75v4M16 .75v6M24 .75v4M.75 8h4M.75 16h6M.75 24h4"/><circle cx="17" cy="15" r="6.5"/></svg>
+    <span class="brand-name">Solar<span>/</span>Datos</span>
     <span class="brand-meta">Argentina · generación mensual</span>
   </a>
   <nav id="navegacion" aria-label="Vistas">
@@ -23,20 +23,25 @@
     <a href="#sitio">Sitio</a>
     <a href="#serie">Parque</a>
   </nav>
-  <button id="presentar" class="ghost-button" type="button" aria-pressed="false">Modo exposición</button>
+  <div class="tools">
+    <button id="grilla" class="ghost-button" type="button" aria-pressed="true" title="Mostrar u ocultar el papel milimetrado">Grilla</button>
+    <button id="presentar" class="ghost-button" type="button" aria-pressed="false">Modo exposición</button>
+  </div>
 </header>
 <main id="contenido" tabindex="-1">
   <div id="error" class="error" role="alert" hidden></div>
-  <div class="page-head">
-    <h1 id="titulo">La carta de los parques</h1>
-    <p id="subtitulo"></p>
-  </div>
-  <div id="evidencia" class="readout-line" aria-live="polite" aria-label="Modelo elegido y métricas de prueba"></div>
+  <section class="cajetin" aria-label="Rótulo de la hoja">
+    <div class="cajetin-titulo">
+      <h1 id="titulo">Los parques solares de Argentina</h1>
+      <p id="subtitulo"></p>
+    </div>
+    <div id="evidencia" class="cajetin-celdas" aria-live="polite" aria-label="Modelo elegido y métricas de prueba"></div>
+  </section>
 
   <section id="vista-atlas" class="view" aria-labelledby="titulo">
     <div class="grid-atlas">
       <figure class="plate plate-map">
-        <figcaption class="plate-head"><h2>Carta de los parques</h2><span class="plate-meta">graticula de 2°</span></figcaption>
+        <figcaption class="plate-head"><h2>Dónde está cada parque</h2><span class="plate-meta">graticula de 2°</span></figcaption>
         <div class="map-wrap">
           <svg id="atlas-carta" class="carta" role="img" aria-label="Mapa de Argentina con los parques solares del estudio"></svg>
           <svg id="atlas-inset" class="carta-inset" role="img" aria-label="Ubicación de la carta dentro de Argentina"></svg>
