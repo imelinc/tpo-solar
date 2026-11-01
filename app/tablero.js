@@ -63,7 +63,7 @@ function estimar(lat,lon,anio,mw){
   const modo=new Set(modos).size===1?modos[0]:'mixto';
   const r=D.rango;
   const dentro=lat>=r.lat_min&&lat<=r.lat_max&&lon>=r.lon_min&&lon<=r.lon_max;
-  return {lat,lon,anio,potencia_mw:mw,lat_celda:slat,lon_celda:slon,distancia_celda_km:km(lat,lon,slat,slon),energia_gwh:energia,factor:energia*1000/(mw*horas),modo,dentro,distancia_km:distancia,nombre:parque.nombre,provincia:parque.provincia,central:parque.central,meses,incompleto:meses.length<12};
+  return {horas,lat,lon,anio,potencia_mw:mw,lat_celda:slat,lon_celda:slon,distancia_celda_km:km(lat,lon,slat,slon),energia_gwh:energia,factor:energia*1000/(mw*horas),modo,dentro,distancia_km:distancia,nombre:parque.nombre,provincia:parque.provincia,central:parque.central,meses,incompleto:meses.length<12};
 }
 
 /* Datos derivados */
@@ -308,7 +308,7 @@ function sitio(){
   aviso.dataset.modo=r.modo;aviso.dataset.dentro=String(r.dentro);aviso.dataset.energia=String(r.energia_gwh);
   const clima=r.modo==='observado'?`Con el clima medido en ${r.anio}`:r.modo==='tipico'?'Con el clima promedio anterior a 2024':`Con clima medido y promedio de ${r.anio}`;
   const st=D._stats.get(r.central);
-  aviso.textContent=`Energía = factor estimado × ${fmt(r.potencia_mw,1)} MW × horas de cada mes. El modelo estima el factor con la ubicación, el clima y el mes.`;
+  aviso.textContent=`Cuenta: ${fmt(r.potencia_mw,1)} MW × ${fmt(r.horas,0)} horas${r.incompleto?' de los meses con clima':' del año'} × factor ${fmt(r.factor*100,1)} % = ${fmt(r.energia_gwh,2)} GWh. El factor es la parte de la potencia máxima que el parque entrega en promedio; el modelo lo estima con la ubicación, el clima y el mes. Si trabajara a plena potencia todas las horas daría ${fmt(r.potencia_mw*r.horas/1000,0)} GWh.`;
   lectura.className='site-reading'+(r.dentro?'':' limite');
   lectura.innerHTML=`<h2>${r.incompleto?'Energía de los meses con clima':`Un parque de ${fmt(r.potencia_mw,1)} MW generaría`}</h2><div class="energy"><strong>${fmt(r.energia_gwh,2)} GWh</strong><span>${r.incompleto?'':`en ${r.anio} · `}factor anual ${fmt(r.factor*100,1)} %</span></div><p>${esc(clima)}, copiado de ${esc(titulo(r.nombre))} (${esc(provincia(r.provincia))}), el parque real más cercano, a ${fmt(r.distancia_km,0)} km. Ese parque tuvo un factor medio de ${fmt(st.media*100,1)} %.</p>`;
   $('#sitio-avisos').innerHTML=avisos(r).map(([c,t])=>`<li class="${c}">${esc(t)}</li>`).join('');
@@ -317,9 +317,9 @@ function sitio(){
   dibujarCarta($('#sitio-inset'),MARCOS.pais,{consulta:r});
   const trama=r.meses.map(m=>m.clima==='observado'?'':'/');
   plot('sitio-chart',[{type:'bar',x:r.meses.map(m=>MESES[m.mes-1]),y:r.meses.map(m=>m.gwh),customdata:r.meses.map(m=>[m.factor,m.clima==='observado'?'clima medido':'clima promedio']),
-    marker:{color:r.dentro?C.blue:C.faint,pattern:{shape:trama,fgcolor:C.paper,size:6,solidity:.35}},hovertemplate:'%{x}: %{y:.2f} GWh<br>factor %{customdata[0]:.3f} · %{customdata[1]}<extra></extra>'}],
+    marker:{color:r.dentro?C.blue:C.faint,pattern:{shape:trama,fgcolor:r.dentro?C.blue:C.faint,bgcolor:'#fff',fgopacity:1,size:7,solidity:.45}},hovertemplate:'%{x}: %{y:.2f} GWh<br>factor %{customdata[0]:.3f} · %{customdata[1]}<extra></extra>'}],
     {yaxis:eje({title:{text:'GWh'}}),xaxis:eje(),bargap:.25});
-  plot('sitio-clima',[{type:'bar',x:r.meses.map(m=>MESES[m.mes-1]),y:r.meses.map(m=>m.ghi),marker:{color:C.ink,pattern:{shape:trama,fgcolor:C.paper,size:6,solidity:.35}},hovertemplate:'%{x}: %{y:.0f} kWh/m²<extra></extra>'}],
+  plot('sitio-clima',[{type:'bar',x:r.meses.map(m=>MESES[m.mes-1]),y:r.meses.map(m=>m.ghi),marker:{color:C.ink,line:{color:C.ink,width:1},pattern:{shape:trama,fgcolor:C.ink,bgcolor:'#fff',fgopacity:1,size:7,solidity:.45}},hovertemplate:'%{x}: %{y:.0f} kWh/m²<extra></extra>'}],
     {yaxis:eje({title:{text:'kWh/m²'}}),xaxis:eje(),bargap:.25});
 }
 function leyendaSitio(){
