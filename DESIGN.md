@@ -12,7 +12,6 @@ colors:
   rule: "#cfe0d4"
   rule-strong: "#7fa992"
   blue: "#1f3fbf"
-  red: "#cf1f19"
 typography:
   display:
     fontFamily: "Barlow Condensed (local)"
@@ -50,12 +49,12 @@ spacing:
 
 ## Overview
 
-**North Star: "La hoja corregida".** El dashboard es la hoja de un informe de laboratorio sobre papel milimetrado, de las que se entregan en la facultad: cajetín de plano arriba, figuras con marco y una tinta distinta para cada cosa. Aula con luces prendidas, proyector y computadora: por eso es claro. Rediseño total del 01/11/2026 que reemplaza la carta estelar oscura (seed 2ab30e04, candidato 4 de la lista propia).
+**North Star: "La hoja corregida".** El dashboard es la hoja de un informe de laboratorio sobre papel milimetrado, de las que se entregan en la facultad: cajetín de plano arriba, figuras con marco y una tinta con significado fijo. Aula con luces prendidas, proyector y computadora: por eso es claro. Rediseño total del 01/11/2026 que reemplaza la carta estelar oscura (seed 2ab30e04, candidato 4 de la lista propia).
 
 ## Colors
 
 - **Papel** (`paper`) con grilla verde (`grid`) de 16 px y líneas mayores cada 80 px. El botón **Grilla** la muestra u oculta y el estado se recuerda. Las figuras (`white`) tapan la grilla para que los gráficos se lean limpios.
-- **Tinta** (`ink`) es lo observado: texto, marcos, estrellas de la carta, línea observada. **Azul birome** (`blue`) es lo que estima el modelo: campo de factor en la carta, línea punteada, punto de prueba, barras de energía, la cifra de energía. **Rojo corrección** (`red`) es lo que marca el docente: parque seleccionado, retículo, caso límite, ceros operativos, modelo elegido, avisos de alerta. No se usa como decoración.
+- **Tinta** (`ink`) es lo observado: texto, marcos, estrellas de la carta, línea observada. **Azul birome** (`blue`) es lo que estima el modelo: campo de factor en la carta, línea punteada, punto de prueba, barras de energía, la cifra de energía. **No hay rojo.** Lo que importa (parque seleccionado, retículo, caso límite, ceros operativos, modelo elegido, avisos de alerta) se marca con tinta: anillos y bordes más gruesos, rótulos invertidos en negro y tachado. Alerta y estado se distinguen por forma y texto, nunca por un color de alarma.
 - Ningún estado depende solo del color: observado y estimado también difieren en la forma de línea (llena y punteada), validación y prueba en aro y punto, y toda alerta lleva texto.
 
 ## Typography
@@ -68,9 +67,9 @@ spacing:
 
 Barra superior fija: marca, cuatro vistas como celdas (la activa en tinta llena), Grilla y Modo exposición. Debajo, el **cajetín**: título de la vista con su bajada a la izquierda y una grilla de celdas rotuladas a la derecha con el modelo elegido, RMSE, MAE y R² de prueba, RMSE de parque nuevo y el alcance (factor de capacidad mensual, prueba retrospectiva desde 2025).
 
-- **Atlas:** carta a la altura de la pantalla (600 × 887) e índice ordenable; cuatro figuras de exploración y la ficha de calidad.
-- **Modelos:** partición temporal con ancho proporcional a los meses, RMSE por modelo, ficha del modelo con importancias, observado contra estimado, validación por parque y tabla.
-- **Sitio:** formulario y ejemplos; carta con retículo y línea al parque que presta el clima; la energía como resultado de un cálculo, con avisos y barras mensuales.
+- **Atlas:** carta a la altura de la pantalla (600 × 887) e índice ordenable; cuatro figuras de exploración.
+- **Modelos:** partición temporal con ancho proporcional a los meses, la tabla de métricas de los cinco modelos y, abajo, una explicación corta de por qué se eligió el modelo (generada desde la evidencia: validación 2024, prueba y límites).
+- **Sitio:** el sitio se elige solo haciendo clic en la carta (o con las flechas del teclado, de a una celda de 0,2°); no hay campos de latitud ni longitud. Quedan Año y Potencia. La carta marca la celda que usa el cálculo y la línea al parque real que presta el clima. A la derecha: sitio elegido, energía del año como resultado de un cálculo, avisos, energía de cada mes y el sol (irradiación) que usa el modelo.
 - **Parque:** encabezado con coordenadas, serie con la prueba sombreada, residuos y la grilla de series de todos los parques.
 
 A 1180 px las grillas pasan a una columna y el cajetín se apila; a 860 px la navegación ocupa su propia fila y las celdas pasan a dos columnas.
@@ -82,16 +81,16 @@ Plano y sin sombras. Las figuras son rectángulos blancos de 1 px de tinta sin r
 ## Components
 
 - **Carta (SVG propio):** contornos de Natural Earth 1:50m locales, graticula verde de 2°, campo de factor típico estimado en celdas de 0,2° recortado a la Argentina (azul), rectángulo de entrenamiento punteado en azul, puntos de relevamiento negros con radio `2,6 + 0,82·√MW` y anillo desde 50 MW. Recuadro con el país completo para elegir sitios fuera de la carta.
-- **Índice:** tabla ordenable; la fila seleccionada se marca en rojo y "fuera del rango" aparece bajo el nombre.
-- **Botones:** contorno de 1 px en tinta, versalitas; el estado activo se llena de tinta (vistas) o de azul (Grilla, Modo exposición). Los ejemplos y las series elegidas se marcan en rojo.
-- **Energía de un sitio:** cifra en azul con doble subrayado de total contable; en caso límite pasa a rojo y tachada.
-- **Avisos:** lista con cuadrado; los de alerta tienen borde y fondo rojos.
+- **Índice:** tabla ordenable; la fila seleccionada se marca con fondo azul pálido y negrita, y "fuera del rango" aparece bajo el nombre como rótulo negro invertido.
+- **Botones:** contorno de 1 px en tinta, versalitas; el estado activo se llena de tinta (vistas) o de azul (Grilla, Modo exposición). Los ejemplos y las series elegidas se marcan con borde de tinta de 2 px y fondo azul pálido.
+- **Energía de un sitio:** cifra en azul con doble subrayado de total contable; en caso límite pasa a tinta y tachada.
+- **Avisos:** lista con cuadrado; los de alerta llevan borde de tinta de 2 px y texto en negrita.
 - **Gráficos:** Plotly local con fondo transparente, grilla `rule` y rótulos en Barlow.
 
 ## Do's and Don'ts
 
 - **Do** mantener el modelo, la unidad y la partición visibles junto a las métricas.
 - **Do** marcar fuera de rango, ceros y clima promedio con texto además del color.
-- **Do** conservar un solo significado por tinta: negro dato, azul estimación, rojo alerta.
+- **Do** conservar un solo significado por tinta: negro dato y marca, azul estimación.
 - **Don't** usar itálica, sombras de tarjeta, gradientes de texto ni una segunda tinta de alerta.
 - **Don't** mostrar un dato ausente como cero.

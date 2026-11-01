@@ -82,63 +82,38 @@
         <div id="eda-corr" class="chart" role="img" aria-label="Matriz de correlación entre clima, ubicación y factor"></div>
       </section>
     </div>
-    <section class="plate ficha-calidad">
-      <div class="plate-head"><h2>Calidad del dato</h2><span class="plate-meta">antes de entrenar</span></div>
-      <dl id="calidad" class="ephemeris"></dl>
-    </section>
   </section>
 
   <section id="vista-modelos" class="view" aria-labelledby="titulo" hidden>
     <div id="split" class="timeline" aria-label="Particiones temporales"></div>
-    <div class="grid-models">
-      <section class="plate">
-        <div class="plate-head"><h2>Error de cada modelo</h2><span class="plate-meta">RMSE · factor de capacidad</span></div>
-        <div id="modelos-chart" class="chart tall" role="img" aria-label="RMSE de validación y de prueba de los cinco modelos"></div>
-        <p class="chart-key"><span class="key-ring"></span>Validación 2024, elige el modelo <span class="key-dot"></span>Prueba desde 2025</p>
-      </section>
-      <section class="plate ficha-modelo">
-        <div class="plate-head"><h2 id="modelo-foco-titulo">Modelo</h2><span class="plate-meta" id="modelo-foco-meta"></span></div>
-        <div id="modelo-cifras" class="figures"></div>
-        <p id="modelo-porque" class="prose"></p>
-        <div id="modelo-entradas" class="chips"></div>
-        <div id="modelo-importancias" class="chart short" role="img" aria-label="Importancia de las variables del modelo elegido"></div>
-      </section>
-    </div>
-    <div class="grid-two">
-      <section class="plate">
-        <div class="plate-head"><h2>Observado contra estimado</h2><span class="plate-meta" id="prueba-meta"></span></div>
-        <div id="modelos-disp" class="chart" role="img" aria-label="Factor observado contra estimado en la prueba"></div>
-      </section>
-      <section class="plate">
-        <div class="plate-head"><h2>Un parque que no vio</h2><span class="plate-meta">cv por parque</span></div>
-        <div id="cv-chart" class="chart" role="img" aria-label="RMSE de cada grupo de parques"></div>
-        <p class="margin-note" id="cv-nota"></p>
-      </section>
-    </div>
     <section class="plate">
-      <div class="plate-head"><h2>Métricas en la misma unidad</h2><span class="plate-meta" id="modelos-unidades"></span></div>
+      <div class="plate-head"><h2>Los cinco modelos, medidos igual</h2><span class="plate-meta" id="modelos-unidades"></span></div>
       <div class="table-scroll"><table id="modelos-tabla" class="data-table"><thead><tr><th scope="col">Modelo</th><th scope="col" class="number">RMSE entren.</th><th scope="col" class="number">RMSE validación</th><th scope="col" class="number">RMSE prueba</th><th scope="col" class="number">MAE prueba</th><th scope="col" class="number">R² prueba</th><th scope="col" class="number">n prueba</th></tr></thead><tbody></tbody></table></div>
       <p class="margin-note" id="modelo-detalles"></p>
+    </section>
+    <section class="plate explica" aria-labelledby="porque-titulo">
+      <div class="plate-head"><h2 id="porque-titulo">Por qué este modelo</h2></div>
+      <div id="modelo-porque" class="prose"></div>
     </section>
   </section>
 
   <section id="vista-sitio" class="view" aria-labelledby="titulo" hidden>
-    <form id="sitio-form" class="controls" onsubmit="return false">
-      <label>Latitud <input id="sitio-lat" type="number" step="0.01" min="-56" max="-21" required></label>
-      <label>Longitud <input id="sitio-lon" type="number" step="0.01" min="-74" max="-53" required></label>
-      <label>Año <input id="sitio-anio" type="number" step="1" min="1990" max="2100" required></label>
-      <label>Potencia (MW) <input id="sitio-mw" type="number" step="0.1" min="0.1" required></label>
-      <div id="sitio-presets" class="presets" aria-label="Ejemplos"></div>
-    </form>
     <div class="grid-site">
       <figure class="plate plate-map">
-        <figcaption class="plate-head"><h2>Apuntá un sitio</h2><span class="plate-meta">clic para apuntar</span></figcaption>
+        <figcaption class="plate-head"><h2>Hacé clic donde iría el parque</h2><span class="plate-meta">clic o flechas · celda de 0,2°</span></figcaption>
         <div class="map-wrap">
-          <svg id="sitio-carta" class="carta clickable" role="img" aria-label="Mapa para elegir el sitio consultado"></svg>
+          <svg id="sitio-carta" class="carta clickable" tabindex="0" role="application" aria-label="Mapa de Argentina para elegir dónde iría el parque. Con el mouse, hacé clic; con el teclado, usá las flechas."></svg>
           <svg id="sitio-inset" class="carta-inset clickable" role="img" aria-label="Argentina completa; clic para elegir un sitio fuera de la carta"></svg>
         </div>
+        <div class="map-legend" id="sitio-leyenda"></div>
       </figure>
       <div class="site-side">
+        <form id="sitio-form" class="plate controls" onsubmit="return false">
+          <input id="sitio-lat" type="hidden"><input id="sitio-lon" type="hidden">
+          <div class="donde"><span>Sitio elegido</span><output id="sitio-donde" for="sitio-lat sitio-lon"></output></div>
+          <label>Año <input id="sitio-anio" type="number" step="1" min="1990" max="2100" required></label>
+          <label>Potencia del parque (MW) <input id="sitio-mw" type="number" step="0.1" min="0.1" required></label>
+        </form>
         <section class="plate">
           <div id="sitio-lectura" class="site-reading"></div>
           <ul id="sitio-avisos" class="warnings"></ul>
@@ -148,6 +123,11 @@
           <div class="plate-head"><h2>Energía de cada mes</h2><span class="plate-meta">GWh por mes</span></div>
           <div id="sitio-chart" class="chart" role="img" aria-label="Energía mensual estimada"></div>
           <p class="chart-key"><span class="key-bar"></span>Clima medido ese año <span class="key-bar hatched"></span>Promedio mensual anterior a 2024</p>
+        </section>
+        <section class="plate">
+          <div class="plate-head"><h2>El sol que usa el modelo</h2><span class="plate-meta">irradiación · kWh/m² por mes</span></div>
+          <div id="sitio-clima" class="chart short" role="img" aria-label="Irradiación mensual del clima que usa el modelo"></div>
+          <p class="margin-note" id="sitio-clima-nota"></p>
         </section>
       </div>
     </div>

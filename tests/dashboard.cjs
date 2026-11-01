@@ -24,7 +24,8 @@ assert.equal($('#indice tbody').children.length,w.DEFENSA.parques.length,'índic
 assert.equal($('#atlas-carta').querySelectorAll('[data-central]').length,w.DEFENSA.parques.length,'una estrella por parque');
 assert(plots.has('eda-hist')&&plots.has('eda-mes')&&plots.has('eda-disp')&&plots.has('eda-corr'),'exploración dibujada');
 route('modelos');
-assert(plots.get('modelos-chart').traces[0].y.some(y=>String(y).includes('Random Forest')));
+assert($('#modelo-porque').textContent.includes(w.DEFENSA.regresion.nombre),'explica por qué el modelo elegido');
+assert(!$('#modelos-chart')&&!$('#sitio-presets')&&!$('#sitio-lat[type=text],#sitio-lat[type=number]'),'sin gráfico de comparación, ejemplos ni campos de latitud');
 assert.equal($('#modelos-tabla tbody').children.length,5);
 assert($('#evidencia').textContent.includes('MAE'));
 for(const view of ['atlas','modelos','sitio','serie']){
@@ -49,5 +50,17 @@ $('#navegacion a[href="#sitio"]').focus();route('sitio');
 assert.equal(w.document.activeElement.getAttribute('href'),'#sitio');
 $('#presentar').click();assert(w.document.body.classList.contains('exposicion'));$('#presentar').click();assert(!w.document.body.classList.contains('exposicion'));
 assert.equal(errors.length,0,errors.join('\n'));
-console.log('OK: atlas, modelos, sitio y serie. Los presets coinciden con la grilla. Hay ceros en la serie.');
+// Un clic en el mapa fija el sitio y recalcula
+const antes=$('#sitio-aviso').dataset.energia;
+route('sitio');
+const pt=w.DEFENSA.parques[0];
+const svg=$('#sitio-carta');svg.getScreenCTM=()=>({inverse:()=>({})});svg.createSVGPoint=()=>({matrixTransform:()=>({x:svg._P.x(pt.lon),y:svg._P.y(pt.lat)})});
+svg.dispatchEvent(new w.MouseEvent('click',{bubbles:true,clientX:1,clientY:1}));
+assert(Math.abs(+$('#sitio-lat').value-pt.lat)<0.01&&Math.abs(+$('#sitio-lon').value-pt.lon)<0.01,'el clic en el mapa fija latitud y longitud');
+assert($('#sitio-donde').textContent.includes('S'),'el sitio elegido se muestra');
+assert(plots.has('sitio-clima'),'se dibuja el clima que usa el modelo');
+svg.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));
+assert(Math.abs(+$('#sitio-lat').value-(pt.lat+0.2))<0.02,'las flechas mueven el sitio una celda');
+assert.equal(errors.length,0,errors.join('\n'));
+console.log('OK: atlas, modelos, sitio y serie. El clic en el mapa fija el sitio. Hay ceros en la serie.');
 console.log('Alcance: DOM y datos de los gráficos; no valida render ni layout de un navegador real.');
