@@ -18,7 +18,15 @@ const $=s=>w.document.querySelector(s);
 const set=(id,value)=>{const el=$(id);el.value=value;el.dispatchEvent(new w.Event('input',{bubbles:true}));};
 const route=name=>{w.location.hash='#'+name;w.dispatchEvent(new w.HashChangeEvent('hashchange'));};
 assert.equal($('#error').hidden,true,'sin error inicial');
-assert.equal($('.view:not([hidden])').id,'vista-atlas');
+assert.equal($('.view:not([hidden])').id,'vista-revisar','abre en la conclusión');
+assert.equal($('#revisar-tabla tbody').children.length,w.DEFENSA.senales.ranking.length,'ranking completo');
+assert(plots.has('serie-chart'),'serie del parque elegido');
+set('#revisar-usd',100);assert($('#revisar-tabla tbody td:last-child').textContent===(w.DEFENSA.senales.ranking[0].gwh_faltante*100/1000).toFixed(2).replace('.',','),'el precio recalcula la plata');set('#revisar-usd',w.DEFENSA.senales.usd_mwh);
+route('planta');
+assert(plots.has('planta-mapa')&&plots.has('planta-chart'),'mapa de calor y prueba');
+assert($('#planta-calidad').textContent.includes('copia del 04'),'avisa la copia del inversor');
+for(const c of w.DEFENSA.maui.demo.control){const r=w.DEFENSA.maui.demo.rinde[c.inversor].slice(c.inicio).map(v=>v==null?null:v*c.factor);const h=w.primerAvisoPrueba(r);assert.equal(h==null?null:h+1,c.horas,'misma regla que Python, factor '+c.factor);}
+route('atlas');
 assert(!w.document.body.dataset.pais,'sin selector de país');
 assert.equal($('#indice tbody').children.length,w.DEFENSA.parques.length,'índice con todos los parques');
 assert.equal($('#atlas-carta').querySelectorAll('[data-central]').length,w.DEFENSA.parques.length,'una estrella por parque');
@@ -26,11 +34,11 @@ assert(plots.has('eda-prov')&&plots.has('eda-mes')&&plots.has('eda-disp')&&plots
 route('modelos');
 assert($('#modelo-porque').textContent.includes(w.DEFENSA.regresion.nombre),'explica por qué el modelo elegido');
 assert(!$('#modelos-chart')&&!$('#sitio-presets')&&!$('#sitio-lat[type=text],#sitio-lat[type=number]'),'sin gráfico de comparación, ejemplos ni campos de latitud');
-assert.equal($('#modelos-tabla tbody').children.length,5);
+assert.equal($('#modelos-tabla tbody').children.length,6);
 assert($('#evidencia').textContent.includes('MAE'));
-for(const view of ['atlas','modelos','sitio','serie']){
+for(const view of ['revisar','planta','sitio','modelos','atlas']){
  route(view);assert.equal(w.document.querySelectorAll('.view:not([hidden])').length,1);assert.equal($('.view:not([hidden])').id,'vista-'+view);
- assert($('#evidencia').textContent.includes('MAE'));
+ assert($('#evidencia').children.length>3,'cada vista identifica su evidencia');
 }
 const cerca=(a,b)=>Math.abs(a-b)<1e-4;
 for(const p of w.DEFENSA.presets){
@@ -40,12 +48,11 @@ for(const p of w.DEFENSA.presets){
  assert.equal($('#sitio-aviso').dataset.dentro,String(r.dentro),p.nombre);
  assert(cerca(+$('#sitio-aviso').dataset.energia,r.energia_gwh),p.nombre+' '+$('#sitio-aviso').dataset.energia+' vs '+r.energia_gwh);
 }
-route('serie');
+route('revisar');
 const cero=w.DEFENSA.serie.find(r=>r.factor_capacidad===0);
 $('#serie-parque').value=cero.central;$('#serie-parque').dispatchEvent(new w.Event('change'));
 assert(plots.get('serie-chart').traces[0].y.some(v=>v===0),'ceros operativos visibles');
 assert(plots.get('serie-chart').traces[2].x.length>0,'ceros marcados');
-assert.equal($('#multiples').children.length,new Set(w.DEFENSA.serie.map(r=>r.central)).size,'una serie chica por parque');
 $('#navegacion a[href="#sitio"]').focus();route('sitio');
 assert.equal(w.document.activeElement.getAttribute('href'),'#sitio');
 $('#presentar').click();assert(w.document.body.classList.contains('exposicion'));$('#presentar').click();assert(!w.document.body.classList.contains('exposicion'));
@@ -71,5 +78,5 @@ assert.equal($('#sitio-rechazo').hidden,true,'un clic válido quita el aviso');
 svg.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));
 assert(Math.abs(+$('#sitio-lat').value-(pt.lat+0.2))<0.02,'las flechas mueven el sitio una celda');
 assert.equal(errors.length,0,errors.join('\n'));
-console.log('OK: atlas, modelos, sitio y serie. El clic en el mapa fija el sitio. Hay ceros en la serie.');
+console.log('OK: a revisar, por hora, sitio, modelos y datos. El clic en el mapa fija el sitio. Hay ceros en la serie.');
 console.log('Alcance: DOM y datos de los gráficos; no valida render ni layout de un navegador real.');

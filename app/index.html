@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f9f4">
-<title>Solar / Datos · Informe de parques</title>
+<title>Solar / Datos · Parques a revisar</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f5f9f4'/%3E%3Cpath d='M0 8h32M0 16h32M0 24h32M8 0v32M16 0v32M24 0v32' stroke='%232e9c6a' stroke-opacity='.35'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%231f3fbf'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="estilos.css">
 </head>
@@ -12,16 +12,17 @@
 <noscript><p class="error">Sin JavaScript no hay carta ni gráficos. Abrí el <a href="../docs/respaldo/index.html">respaldo de la defensa</a>: funciona sin JavaScript ni internet.</p></noscript>
 <a class="skip" href="#contenido">Ir al contenido</a>
 <header class="topbar">
-  <a class="brand" href="#atlas" aria-label="Solar Datos, inicio">
+  <a class="brand" href="#revisar" aria-label="Solar Datos, inicio">
     <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x=".75" y=".75" width="30.5" height="30.5"/><path class="ticks" d="M8 .75v4M16 .75v6M24 .75v4M.75 8h4M.75 16h6M.75 24h4"/><circle cx="17" cy="15" r="6.5"/></svg>
     <span class="brand-name">Solar<span>/</span>Datos</span>
     <span class="brand-meta">Argentina · generación mensual</span>
   </a>
   <nav id="navegacion" aria-label="Vistas">
-    <a href="#atlas">Datos</a>
+    <a href="#revisar">A revisar</a>
+    <a href="#planta">Por hora</a>
+    <a href="#sitio">Sitio nuevo</a>
     <a href="#modelos">Modelos</a>
-    <a href="#sitio">Sitio</a>
-    <a href="#serie">Parque</a>
+    <a href="#atlas">Datos</a>
   </nav>
   <div class="tools">
     <button id="grilla" class="ghost-button" type="button" aria-pressed="true" title="Mostrar u ocultar el papel milimetrado">Grilla</button>
@@ -32,13 +33,68 @@
   <div id="error" class="error" role="alert" hidden></div>
   <section class="cajetin" aria-label="Rótulo de la hoja">
     <div class="cajetin-titulo">
-      <h1 id="titulo">Los parques solares de Argentina</h1>
+      <h1 id="titulo">Qué parques solares rinden menos de lo esperado</h1>
       <p id="subtitulo"></p>
     </div>
     <div id="evidencia" class="cajetin-celdas" aria-live="polite" aria-label="Modelo elegido y métricas de test"></div>
   </section>
 
-  <section id="vista-atlas" class="view" aria-labelledby="titulo">
+  <section id="vista-revisar" class="view" aria-labelledby="titulo">
+    <div class="grid-revisar">
+      <section class="plate">
+        <div class="plate-head"><h2>Los parques a mirar primero</h2><span class="plate-meta" id="revisar-meta"></span></div>
+        <div class="table-scroll"><table id="revisar-tabla" class="data-table compacta"><thead><tr><th scope="col">Parque</th><th scope="col">Desde – hasta</th><th scope="col" class="number">Meses</th><th scope="col" class="number">Contra el modelo</th><th scope="col" class="number">Contra vecinos</th><th scope="col" class="number">GWh faltantes</th><th scope="col" class="number">USD millones</th></tr></thead><tbody></tbody></table></div>
+        <p class="margin-note" id="revisar-nota"></p>
+      </section>
+      <aside class="site-side">
+        <section class="plate">
+          <div class="plate-head"><h2>Cómo se lee una señal</h2></div>
+          <table class="lectura"><thead><tr><th scope="col">Contra el modelo</th><th scope="col">Contra vecinos</th><th scope="col">Lectura</th></tr></thead><tbody id="revisar-regla"></tbody></table>
+        </section>
+        <form class="plate controls" onsubmit="return false">
+          <label>Precio de la energía (USD/MWh) <input id="revisar-usd" type="number" min="1" step="1" required></label>
+          <p class="margin-note" id="revisar-usd-nota"></p>
+        </form>
+      </aside>
+    </div>
+    <div class="controls"><label>Parque <select id="serie-parque"></select></label></div>
+    <div id="serie-lectura" class="park-head"></div>
+    <section class="plate">
+      <div class="plate-head"><h2>Lo que generó y lo que debería haber generado</h2><span class="plate-meta" id="serie-alcance"></span></div>
+      <div id="serie-chart" class="chart tall" role="img" aria-label="Factor de capacidad observado y esperado del parque"></div>
+      <p class="chart-key"><span class="key-line"></span>Observado <span class="key-line dotted"></span>Esperado, con un modelo que no vio este parque <span class="key-zero"></span>Mes en cero <span class="key-bar mas"></span>Mes con señal · el fondo marca el test</p>
+    </section>
+  </section>
+
+  <section id="vista-planta" class="view" aria-labelledby="titulo" hidden>
+    <section class="plate">
+      <div class="plate-head"><h2>Cinco años de una planta real, inversor por inversor</h2><span class="plate-meta" id="planta-meta"></span></div>
+      <div id="planta-mapa" class="chart" role="img" aria-label="Mapa de calor: rendimiento semanal de cada inversor contra sus vecinos"></div>
+      <p class="margin-note" id="planta-mapa-nota"></p>
+    </section>
+    <div class="grid-eda">
+      <section class="plate">
+        <div class="plate-head"><h2>Probá el detector</h2><span class="plate-meta">falla inyectada sobre datos reales</span></div>
+        <form id="planta-form" class="controls sin-marco" onsubmit="return false">
+          <label>Inversor <select id="planta-inv"></select></label>
+          <label>Falla <select id="planta-falla"><option value="0">Se apaga</option><option value="0.7" selected>Cae 30 %</option><option value="0.85">Cae 15 %</option><option value="1">Sin falla</option></select></label>
+          <label>Empieza el día <input id="planta-dia" type="number" min="1" step="1" value="5" required></label>
+        </form>
+        <p id="planta-resultado" class="resultado" role="status"></p>
+        <div id="planta-chart" class="chart" role="img" aria-label="Rendimiento del inversor contra sus vecinos, hora por hora"></div>
+      </section>
+      <section class="plate">
+        <div class="plate-head"><h2>Antes de medir, mirar los datos</h2></div>
+        <ul id="planta-calidad" class="warnings"></ul>
+        <div class="subtitulo-chart"><h3>Las caídas largas</h3><span class="plate-meta" id="planta-ep-meta"></span></div>
+        <div class="table-scroll"><table id="planta-ep" class="data-table compacta"><thead><tr><th scope="col">Inversor</th><th scope="col">Desde – hasta</th><th scope="col" class="number">Rinde</th><th scope="col" class="number">MWh faltantes</th></tr></thead><tbody></tbody></table></div>
+        <div class="subtitulo-chart"><h3>Mismos umbrales en otras plantas</h3><span class="plate-meta">horas de sol hasta el aviso</span></div>
+        <div class="table-scroll"><table id="planta-otras" class="data-table compacta"><thead><tr><th scope="col">Planta</th><th scope="col" class="number">Equipos</th><th scope="col" class="number">Apagado</th><th scope="col" class="number">Cae 30 %</th><th scope="col" class="number">Avisos por equipo y mes</th></tr></thead><tbody></tbody></table></div>
+      </section>
+    </div>
+  </section>
+
+  <section id="vista-atlas" class="view" aria-labelledby="titulo" hidden>
     <div class="grid-atlas">
       <figure class="plate plate-map">
         <figcaption class="plate-head"><h2>Dónde está cada parque</h2><span class="plate-meta">graticula de 2°</span></figcaption>
@@ -88,8 +144,8 @@
   <section id="vista-modelos" class="view" aria-labelledby="titulo" hidden>
     <div id="split" class="timeline" aria-label="Particiones temporales"></div>
     <section class="plate">
-      <div class="plate-head"><h2>Los cinco modelos, medidos igual</h2><span class="plate-meta" id="modelos-unidades"></span></div>
-      <div class="table-scroll"><table id="modelos-tabla" class="data-table"><thead><tr><th scope="col">Modelo</th><th scope="col" class="number">RMSE train</th><th scope="col" class="number">RMSE validation</th><th scope="col" class="number">RMSE test</th><th scope="col" class="number">MAE test</th><th scope="col" class="number">R² test</th><th scope="col" class="number">n test</th></tr></thead><tbody></tbody></table></div>
+      <div class="plate-head"><h2>Los seis modelos, medidos igual</h2><span class="plate-meta" id="modelos-unidades"></span></div>
+      <div class="table-scroll"><table id="modelos-tabla" class="data-table"><thead><tr><th scope="col">Modelo</th><th scope="col" class="number">RMSE train</th><th scope="col" class="number">RMSE validation</th><th scope="col" class="number">RMSE test</th><th scope="col" class="number">MAE test</th><th scope="col" class="number">R² test</th><th scope="col" class="number">Entrena (s)</th><th scope="col" class="number">Tamaño (KB)</th></tr></thead><tbody></tbody></table></div>
       <p class="margin-note" id="modelo-detalles"></p>
     </section>
     <section class="plate explica" aria-labelledby="porque-titulo">
@@ -137,24 +193,8 @@
     </div>
   </section>
 
-  <section id="vista-serie" class="view" aria-labelledby="titulo" hidden>
-    <div class="controls"><label>Parque <select id="serie-parque"></select></label></div>
-    <div id="serie-lectura" class="park-head"></div>
-    <section class="plate">
-      <div class="plate-head"><h2>Observado y estimado</h2><span class="plate-meta" id="serie-alcance"></span></div>
-      <div id="serie-chart" class="chart tall" role="img" aria-label="Factor de capacidad observado y estimado del parque"></div>
-      <p class="chart-key"><span class="key-line"></span>Observado <span class="key-line dotted"></span>Estimado <span class="key-zero"></span>Mes en cero · el fondo marca el test</p>
-      <div class="subtitulo-chart"><h3>Cuánto se equivocó el modelo cada mes</h3><span class="plate-meta">observado − estimado</span></div>
-      <div id="serie-residuo" class="chart short" role="img" aria-label="Error mensual del modelo: factor observado menos estimado"></div>
-      <p class="chart-key"><span class="key-bar mas"></span>Rindió más de lo estimado <span class="key-bar menos"></span>Rindió menos de lo estimado · el fondo marca el test</p>
-    </section>
-    <section class="plate">
-      <div class="plate-head"><h2>Todos los parques</h2><span class="plate-meta">clic para abrir</span></div>
-      <div id="multiples" class="multiples"></div>
-    </section>
-  </section>
 
-  <footer class="page-footer"><p>Ignacio Melinc · Matias Young · Francisco Fabrello · Malena Garcia Moraglio</p><p>Trabajo compartido · Ciencia de Datos, UADE · Defensa 12/11/2026 · Fuentes: CAMMESA y Open-Meteo</p></footer>
+  <footer class="page-footer"><p>Ignacio Melinc · Matias Young · Francisco Fabrello · Malena Garcia Moraglio</p><p>Trabajo compartido · Ciencia de Datos, UADE · Defensa 12/11/2026 · Fuentes: CAMMESA, Open-Meteo y NREL PVDAQ</p></footer>
 </main>
 <script src="vendor/plotly-2.35.2.min.js"></script>
 <script src="geo-argentina.js"></script>

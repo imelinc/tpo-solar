@@ -43,7 +43,7 @@ b,strong{font-weight:600}
 .brand-name span{color:var(--blue);padding:0 2px}
 .brand-meta{font:500 14px/1 var(--cond);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 nav{display:flex;margin-left:auto}
-nav a{padding:9px 20px;margin-left:-1px;color:var(--ink);text-decoration:none;font:700 17px/1.2 var(--cond);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--ink)}
+nav a{padding:9px 16px;white-space:nowrap;margin-left:-1px;color:var(--ink);text-decoration:none;font:700 17px/1.2 var(--cond);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--ink)}
 nav a[aria-current=page]{background:var(--ink);color:#fff}
 .tools{display:flex;gap:8px}
 .ghost-button{display:inline-flex;align-items:center;padding:9px 14px;min-height:40px;border:1px solid var(--ink);font:700 15px/1.2 var(--cond);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
@@ -177,6 +177,23 @@ h1{font:700 clamp(40px,4.4vw,64px)/.98 var(--cond);letter-spacing:-.005em;text-w
 .warnings li.alerta{border:2px solid var(--ink);padding:9px 11px;font-weight:600}
 .warnings li.alerta::before{background:var(--ink)}
 
+/* A revisar y planta por hora */
+.grid-revisar{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(320px,1fr);gap:var(--gap);align-items:start}
+.data-table.compacta{font-size:15px;min-width:0}
+.data-table.compacta small{color:var(--ink-3);font-weight:400}
+.data-table.compacta td{padding:8px 10px}
+#revisar-tabla tbody tr{cursor:pointer}
+#revisar-tabla tr[aria-selected=true] td{background:var(--blue-soft)}
+.lectura{width:100%;border-collapse:collapse;font-size:15px}
+.lectura th{font:500 14px/1.2 var(--cond);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:6px 8px;border-bottom:2px solid var(--ink)}
+.lectura td{padding:9px 8px;border-bottom:1px solid var(--rule);color:var(--ink-2)}
+.lectura td:last-child{font-weight:600;color:var(--ink)}
+.controls.sin-marco{margin-bottom:12px}
+.controls.sin-marco select{min-width:150px}
+.controls.sin-marco input{width:6.5rem}
+.resultado{font:700 26px/1.15 var(--cond);margin:0 0 8px;padding:8px 12px;border:2px solid var(--ink);background:#fff}
+.resultado[data-aviso=no]{border-color:var(--rule-strong);font-weight:500}
+
 /* Parque */
 .park-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px 32px;padding-bottom:4px}
 .park-head h2{font:700 38px/1.05 var(--cond);letter-spacing:0}
@@ -216,15 +233,17 @@ body.exposicion .carta .nombre{font-size:17px}
 @media(max-width:1180px){
   .cajetin{grid-template-columns:minmax(0,1fr)}
   .cajetin-titulo{border-right:0;border-bottom:2px solid var(--ink)}
-  .grid-atlas,.grid-site{grid-template-columns:minmax(0,1fr)}
+  .grid-atlas,.grid-site,.grid-revisar{grid-template-columns:minmax(0,1fr)}
   .index-scroll{max-height:420px}
 }
-@media(max-width:860px){
-  .topbar{flex-wrap:wrap;gap:10px 16px;padding:10px 16px}
+@media(max-width:1180px){
   .brand-meta{display:none}
+  .topbar{flex-wrap:wrap;gap:10px 16px;padding:10px 16px}
   nav{order:3;width:100%;margin:0;overflow-x:auto}
   nav a{flex:1;text-align:center;padding:9px 12px}
   .tools{margin-left:auto}
+}
+@media(max-width:860px){
   .ghost-button{padding:7px 10px;font-size:14px}
   .carta{height:auto;min-height:0;width:100%}
   .plate-map,.map-wrap{width:auto}

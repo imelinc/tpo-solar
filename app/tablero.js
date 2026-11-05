@@ -10,19 +10,21 @@ const DIAS = [0,31,28,31,30,31,30,31,31,30,31,30,31];
 const C = {paper:'#f5f9f4',plate:'#ffffff',plate2:'#e4efe7',line:'#cfe0d4',lineStrong:'#7fa992',ink:'#111b16',muted:'#34463c',faint:'#53665b',blue:'#1f3fbf',grid:'#2e9c6a'};
 const SANS = 'Barlow, Helvetica Neue, Arial, sans-serif';
 const TITULOS = {
-  atlas:['Los datos de los parques','Dónde están los 56 parques, cuánto rinden y qué muestra la exploración antes de modelar.'],
+  revisar:['Qué parques solares rinden menos de lo esperado','Cada parque se compara con lo que debería haber generado según su clima y con sus vecinos de provincia. Una señal no es una falla confirmada: es el parque que conviene mirar primero.'],
+  planta:['Con datos por hora, el aviso llega en horas','Cada inversor se compara con sus vecinos a la misma hora: todos ven el mismo cielo. CAMMESA publica solo datos mensuales, así que esto se mide en una planta pública de Hawái.'],
+  sitio:['Cuánto generaría un parque nuevo','Hacé clic en el mapa donde iría el parque. El modelo estima el factor con la ubicación, el clima y el mes; la energía sale de la potencia y las horas.'],
   modelos:['Qué modelo estima mejor','El menor RMSE de validation (2024) elige el modelo. El test es desde 2025 y es retrospectivo: esos meses ya se exploraron.'],
-  sitio:['Cuánto generaría un parque','Hacé clic en el mapa donde iría el parque. El modelo estima el factor con la ubicación, el clima y el mes; la energía sale de la potencia y las horas.'],
-  serie:['Un parque real','Factor de capacidad observado contra el estimado, mes a mes. Los ceros operativos siguen en la serie.']
+  atlas:['Los datos de los parques','Dónde están los 56 parques, cuánto rinden y qué muestra la exploración antes de modelar.']
 };
 const DESCRIPCION = {
   rf:'Promedia muchos árboles. Cada uno ve una muestra y un subconjunto de variables. Dentro del rango observado responde; afuera no extrapola.',
   xgb:'Suma árboles en secuencia: cada uno corrige el error del anterior. El RMSE de validation (2024) limita la complejidad. Afuera del rango de los parques no extrapola.',
   arbol:'Parte los datos con preguntas. Cada hoja predice un promedio. Afuera del rango repite la hoja del borde.',
+  polinomica:'Agrega los productos y cuadrados de las variables. Se ajusta mejor en train, pero fuera de lo visto se dispara.',
   lineal_multiple:'Suma ubicación, clima y mes en una recta. Enero queda como referencia del mes.',
   lineal_simple:'Una recta que usa solo la irradiación. Es la línea de base.'
 };
-const S = {vista:'atlas',foco:null,parque:null,orden:'mw',desc:true,dibujado:{}};
+const S = {vista:'revisar',usd:60,foco:null,parque:null,orden:'mw',desc:true,dibujado:{}};
 const config = {responsive:true,displaylogo:false,displayModeBar:'hover',modeBarButtonsToRemove:['lasso2d','select2d','autoScale2d'],toImageButtonOptions:{format:'png',filename:'solar-datos',scale:2}};
 
 /* Gráficos */
@@ -67,7 +69,7 @@ function estimar(lat,lon,anio,mw){
 }
 
 /* Datos derivados */
-const NOMBRES = {lineal_simple:'Simple linear regression',lineal_multiple:'Multiple linear regression',arbol:'Decision tree',rf:'Random Forest',xgb:'XGBoost'};
+const NOMBRES = {lineal_simple:'Simple linear regression',lineal_multiple:'Multiple linear regression',polinomica:'Polynomial regression (degree 2)',arbol:'Decision tree',rf:'Random Forest',xgb:'XGBoost'};
 const ingles = t => String(t).replace(/Prueba retrospectiva/g,'Test retrospectivo').replace(/Entrenamiento/g,'Train').replace(/entrenamiento/g,'train').replace(/Validación/g,'Validation').replace(/validación/g,'validation').replace(/Prueba/g,'Test').replace(/prueba/g,'test');
 function preparar(){
   D.regresion.comparacion.forEach(m=>{m.nombre=NOMBRES[m.id]||m.nombre;});
@@ -199,22 +201,33 @@ function puntoCarta(svg,ev){
 
 /* Encabezado y navegación */
 function barraEvidencia(){
-  const r=D.regresion,m=r.comparacion.find(x=>x.id===r.elegido).test,cv=r.cv_parques;
   const celda=(k,v,c='')=>`<div class="celda ${c}"><span>${k}</span><b>${v}</b></div>`;
+  const r=D.regresion,m=r.comparacion.find(x=>x.id===r.elegido).test,cv=r.cv_parques;
+  if(S.vista==='revisar'){
+    const s=D.senales.resumen;
+    $('#evidencia').innerHTML=celda('Sitios con señal',fmt(s.sitios,0))+celda('GWh faltantes',fmt(s.gwh_faltante,0))+celda('USD millones',fmt(s.gwh_faltante*S.usd/1000,1))+celda('De lo generado',fmt(s.pct,1)+' %')+celda('Modelo',esc(r.nombre),'modelo')+celda('Alcance',`Test retrospectivo ${s.desde.slice(0,7)} a ${s.hasta.slice(0,7)} · CAMMESA y Open-Meteo`,'alcance');
+    return;
+  }
+  if(S.vista==='planta'){
+    const a=D.maui.detector,f=D.maui.avisos_sin_falla;
+    $('#evidencia').innerHTML=celda('Se apaga',`${fmt(a.apagado.mediana_horas,0)} h de sol`)+celda('Cae 30 %',`${fmt(a.parcial_30.mediana_horas,0)} h de sol`)+celda('Cae 15 %',`detecta ${fmt(a.parcial_15.detectadas*100,0)} %`)+celda('Avisos por equipo y mes',fmt(f.por_inversor_mes,2))+celda('Alcance',`${esc(D.maui.fuente)} · regla sin modelo · fallas inyectadas en 2022–2023, solo para medir`,'alcance');
+    $('#evidencia').lastElementChild.style.gridColumn='1/-1';
+    return;
+  }
   $('#evidencia').innerHTML=celda('Modelo elegido',esc(r.nombre),'modelo')+celda('RMSE test',fmt(m.rmse,4))+celda('MAE test',fmt(m.mae,4))+celda('R² test',fmt(m.r2,3))+celda('RMSE new park',fmt(cv.rmse,4))+celda('Alcance','Factor de capacidad mensual · test retrospectivo desde 2025','alcance');
 }
 function mostrar(){
   const enfocado=document.activeElement;
-  const pedido=(location.hash||'#atlas').slice(1);
+  const pedido=(location.hash||'#revisar').slice(1);
   const cambio=S.vista!==pedido&&S._iniciado;
-  S.vista=Object.hasOwn(TITULOS,pedido)?pedido:'atlas';S._iniciado=true;
+  S.vista=Object.hasOwn(TITULOS,pedido)?pedido:'revisar';S._iniciado=true;
   if(cambio)window.scrollTo(0,0);
   document.querySelectorAll('.view').forEach(el=>{el.hidden=el.id!=='vista-'+S.vista;});
   document.querySelectorAll('#navegacion a').forEach(a=>{if(a.hash==='#'+S.vista)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
   $('#titulo').textContent=TITULOS[S.vista][0];
   $('#subtitulo').textContent=TITULOS[S.vista][1];
   barraEvidencia();
-  ({atlas,modelos,sitio,serie}[S.vista])();
+  ({atlas,modelos,sitio,revisar,planta}[S.vista])();
   const vista=$('#vista-'+S.vista);vista.classList.remove('entra');void vista.offsetWidth;vista.classList.add('entra');
   requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll('.view:not([hidden]) .js-plotly-plot').forEach(el=>Plotly.Plots.resize(el))));
   if(enfocado?.matches?.('#navegacion a') && enfocado.hash==='#'+S.vista)enfocado.focus();
@@ -237,11 +250,11 @@ function indice(){
   document.querySelectorAll('#indice th button').forEach(b=>{if(b.dataset.orden===k)b.setAttribute('aria-sort',S.desc?'descending':'ascending');else b.removeAttribute('aria-sort');});
   const fuera=D.parques.filter(p=>!dentroRango(p)).length;
   $('#indice-meta').textContent=`${D.parques.length} parques`;
-  $('#indice-nota').textContent=`${fuera} parques quedan fuera del rectángulo del train set: entraron después de 2023. Clic en una fila o en una estrella para marcarla; doble clic abre su serie.`;
+  $('#indice-nota').textContent=`${fuera} parques quedan fuera del rectángulo del train set: entraron después de 2023. Clic en una fila o en una estrella para marcarla; doble clic abre su serie en A revisar.`;
 }
 function seleccionarParque(id,abrir){
   S.parque=id;
-  if(abrir){location.hash='#serie';return;}
+  if(abrir){location.hash='#revisar';return;}
   dibujarCarta($('#atlas-carta'),MARCOS.carta,{campo:true,rotulos:true,seleccion:S.parque});
   document.querySelectorAll('#indice tbody tr').forEach(tr=>tr.setAttribute('aria-selected',String(tr.dataset.central===id)));
   document.querySelector(`#indice tr[data-central="${CSS.escape(id)}"]`)?.scrollIntoView({block:'nearest'});
@@ -284,7 +297,7 @@ function modelos(){
   $('#split').style.gridTemplateColumns=n.map(v=>v+'fr').join(' ');
   $('#split').innerHTML=`<div><b>Train</b><p>Hasta 2023 · ${fmt(n[0],0)} meses con generación</p></div><div><b>Validation</b><p>2024 · ${fmt(n[1],0)} · elige</p></div><div><b>Test</b><p>Desde 2025 · ${fmt(n[2],0)} · retrospectivo</p></div>`;
   $('#modelos-unidades').textContent=r.unidad_target;
-  $('#modelos-tabla tbody').innerHTML=r.comparacion.map(m=>`<tr class="${m.id===r.elegido?'selected-model':''}"><td>${esc(m.nombre)}${m.id===r.elegido?'<span class="chosen-tag">elegido</span>':''}</td><td class="number">${fmt(m.train.rmse,4)}</td><td class="number">${fmt(m.validacion.rmse,4)}</td><td class="number">${fmt(m.test.rmse,4)}</td><td class="number">${fmt(m.test.mae,4)}</td><td class="number">${fmt(m.test.r2,3)}</td><td class="number">${fmt(m.test.n,0)}</td></tr>`).join('');
+  $('#modelos-tabla tbody').innerHTML=r.comparacion.map(m=>`<tr class="${m.id===r.elegido?'selected-model':''}"><td>${esc(m.nombre)}${m.id===r.elegido?'<span class="chosen-tag">elegido</span>':''}</td><td class="number">${fmt(m.train.rmse,4)}</td><td class="number">${fmt(m.validacion.rmse,4)}</td><td class="number">${fmt(m.test.rmse,4)}</td><td class="number">${fmt(m.test.mae,4)}</td><td class="number">${fmt(m.test.r2,3)}</td><td class="number">${fmt(m.entrena_s,2)}</td><td class="number">${fmt(m.tamano_kb,1)}</td></tr>`).join('');
   $('#modelo-detalles').textContent=`${ingles(r.protocolo)} Si dos modelos empatan, queda el más simple. Se conservaron ${fmt(r.ceros_conservados,0)} ceros operativos.`;
   $('#porque-titulo').textContent=`Por qué ${el.nombre}`;
   const por=f=>[...r.comparacion].sort((x,y)=>f(x)-f(y))[0];
@@ -296,6 +309,7 @@ function modelos(){
   $('#modelo-porque').innerHTML=[
     `La regla se fijó antes de mirar el test: gana el menor RMSE de validation en 2024. ${el.nombre} tuvo ${fmt(el.validacion.rmse,4)} y ${seg.nombre}, ${fmt(seg.validacion.rmse,4)}. Los demás quedaron entre ${fmt(Math.min(...resto),4)} y ${fmt(Math.max(...resto),4)}.`,
     DESCRIPCION[el.id],
+    (()=>{const p=r.comparacion.find(m=>m.id==='polinomica');return `La polinómica muestra por qué no alcanza con mirar el train: baja el error ahí (${fmt(p.train.rmse,4)}), pero en test llega a ${fmt(p.test.rmse,4)} y su R² es negativo. Random Forest casi empata, pero ocupa ${fmt(r.comparacion.find(m=>m.id==='rf').tamano_kb/el.tamano_kb,0)} veces más.`;})(),
     `${prueba} Con R² de ${fmt(el.test.r2,3)} explica ${fmt(el.test.r2*100,0)} % de la variación mensual, y el test es retrospectivo: no equivale a un período nunca visto.`
   ].map(t=>`<p>${esc(t)}</p>`).join('');
 }
@@ -360,48 +374,93 @@ function fijarSitio(pt){
   $('#sitio-lon').value=Math.min(LIMITES.lon[1],Math.max(LIMITES.lon[0],pt.lon));
   sitio();
 }
-/* Parque */
+/* Parques a revisar */
+const rango=(a,b)=>a.slice(0,7)===b.slice(0,7)?a.slice(0,7):`${a.slice(0,7)} – ${b.slice(0,7)}`;
+function revisar(){
+  const s=D.senales,filas=s.ranking;
+  $('#revisar-meta').textContent=`${s.resumen.sitios} sitios · ${s.resumen.marcados} de ${fmt(s.resumen.meses,0)} meses-parque`;
+  $('#revisar-tabla tbody').innerHTML=filas.map(r=>`<tr data-central="${esc(r.central)}" tabindex="0" aria-selected="${r.central===S.parque}"><td>${esc(titulo(r.nombre))}<br><small>${esc(provincia(r.provincia))}</small></td><td>${rango(r.desde,r.hasta)}</td><td class="number">${r.meses}</td><td class="number">${fmt(r.rinde_modelo*100,0)} %</td><td class="number">${fmt(r.rinde_vecinos*100,0)} %</td><td class="number">${fmt(r.gwh_faltante,1)}</td><td class="number">${fmt(r.gwh_faltante*S.usd/1000,2)}</td></tr>`).join('');
+  const e=s.resumen.estados,c=s.caidas.find(x=>x.caida===0.3),d=s.caidas.find(x=>x.caida===0.1);
+  $('#revisar-nota').textContent=`Señal: ${s.meses_seguidos} meses seguidos por debajo del ${fmt(s.umbral*100,0)} % del modelo y de los vecinos. La regla ve caídas grandes: si un parque cae 30 % la marca ${fmt(c.detectadas*100,0)} % de las veces; si cae 10 %, ${fmt(d.detectadas*100,0)} %. Sin saberlo no se afirma nada: ${fmt(e.sin_vecinos||0,0)} meses no tienen vecinos para comparar y ${fmt(e.arranque||0,0)} son arranques o ampliaciones.`;
+  $('#revisar-regla').innerHTML=[['Bajo','Bajo','Revisar ese parque'],['Bajo','Normal','Mirar la zona o la red'],['Normal','Normal','Sigue igual'],['—','Sin vecinos','No se sabe']].map(f=>`<tr>${f.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('');
+  $('#revisar-usd-nota').textContent='Supuesto de orden de magnitud. Cambialo y se recalcula la plata en juego. No es un ahorro demostrado.';
+  serie();
+}
 function serie(){
   const id=S.parque;$('#serie-parque').value=id;
   const rows=D._serie.get(id)||[];
   if(!rows.length){$('#serie-lectura').innerHTML='<p class="empty">Ese parque no tiene meses comparables.</p>';return;}
-  const p=D._idx.get(id),st=D._stats.get(id),ultimo=rows.at(-1);
+  document.querySelectorAll('#revisar-tabla tbody tr').forEach(tr=>tr.setAttribute('aria-selected',String(tr.dataset.central===id)));
+  const p=D._idx.get(id),st=D._stats.get(id),ultimo=rows.at(-1),marcados=rows.filter(r=>r.senal);
   $('#serie-lectura').innerHTML=`<div><h2>${esc(titulo(ultimo.nombre))}</h2><p class="coords">${esc(provincia(ultimo.provincia))} · ${coords(p.lat,p.lon)}${dentroRango(p)?'':' · fuera del rango del train set'}</p></div>`+
-    `<dl><div><dt>Potencia</dt><dd>${fmt(ultimo.potencia_mw,1)} MW</dd></div><div><dt>Meses</dt><dd>${fmt(st.n,0)}</dd></div><div><dt>Factor medio</dt><dd>${fmt(st.media,3)}</dd></div><div><dt>MAE en test</dt><dd>${fmt(st.mae,3)}</dd></div><div><dt>Meses en cero</dt><dd>${fmt(st.ceros,0)}</dd></div></dl>`;
+    `<dl><div><dt>Potencia</dt><dd>${fmt(ultimo.potencia_mw,1)} MW</dd></div><div><dt>Meses</dt><dd>${fmt(st.n,0)}</dd></div><div><dt>Factor medio</dt><dd>${fmt(st.media,3)}</dd></div><div><dt>Meses con señal</dt><dd>${fmt(marcados.length,0)}</dd></div><div><dt>Meses en cero</dt><dd>${fmt(st.ceros,0)}</dd></div></dl>`;
   const prueba=rows.filter(r=>r.particion==='prueba');
   $('#serie-alcance').textContent=`${rows[0].fecha.slice(0,7)} a ${ultimo.fecha.slice(0,7)} · ${prueba.length} meses en test`;
   const corte=prueba[0],x=rows.map(r=>r.fecha),ceros=rows.filter(r=>r.factor_capacidad===0);
   const fondo=corte?[{type:'rect',xref:'x',x0:corte.fecha,x1:ultimo.fecha,yref:'paper',y0:0,y1:1,fillcolor:'rgba(31,63,191,.07)',line:{width:0}}]:[];
   plot('serie-chart',[
     {type:'scatter',mode:'lines+markers',name:'Observado',x,y:rows.map(r=>r.factor_capacidad),line:{color:C.ink,width:2},marker:{size:4,color:C.ink},hovertemplate:'%{x|%b %Y}<br>observado %{y:.3f}<extra></extra>'},
-    {type:'scatter',mode:'lines',name:'Estimado',x,y:rows.map(r=>r.pred),line:{color:C.blue,width:2.4,dash:'dot'},hovertemplate:'%{x|%b %Y}<br>estimado %{y:.3f}<extra></extra>'},
-    {type:'scatter',mode:'markers',name:'Cero',x:ceros.map(r=>r.fecha),y:ceros.map(()=>0),marker:{symbol:'circle-open',size:16,line:{width:2.6},color:C.ink},hovertemplate:'%{x|%b %Y}: cero operativo<extra></extra>'}
+    {type:'scatter',mode:'lines',name:'Esperado',x,y:rows.map(r=>r.pred_oof),line:{color:C.blue,width:2.4,dash:'dot'},hovertemplate:'%{x|%b %Y}<br>esperado %{y:.3f}<extra></extra>'},
+    {type:'scatter',mode:'markers',name:'Cero',x:ceros.map(r=>r.fecha),y:ceros.map(()=>0),marker:{symbol:'circle-open',size:16,line:{width:2.6},color:C.ink},hovertemplate:'%{x|%b %Y}: cero operativo<extra></extra>'},
+    {type:'scatter',mode:'markers',name:'Señal',x:marcados.map(r=>r.fecha),y:marcados.map(r=>r.factor_capacidad),marker:{symbol:'square',size:9,color:C.ink},hovertemplate:'%{x|%b %Y}: señal<extra></extra>'}
   ],{yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f',rangemode:'tozero'}),xaxis:eje(),shapes:fondo,
      annotations:corte?[{x:corte.fecha,xanchor:'left',yref:'paper',y:1,yanchor:'top',text:'test',showarrow:false,font:{color:C.blue,size:12},xshift:6}]:[]});
-  plot('serie-residuo',[{type:'bar',x,y:rows.map(r=>r.factor_capacidad-r.pred),marker:{color:rows.map(r=>r.factor_capacidad-r.pred<0?C.lineStrong:C.ink),opacity:.9},hovertemplate:'%{x|%b %Y}<br>observado − estimado: %{y:.3f}<extra></extra>'}],
-    {yaxis:eje({title:{text:'Error (observado − estimado)'},tickformat:'.2f',zeroline:true,zerolinecolor:C.faint}),xaxis:eje(),shapes:fondo,bargap:.1});
-  multiples();
 }
-function multiples(){
-  const box=$('#multiples');
-  if(!box.dataset.listo){
-    const ids=[...D._serie.keys()].sort((a,b)=>{const pa=D._idx.get(a),pb=D._idx.get(b);return pa.provincia.localeCompare(pb.provincia,'es')||titulo(pa.nombre).localeCompare(titulo(pb.nombre),'es');});
-    const W=170,H=38,t0=Date.parse('2018-01-01'),t1=Date.parse('2026-10-01');
-    box.innerHTML=ids.map(id=>{
-      const rows=D._serie.get(id).filter(r=>r.fecha>='2018'),p=D._idx.get(id);
-      const X=f=>((Date.parse(f)-t0)/(t1-t0)*W).toFixed(1),Y=v=>(H-2-v/.42*(H-4)).toFixed(1);
-      const lin=k=>rows.map((r,i)=>(i?'L':'M')+X(r.fecha)+','+Y(r[k])).join('');
-      return `<button type="button" data-central="${esc(id)}" aria-pressed="false"><b>${esc(titulo(p.nombre))}</b><small>${esc(provincia(p.provincia))} · ${fmt(p.potencia_mw,0)} MW</small><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${lin('pred')}" fill="none" stroke="${C.blue}" stroke-width="1.2" stroke-dasharray="2 2" vector-effect="non-scaling-stroke"/><path d="${lin('factor_capacidad')}" fill="none" stroke="${C.ink}" stroke-width="1.2" vector-effect="non-scaling-stroke"/></svg></button>`;
-    }).join('');
-    box.dataset.listo='1';
+/* Planta por hora */
+const nombreInv=c=>'Inversor '+c.slice(3);
+function primerAviso(r){
+  const A=D.maui.reglas;let a=0,p=0;
+  for(let i=0;i<r.length;i++){const v=r[i];if(v==null)continue;a=v<A.apagado?a+1:0;p=v<A.parcial?p+1:0;if(a>=A.horas_apagado||p>=A.horas_parcial)return i;}
+  return null;
+}
+window.primerAvisoPrueba=primerAviso;
+function probarFalla(inv,factor,inicio){
+  const base=D.maui.demo.rinde[inv];
+  const r=base.map((v,i)=>v==null?null:i>=inicio?v*factor:v);
+  const previa=primerAviso(r.slice(0,inicio)),h=primerAviso(r.slice(inicio));
+  return {r,previa,horas:h==null?null:h+1};
+}
+function planta(){
+  const M=D.maui,m=M.mapa;
+  $('#planta-meta').textContent=`${M.desde.slice(0,7)} a ${M.hasta.slice(0,7)} · ${m.inversores.length} inversores`;
+  if(!S.dibujado.planta){
+    S.dibujado.planta=true;
+    plot('planta-mapa',[{type:'heatmap',x:m.semanas,y:m.inversores.map(nombreInv),z:m.z,zmin:.4,zmax:1.1,colorscale:[[0,C.ink],[.57,'#7f93e6'],[.86,'#ffffff'],[1,'#ffffff']],colorbar:{title:{text:'Rinde',font:{size:12}},thickness:12,tickformat:'.0%'},xgap:0,ygap:2,hoverongaps:false,hovertemplate:'%{y}<br>semana del %{x|%d/%m/%Y}<br>rinde %{z:.0%} de lo habitual<extra></extra>'}],
+      {xaxis:eje({showgrid:false}),yaxis:eje({autorange:'reversed',showgrid:false,tickfont:{size:12,color:C.ink,family:SANS}}),margin:{l:8,r:8,t:8,b:30}});
+    const q=M.calidad,cp=q.inv11_copia_de_inv04;
+    $('#planta-calidad').innerHTML=[
+      ['alerta',`El inversor 11 es una copia del 04: ${fmt(cp.lecturas,0)} lecturas con la misma potencia, factor de potencia, voltaje y temperatura. Son un solo equipo y se cuenta una vez.`],
+      ['',`El inversor 06 nunca generó: su máximo en cinco años es ${fmt(q.inv06_kw_max,2)} kW. Queda afuera de la comparación.`],
+      ['',`El sensor de radiación tiene el reloj corrido: su correlación con la generación pasa de ${fmt(q.sensor.sin_correr,2)} a ${fmt(q.sensor.mejor_corr,2)} al moverlo ${fmt(Math.abs(q.sensor.mejor_horas),0)} horas. Por eso la regla no lo usa.`]
+    ].map(([c,x])=>`<li class="${c}">${esc(x)}</li>`).join('');
+    const ep=M.episodios.slice(0,4);
+    $('#planta-ep-meta').textContent=`${fmt(M.faltante_kwh/1000,1)} MWh · ${fmt(M.faltante_kwh/M.energia_kwh*100,1)} % de la energía`;
+    $('#planta-ep tbody').innerHTML=ep.map(e=>`<tr><td>${nombreInv(e.inversor)}</td><td>${e.desde.slice(0,7)} – ${e.hasta.slice(0,7)}</td><td class="number">${fmt(e.rinde*100,0)} %</td><td class="number">${fmt(e.kwh_faltante/1000,1)}</td></tr>`).join('');
+    $('#planta-otras tbody').innerHTML=[{planta:'Maui, Hawái',equipos:m.inversores.length,detector:M.detector,avisos_sin_falla:M.avisos_sin_falla},...(M.otras_plantas||[])].map(o=>`<tr><td>${esc(o.planta)}</td><td class="number">${o.equipos}</td><td class="number">${fmt(o.detector.apagado.mediana_horas,0)} h</td><td class="number">${fmt(o.detector.parcial_30.mediana_horas,0)} h</td><td class="number">${fmt(o.avisos_sin_falla.por_inversor_mes,2)}</td></tr>`).join('');
+    $('#planta-mapa-nota').textContent=`Cada fila es un inversor y cada columna, una semana. Blanco: rinde como siempre. Oscuro: rinde menos que sus vecinos. Las causas no se verificaron en la planta.`;
   }
-  box.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.central===S.parque)));
+  dibujarPrueba();
+}
+function dibujarPrueba(){
+  const Dm=D.maui.demo,inv=$('#planta-inv').value,factor=parseFloat($('#planta-falla').value);
+  const horas=Dm.horas,dias=[...new Set(horas.map(h=>h.slice(0,10)))];
+  const dia=Math.max(1,Math.min(dias.length,parseInt($('#planta-dia').value,10)||1));
+  const inicio=horas.findIndex(h=>h.slice(0,10)===dias[dia-1]);
+  const t=probarFalla(inv,factor,inicio),res=$('#planta-resultado');
+  res.dataset.aviso=t.horas==null?'no':'si';
+  res.textContent=factor===1&&t.horas==null?'Sin falla no hay aviso.':t.horas==null?'En estas tres semanas no avisó: esa caída es muy chica para la regla.':t.horas===1?'Avisó en la primera hora de sol.':`Avisó a las ${t.horas} horas de sol.`;
+  const idx=horas.map((_,i)=>i),A=D.maui.reglas,alerta=t.horas==null?null:inicio+t.horas-1;
+  plot('planta-chart',[
+    {type:'scatter',mode:'lines',x:idx,y:t.r,connectgaps:false,line:{color:C.ink,width:1.8},customdata:horas,hovertemplate:'%{customdata}<br>rinde %{y:.0%}<extra></extra>'},
+    ...(alerta==null?[]:[{type:'scatter',mode:'markers',x:[alerta],y:[t.r[alerta]],marker:{symbol:'circle-open',size:18,line:{width:2.6},color:C.blue},hovertemplate:'aviso<extra></extra>'}])
+  ],{xaxis:eje({title:{text:'Horas de sol'},showgrid:false}),yaxis:eje({title:{text:'Rinde contra sus vecinos'},tickformat:'.0%',range:[0,1.3]}),margin:{l:8,r:12,t:8,b:40},
+    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:A.parcial,y1:A.parcial,line:{color:C.blue,width:1.4,dash:'dash'}},{type:'line',xref:'paper',x0:0,x1:1,y0:A.apagado,y1:A.apagado,line:{color:C.blue,width:1.4,dash:'dot'}},{type:'rect',xref:'x',yref:'paper',x0:inicio,x1:idx.at(-1),y0:0,y1:1,fillcolor:'rgba(31,63,191,.07)',line:{width:0}}]});
 }
 
 function iniciar(){
   if(!D||!window.Plotly)throw new Error('Faltan los archivos locales de datos o gráficos. Conservá la carpeta app completa y recargá la página.');
   preparar();
-  S.parque=D.ejemplo_parque;
+  S.parque=(D.senales.ranking[0]||{}).central||D.ejemplo_parque;S.usd=D.senales.usd_mwh;$('#revisar-usd').value=S.usd;
   const base=D.presets[0];
   $('#sitio-lat').value=base.lat.toFixed(4);$('#sitio-lon').value=base.lon.toFixed(4);$('#sitio-anio').value=base.anio;$('#sitio-mw').value=base.potencia_mw;
   const parques=[...D._serie.keys()].map(id=>[id,titulo(D._idx.get(id).nombre),provincia(D._idx.get(id).provincia)]).sort((a,b)=>a[1].localeCompare(b[1],'es'));
@@ -420,7 +479,13 @@ function iniciar(){
   $('#sitio-carta').addEventListener('keydown',e=>{const d={ArrowUp:[1,0],ArrowDown:[-1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];if(!d)return;e.preventDefault();const v=valoresSitio(),p=D.grilla.paso;fijarSitio({lat:+(v.lat+d[0]*p).toFixed(2),lon:+(v.lon+d[1]*p).toFixed(2)});});
   leyendaSitio();
   $('#serie-parque').addEventListener('change',()=>{S.parque=$('#serie-parque').value;serie();});
-  $('#multiples').addEventListener('click',e=>{const b=e.target.closest('[data-central]');if(!b)return;S.parque=b.dataset.central;serie();$('#serie-lectura').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});});
+  const abrirFila=e=>{const tr=e.target.closest('tr[data-central]');if(!tr)return;S.parque=tr.dataset.central;serie();};
+  $('#revisar-tabla tbody').addEventListener('click',abrirFila);
+  $('#revisar-tabla tbody').addEventListener('keydown',e=>{if(e.key==='Enter')abrirFila(e);});
+  $('#revisar-usd').addEventListener('input',()=>{const v=parseFloat($('#revisar-usd').value);if(!(v>0))return;S.usd=v;barraEvidencia();revisar();});
+  $('#planta-inv').innerHTML=D.maui.demo.inversores.map(c=>`<option value="${esc(c)}">${esc(nombreInv(c))}</option>`).join('');
+  $('#planta-dia').max=new Set(D.maui.demo.horas.map(h=>h.slice(0,10))).size;
+  $('#planta-form').addEventListener('input',dibujarPrueba);
   const grilla=on=>{document.body.classList.toggle('sin-grilla',!on);$('#grilla').setAttribute('aria-pressed',String(on));try{localStorage.setItem('grilla',on?'1':'0');}catch{}};
   try{if(localStorage.getItem('grilla')==='0')grilla(false);}catch{}
   $('#grilla').addEventListener('click',()=>grilla($('#grilla').getAttribute('aria-pressed')!=='true'));

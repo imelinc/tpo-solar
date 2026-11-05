@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from src.academico import consultar, crear_modelo, metricas_regresion, preparar
 from src.config import DATA_PROCESSED
+from src.maui import copia_exacta, primer_aviso
+from src.senales import marcar
 
 
 def _grilla():
@@ -101,6 +103,58 @@ class EvaluacionAcademica(unittest.TestCase):
         self.assertGreater(int(d["energia_mwh"].eq(0).sum()), 0)
         self.assertGreater(d["central"].nunique(), 10)
         self.assertTrue(d["lat"].between(-45, -20).all())
+
+    def _meses(self, central, rinde, provincia="San Juan", n=12, potencia=10.0):
+        return [{"central": central, "central_descripcion": central, "provincia": provincia,
+                 "fecha": f"2025-{m:02d}-01", "factor_capacidad": 0.3 * r, "pred_oof": 0.3,
+                 "potencia_mw": potencia, "energia_gwh": 0.3 * r * potencia * 720 / 1000}
+                for m, r in zip(range(1, n + 1), rinde)]
+
+    def test_senal_exige_dos_meses_y_vecinos(self):
+        filas = self._meses("A", [1] * 8 + [.5, .5, 1, 1]) + self._meses("B", [1] * 12) + self._meses("C", [1] * 12)
+        filas += self._meses("D", [.5] + [1] * 11)
+        s = marcar(pd.DataFrame(filas))
+        a = s[s["central"].eq("A")].sort_values("fecha")
+        self.assertEqual(a["senal"].tolist(), [False] * 8 + [True, True, False, False])
+        self.assertFalse(s[s["central"].eq("D")]["senal"].any(), "un mes solo no es señal")
+
+    def test_sin_vecinos_no_es_normal(self):
+        s = marcar(pd.DataFrame(self._meses("A", [.5] * 12, provincia="Formosa")))
+        self.assertEqual(set(s[s["fecha"].ge("2025-07-01")]["estado"]), {"sin_vecinos"}, "pasado el arranque")
+        self.assertFalse(s["senal"].any())
+
+    def test_cero_operativo_cuenta_como_bajo(self):
+        filas = self._meses("A", [1] * 8 + [0, 0, 1, 1]) + self._meses("B", [1] * 12) + self._meses("C", [1] * 12)
+        s = marcar(pd.DataFrame(filas))
+        self.assertEqual(int(s[s["central"].eq("A")]["senal"].sum()), 2)
+
+    def test_toda_la_zona_baja_no_senala_a_un_parque(self):
+        filas = sum((self._meses(c, [1] * 8 + [.5, .5, 1, 1]) for c in "ABC"), [])
+        s = marcar(pd.DataFrame(filas))
+        self.assertFalse(s["senal"].any())
+        self.assertIn("zona", set(s["estado"]))
+
+    def test_cambio_de_potencia_es_arranque(self):
+        filas = self._meses("A", [.5] * 12) + self._meses("B", [1] * 12) + self._meses("C", [1] * 12)
+        filas += self._meses("D", [1] * 12)
+        for f in filas:
+            if f["central"] == "A" and f["fecha"] >= "2025-07-01":
+                f["potencia_mw"] = 20.0
+        s = marcar(pd.DataFrame(filas))
+        a = s[s["central"].eq("A") & s["fecha"].ge("2025-07-01")]
+        self.assertEqual(set(a["estado"]), {"arranque"}, "los primeros meses tras ampliar no son señal")
+
+    def test_regla_horaria_de_maui(self):
+        self.assertEqual(primer_aviso(np.array([1, 1, .1, .1, 1])), (3, "apagado"))
+        self.assertEqual(primer_aviso(np.array([.7, .7, .7, .7])), (3, "parcial"))
+        self.assertEqual(primer_aviso(np.array([.7, .7, .7, .9, .7, .7, .7])), (None, None))
+        self.assertEqual(primer_aviso(np.array([.7, .7, np.nan, .7, .7])), (4, "parcial"), "un hueco no corta el tramo")
+
+    def test_copia_exacta_detecta_duplicado(self):
+        t = pd.date_range("2023-01-01", periods=50, freq="5min")
+        a = pd.DataFrame({"ts": t, "kw": np.arange(2, 52.0), "fp": 1.0, "vac": 120.0, "temp": 30.0})
+        self.assertEqual(copia_exacta(a, a.assign(ts=t + pd.Timedelta(seconds=40)))["kw"], 1.0)
+        self.assertLess(copia_exacta(a, a.assign(kw=a["kw"] + 3))["kw"], 0.1)
 
     @staticmethod
     def _fila(central, fecha, energia, factor, coord):

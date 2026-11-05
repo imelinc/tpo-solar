@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import calendar
 import json
+import pickle
+import time
 from pathlib import Path
 
 import numpy as np
@@ -16,6 +18,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 from sklearn.tree import DecisionTreeRegressor
 
 from src.config import DATA_PROCESSED
@@ -24,9 +28,10 @@ SEED = 42
 UMBRAL_KM = 150
 PASO = 0.2
 NUM = ["om_ghi_kwh_m2_mes", "lat", "lon", "om_temp_max_media_c", "om_nubosidad_media_pct"]
-ORDEN = ["lineal_simple", "lineal_multiple", "arbol", "rf", "xgb"]
+ORDEN = ["lineal_simple", "lineal_multiple", "polinomica", "arbol", "rf", "xgb"]
 MODELOS = {"lineal_simple": "Regresión lineal simple", "lineal_multiple": "Regresión lineal múltiple",
-           "arbol": "Árbol de regresión", "rf": "Random Forest", "xgb": "XGBoost"}
+           "polinomica": "Regresión polinómica (grado 2)", "arbol": "Árbol de regresión",
+           "rf": "Random Forest", "xgb": "XGBoost"}
 COORDS_OK = ["SE_CAMMESA_via_WRI", "osm_parque", "WikiSolar_via_GPPD_aprox", "osm_localidad_inferida_del_nombre"]
 POTENCIA_DUDOSA = ["CUM2FV", "PINFFV", "VANGFV"]
 ENTRADAS = {"om_ghi_kwh_m2_mes": "irradiación mensual", "lat": "latitud", "lon": "longitud",
@@ -53,7 +58,7 @@ def meses_dummies(tipo: str) -> list[int]:
     # Enero queda como referencia de la recta. Con las doce columnas y el intercepto, la lineal es singular.
     if tipo == "lineal_simple":
         return []
-    if tipo.startswith("lineal"):
+    if tipo.startswith("lineal") or tipo == "polinomica":
         return list(range(2, 13))
     return list(range(1, 13))
 
@@ -67,6 +72,8 @@ def nombres_columnas(tipo: str) -> list[str]:
 def crear_modelo(tipo: str):
     if tipo.startswith("lineal"):
         return LinearRegression()
+    if tipo == "polinomica":
+        return make_pipeline(StandardScaler(), PolynomialFeatures(2, include_bias=False), LinearRegression())
     if tipo == "arbol":
         return DecisionTreeRegressor(max_depth=8, min_samples_leaf=10, random_state=SEED)
     if tipo == "rf":
@@ -118,9 +125,11 @@ def entrenar(d: pd.DataFrame):
     comparacion, ajustados = [], {}
     for tipo in ORDEN:
         print("Entrenando", MODELOS[tipo], flush=True)
+        t0 = time.perf_counter()
         est = crear_modelo(tipo).fit(matriz(train, medianas, tipo), train["factor_capacidad"])
         ajustados[tipo] = est
-        fila = {"id": tipo, "nombre": MODELOS[tipo]}
+        fila = {"id": tipo, "nombre": MODELOS[tipo], "entrena_s": round(time.perf_counter() - t0, 2),
+                "tamano_kb": round(len(pickle.dumps(est)) / 1024, 1)}
         for nombre, parte in (("train", train), ("validacion", val), ("test", test)):
             pred = np.clip(est.predict(matriz(parte, medianas, tipo)), 0, 1)
             fila[nombre] = metricas_regresion(parte["factor_capacidad"], pred)
@@ -330,15 +339,20 @@ def construir(destino: Path | None = None):
     d = d.assign(pred=pred)
     d["particion"] = np.select([d["fecha"] < "2024-01-01", d["fecha"] < "2025-01-01"],
                                ["entrenamiento", "validación"], default="prueba")
+    from src.senales import evidencia as evidencia_senales  # senales importa de este módulo
+    detalle, senales = evidencia_senales(d, resumen["elegido"])
+    d = d.assign(pred_oof=detalle["pred_oof"], rinde_modelo=detalle["rinde_modelo"],
+                 rinde_vecinos=detalle["rinde_vecinos"], estado=detalle["estado"], senal=detalle["senal"])
     parques, clima, tipico = tablas_clima(d)
     grilla = construir_grilla(est, resumen["elegido"], medianas, parques, clima, tipico, resumen["rango"])
     presets = _presets(grilla, parques, clima, tipico, resumen["rango"])
     ceros = d[d["energia_mwh"].eq(0) & d["particion"].eq("prueba")]
     ejemplo_parque = ceros["central"].iloc[0] if len(ceros) else d["central"].iloc[0]
-    serie = d[["central", "central_descripcion", "provincia", "fecha", "factor_capacidad", "pred",
-               "energia_gwh", "particion", "potencia_mw"]].rename(columns={"central_descripcion": "nombre"})
-    datos = {"version": 2, "pais": "Argentina", "fecha_evaluacion": "2026-10-29", "defensa": "2026-11-12",
-             "regresion": resumen, "grilla": grilla, "parques": parques, "clima": clima, "tipico": tipico,
+    serie = d[["central", "central_descripcion", "provincia", "fecha", "factor_capacidad", "pred", "pred_oof",
+               "rinde_modelo", "rinde_vecinos", "estado", "senal", "energia_gwh", "particion",
+               "potencia_mw"]].rename(columns={"central_descripcion": "nombre"})
+    datos = {"version": 3, "pais": "Argentina", "fecha_evaluacion": "2026-11-05", "defensa": "2026-11-12",
+             "regresion": resumen, "senales": senales, "grilla": grilla, "parques": parques, "clima": clima, "tipico": tipico,
              "umbral_km": UMBRAL_KM, "rango": resumen["rango"], "presets": presets,
              "ejemplo_parque": ejemplo_parque,
              "serie": serie.to_dict("records"),
