@@ -6,7 +6,7 @@
 - `node tests/dashboard.cjs` recorre las cinco vistas y comprueba que la regla horaria del navegador dé lo mismo que Python.
 - Sumar la polinómica no cambió XGBoost ni la grilla: las métricas y los factores de 2023 son idénticos a la versión anterior.
 - Inversor 11 de Maui: 220.222 lecturas emparejadas con el 04, 99,98 % idénticas en potencia, factor de potencia, voltaje y temperatura. Par de control (04 y 10): 0,14 %.
-- Render real: las vistas A revisar, Por hora y Modelos se revisaron en el navegador integrado a 1440 × 900, sin errores de consola.
+- Render real: las cinco vistas se revisaron en el navegador integrado a 1440 × 900 y a 375 × 812, sin errores de consola y sin scroll horizontal de la página. Todos los recursos se sirven localmente.
 - Los notebooks 02 a 07 se ejecutaron completos, sin guardar salidas.
 - La carpeta original del Detector Solar dejó de estar disponible en Descargas durante el trabajo. Las cifras de esta versión se recalcularon desde los crudos públicos y no dependen de ella.
 

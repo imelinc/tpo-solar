@@ -162,7 +162,7 @@ h1{font:700 clamp(40px,4.4vw,64px)/.98 var(--cond);letter-spacing:-.005em;text-w
 .controls input{width:8.5rem}
 .controls select{min-width:300px}
 .grid-site{--carta-h:min(92vh,1000px);display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--gap);align-items:start}
-.site-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:var(--gap);align-items:start}
+.site-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr));gap:var(--gap);align-items:start}
 .grid-site .chart,.grid-site .chart.short{height:340px}
 .site-side{display:flex;flex-direction:column;gap:var(--gap)}
 .site-reading h2{font:700 25px/1.1 var(--cond)}

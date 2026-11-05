@@ -16,7 +16,7 @@ La defensa responde qué parque solar argentino conviene mirar primero. Un model
 | Histograma, boxplot, dispersión, correlación y heatmap | [Clase 4](https://www.notion.so/3c9096bfe0b28052a107eb1c1ebe53b7) | Serie observado contra estimado y mapa de parques. |
 | Supervisado vs no supervisado | [Clase 5](https://www.notion.so/3d0096bfe0b280dd9808caf91e24708e) | Factor de capacidad medido como target de regresión. |
 | Árbol CART, poda, promedio en hojas | [Clase 6](https://www.notion.so/3d6096bfe0b2807fba88e0b0a48ff2d4) | Árbol de regresión comparado con el resto. |
-| Random Forest, bagging, importancia y XGBoost | [Clase 7](https://www.notion.so/3ec096bfe0b2806b96d9e1d626263337) | Misma partición para los cinco modelos. |
+| Random Forest, bagging, importancia y XGBoost | [Clase 7](https://www.notion.so/3ec096bfe0b2806b96d9e1d626263337) | Misma partición para los seis modelos. |
 | Matriz de confusión, accuracy, precision, recall, F1 | [Clase 9](https://www.notion.so/3ec096bfe0b280ab83c7d946b9984f5f) | No se aplica: no hay fallas etiquetadas y no se inventa una matriz. La tasa de detección se mide solo sobre caídas inyectadas. |
 | Variables derivadas y One-Hot Encoding | [Clase 10](https://www.notion.so/3f3096bfe0b28065aa31d0f0b43d729b) | Mes en one-hot. El parque no entra como categoría, para poder consultar un lugar nuevo. |
 | Split, cross-validation, leakage y bias-variance | [Clase 11](https://www.notion.so/3fb096bfe0b281a595a4fa720f25134e) | 2024 elige el modelo. La prueba es desde 2025. Un grupo por parque mide un sitio no visto y da lo esperado de cada parque, sin que su propia caída lo contamine. |
