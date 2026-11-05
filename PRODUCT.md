@@ -12,21 +12,21 @@ HTML, CSS y JavaScript estáticos, Plotly local, fuentes IBM Plex Sans locales. 
 
 ## Users
 
-Principal: jurado y equipo en la defensa de Ciencia de Datos de UADE, 12/11/2026. La pregunta es cuánta energía generaría un parque en un lugar y un año. Trabajo compartido de Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio.
+Principal: jurado y equipo en la defensa de Ciencia de Datos de UADE, 12/11/2026. La pregunta es qué parque solar conviene mirar primero, y cuánta energía debería generar un parque en un lugar y un año. Trabajo compartido de Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio.
 
 ## Product Purpose
 
-Estimar la energía anual de un parque solar argentino a partir del lugar, el año y la potencia. Éxito: el jurado ve el modelo, las particiones, el error y el límite de un punto fuera de rango.
+Señalar qué parques solares argentinos rinden menos de lo esperado y cuánta plata está en juego, y estimar la energía de un sitio nuevo. Éxito: la gerencia sabe a qué parque mirar primero, y el jurado ve el modelo, las particiones, el error y los límites.
 
 ## Operating Context
 
-Proyección en aula, computadora con datos locales. El recorrido es Datos, Modelos, Sitio y Parque. Solo Argentina, sin selector de país.
+Proyección en aula, computadora con datos locales. El recorrido es A revisar, Por hora, Sitio nuevo, Modelos y Datos. Argentina es el caso principal; Por hora usa una planta pública de Hawái porque CAMMESA solo publica datos mensuales.
 
 ## Capabilities and Constraints
 
-- Recorrido: Datos → Modelos → Sitio → Parque.
+- Recorrido: A revisar → Por hora → Sitio nuevo → Modelos → Datos. Cinco vistas como máximo: la conclusión primero.
 - Target: factor de capacidad mensual. La energía usa la potencia ingresada y las horas del mes.
-- Modelos de los apuntes: regresión simple/múltiple, árbol, Random Forest y XGBoost.
+- Modelos de los apuntes: regresión simple/múltiple/polinómica, árbol, Random Forest y XGBoost.
 - La clase de matriz de confusión no se aplica: no hay fallas etiquetadas.
 - El modelo, la unidad y las métricas de prueba quedan visibles. La página no enlaza apuntes ni páginas externas.
 - Entrenamiento solo con mediciones reales.

@@ -1,12 +1,12 @@
 # Solar / Datos · TPO Ciencia de Datos
 
-Estimación de la generación mensual de un parque solar en Argentina, según el lugar, el año y la potencia, con técnicas de Ciencia de Datos de UADE, segundo cuatrimestre 2026.
+Qué parque solar argentino conviene mirar primero: cuánto debería generar cada uno según su clima, cuáles rinden menos y cuánta plata está en juego. Ciencia de Datos de UADE, segundo cuatrimestre 2026.
 
 **Defensa:** 12/11/2026. **Integrantes:** Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio. Trabajo compartido en todas las etapas.
 
 ## Recorrido
 
-Datos → Modelos → Sitio → Parque. El target es el factor de capacidad. La energía anual sale de multiplicar por la potencia y por las horas de cada mes. Las métricas son MAE, RMSE y R².
+A revisar → Por hora → Sitio nuevo → Modelos → Datos. El target es el factor de capacidad. La energía sale de multiplicar por la potencia y por las horas de cada mes. Las métricas son MAE, RMSE y R².
 
 [Alcance curricular y clases de Notion](docs/alineacion_materia.md) · [Protocolo](docs/plan_modelado.md) · [Guion](docs/guion_defensa.md).
 
@@ -18,6 +18,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python -m unittest discover -s tests -v
 python -m src.academico
+python -m src.maui   # opcional: requiere internet si faltan los crudos
 python app/build_dashboard.py
 ```
 
@@ -47,9 +48,11 @@ Por defecto los crudos se guardan en `data/raw/` y los procesados en `data/proce
 ## Estructura
 
 - `src/academico.py`: entrenamiento, selección, grilla de consulta y evidencia.
-- `data/processed/defensa_*`: resultados de la defensa.
-- `app/`: Datos, Modelos, Sitio y Parque, sin red.
-- `tests/`: métricas, filtros y la consulta de un sitio.
+- `src/senales.py`: parques a revisar, K-Means, PCA y DBSCAN.
+- `src/maui.py`: detector por hora en plantas públicas de NREL.
+- `data/processed/defensa_*` y `maui_evidencia.json`: resultados de la defensa.
+- `app/`: A revisar, Por hora, Sitio nuevo, Modelos y Datos, sin red.
+- `tests/`: métricas, señales, regla horaria y la consulta de un sitio.
 - `docs/`: alcance, protocolo y guion.
 
 La evaluación es retrospectiva. Un año futuro usa el clima promedio, no un pronóstico meteorológico. Fuera del rectángulo de parques el resultado es un caso límite. El equipo informó cuatro integrantes; la consigna escrita pide cinco o seis.

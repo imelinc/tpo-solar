@@ -1,5 +1,15 @@
 # Verificación de la versión de defensa
 
+## Unificación con el Detector Solar — 05/11/2026
+
+- `python -m unittest discover -s tests -v` pasa 17 pruebas. Se suman las reglas de señal, el caso sin vecinos, los ceros, la zona, el arranque, la regla horaria y la detección de copias.
+- `node tests/dashboard.cjs` recorre las cinco vistas y comprueba que la regla horaria del navegador dé lo mismo que Python.
+- Sumar la polinómica no cambió XGBoost ni la grilla: las métricas y los factores de 2023 son idénticos a la versión anterior.
+- Inversor 11 de Maui: 220.222 lecturas emparejadas con el 04, 99,98 % idénticas en potencia, factor de potencia, voltaje y temperatura. Par de control (04 y 10): 0,14 %.
+- Render real: las vistas A revisar, Por hora y Modelos se revisaron en el navegador integrado a 1440 × 900, sin errores de consola.
+- Los notebooks 02 a 07 se ejecutaron completos, sin guardar salidas.
+- La carpeta original del Detector Solar dejó de estar disponible en Descargas durante el trabajo. Las cifras de esta versión se recalcularon desde los crudos públicos y no dependen de ella.
+
 ## Rediseño del dashboard y revisión del TP — 29/10/2026
 
 - `python -m unittest discover -s tests -v` pasa 10 pruebas.
@@ -17,5 +27,5 @@ El modelo elegido por validación es XGBoost: RMSE 0,0499 en 2024; en la prueba 
 ## Límites que siguen abiertos
 
 - No hay prueba en el proyector del aula. El fondo es oscuro; usar «Modo exposición» y revisar el brillo antes de la defensa.
-- Los casos reales no cuentan con etiquetas independientes y sus causas no se verificaron en campo. La evaluación es retrospectiva.
+- Las señales y los casos reales no cuentan con etiquetas independientes y sus causas no se verificaron en campo. La evaluación es retrospectiva.
 - Confirmar con el docente la aceptación de cuatro integrantes frente a los 5–6 de la consigna.

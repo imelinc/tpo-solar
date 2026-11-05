@@ -14,6 +14,7 @@ DEST.mkdir(parents=True, exist_ok=True)
 for viejo in ["matriz.png", "deteccion.png", "station09.png", "eda.png"]:
     (DEST / viejo).unlink(missing_ok=True)
 D = json.loads((ROOT / "data/processed/defensa_evidencia.json").read_text())
+M = json.loads((ROOT / "data/processed/maui_evidencia.json").read_text())
 font_manager.fontManager.addfont(str(ROOT / "app/fonts/plex-regular.ttf"))
 plt.rcParams.update({"font.family": "IBM Plex Sans", "font.size": 12, "axes.spines.top": False,
                     "axes.spines.right": False, "axes.spines.left": False, "axes.spines.bottom": False,
@@ -34,12 +35,13 @@ ax.barh([r["nombre"] for r in rows], [r["validacion"]["rmse"] for r in rows],
 ax.set(title="RMSE de validación · 2024", xlabel="Factor de capacidad")
 ax.invert_yaxis(); ax.grid(axis="x", alpha=.15); save("modelos")
 elegido = next(r for r in rows if r["id"] == R["elegido"])
-parque = D["ejemplo_parque"]
+S = D["senales"]
+parque = S["ranking"][0]["central"]
 serie = [r for r in D["serie"] if r["central"] == parque]
 fig, ax = plt.subplots(figsize=(10, 5.2))
 x = pd.to_datetime([r["fecha"] for r in serie])
 ax.plot(x, [r["factor_capacidad"] for r in serie], color=color, label="Observado", lw=1.6)
-ax.plot(x, [r["pred"] for r in serie], color="#91a7b2", label="Estimado", lw=1.2)
+ax.plot(x, [r["pred_oof"] for r in serie], color="#91a7b2", label="Esperado", lw=1.2)
 ax.set(title=f"{serie[-1]['nombre']} · factor de capacidad", ylabel="Factor de capacidad")
 ax.legend(frameon=False); ax.grid(axis="y", alpha=.15); save("serie")
 demo = D["presets"][0]["resultado"]
@@ -48,24 +50,38 @@ ax.bar([m["mes"] for m in demo["meses"]], [m["gwh"] for m in demo["meses"]], col
 ax.set(title=f"Sitio nuevo, 2023 · {demo['potencia_mw']:.0f} MW", xlabel="Mes", ylabel="GWh")
 ax.grid(axis="y", alpha=.15); save("sitio")
 
+filas = S["ranking"][:6]
+fig, ax = plt.subplots(figsize=(10, 5.2))
+ax.barh([r["nombre"][:34] for r in filas], [r["gwh_faltante"] for r in filas], color=color, height=0.55)
+ax.set(title="Parques a revisar · energía faltante desde 2025", xlabel="GWh")
+ax.invert_yaxis(); ax.grid(axis="x", alpha=.15); save("senales")
+z = [[float("nan") if v is None else v for v in f] for f in M["mapa"]["z"]]
+fig, ax = plt.subplots(figsize=(10, 3.8))
+im = ax.imshow(z, aspect="auto", vmin=.4, vmax=1.1, cmap="Blues_r")
+ax.set_yticks(range(len(z)), M["mapa"]["inversores"]); ax.set(title="Maui · rendimiento semanal contra los vecinos", xlabel="Semana")
+fig.colorbar(im); save("planta")
+
 def es(n, d=3):
     s = f"{n:,.{d}f}"
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
 t = elegido["test"]
+R0, A0 = S["resumen"], M["detector"]
 slides = [
-    ("Cuánta energía en un lugar y un año", "Argentina · generación mensual",
-     "<p>Latitud, longitud, año y potencia. El año elige el clima medido. La energía es el factor de capacidad por los MW y por las horas del mes.</p><p>Ignacio Melinc · Matias Young · Francisco Fabrello · Malena Garcia Moraglio</p>"),
+    ("Qué parque solar mirar primero", "Argentina · generación mensual",
+     f"<img src='senales.png' alt='Parques a revisar'><p>{R0['sitios']} sitios con señal desde 2025, {es(R0['gwh_faltante'], 0)} GWh faltantes, unos USD {es(R0['usd_millones'], 1)} millones a USD {S['usd_mwh']}/MWh. Una señal no es una falla confirmada.</p><p>Ignacio Melinc · Matias Young · Francisco Fabrello · Malena Garcia Moraglio</p>"),
+    ("Con datos por hora, el aviso llega en horas", "Maui · NREL PVDAQ 2105",
+     f"<img src='planta.png' alt='Mapa de calor de inversores'><p>Inversor apagado: {es(A0['apagado']['mediana_horas'], 0)} horas de sol. Caída de 30 %: {es(A0['parcial_30']['mediana_horas'], 0)} horas de sol. Fallas inyectadas solo para medir. El inversor 11 es copia del 04 y se cuenta una vez.</p>"),
     ("Elegir con 2024", "La prueba queda aparte",
      f"<img src='modelos.png' alt='RMSE de validación'><p>{R['nombre']}. Prueba desde 2025: RMSE {es(t['rmse'])}, MAE {es(t['mae'])}, R² {es(t['r2'])}. Parque no visto en el entrenamiento: RMSE {es(R['cv_parques']['rmse'])}.</p>"),
-    ("Un parque real", "Los ceros siguen en la serie",
-     "<img src='serie.png' alt='Factor observado y estimado'>"),
+    ("El parque con más energía faltante", serie[-1]["nombre"],
+     "<img src='serie.png' alt='Factor observado y esperado'>"),
     ("Un sitio nuevo", "10 MW junto a un parque existente, clima de 2023",
      f"<img src='sitio.png' alt='Energía mensual estimada'><p>{es(demo['energia_gwh'], 2)} GWh en el año. A {es(demo['distancia_km'], 0)} km del clima copiado. Fuera del rectángulo de parques, el número es un caso límite.</p>"),
 ]
 html = """<!doctype html><html lang="es-AR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Solar / Datos · Respaldo</title><style>@font-face{font-family:Plex;src:url('../../app/fonts/plex-regular.ttf')}*{box-sizing:border-box}body{margin:0;font:20px/1.55 Plex,Arial,sans-serif;color:#18252d;background:#f4f6f7}nav{padding:18px 5%;font-size:15px}section{min-height:100vh;padding:40px 6%;background:white;border-bottom:1px solid #e3eaed}h1{font-size:36px;font-weight:400;margin:0 0 9px}h2{font-size:19px;font-weight:400;color:#52636d;margin:0 0 24px}p{max-width:85ch;color:#52636d}img{max-width:100%;max-height:62vh}footer{font-size:13px;color:#52636d;margin-top:25px}@media(max-width:700px){section{padding:28px 20px}h1{font-size:28px}body{font-size:17px}}@media print{nav{display:none}section{min-height:0;height:100vh}}</style><nav>Solar / Datos · Argentina · Defensa 12/11/2026</nav>"""
 for title, subtitle, body in slides:
-    html += f"<section><h1>{title}</h1><h2>{subtitle}</h2>{body}<footer>Fuente: src/academico.py · Evaluación retrospectiva</footer></section>"
+    html += f"<section><h1>{title}</h1><h2>{subtitle}</h2>{body}<footer>Fuente: src/academico.py, src/senales.py y src/maui.py · Evaluación retrospectiva</footer></section>"
 html += "</html>"
 (DEST / "index.html").write_text(html)
 print("Respaldo:", DEST / "index.html")
