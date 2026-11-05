@@ -188,6 +188,7 @@ h1{font:700 clamp(40px,4.4vw,64px)/.98 var(--cond);letter-spacing:-.005em;text-w
 .lectura th{font:500 14px/1.2 var(--cond);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:6px 8px;border-bottom:2px solid var(--ink)}
 .lectura td{padding:9px 8px;border-bottom:1px solid var(--rule);color:var(--ink-2)}
 .lectura td:last-child{font-weight:600;color:var(--ink)}
+.ghost-button.mas{margin-top:12px}
 .controls.sin-marco{margin-bottom:12px}
 .controls.sin-marco select{min-width:150px}
 .controls.sin-marco input{width:6.5rem}

@@ -22,6 +22,7 @@ assert.equal($('.view:not([hidden])').id,'vista-revisar','abre en la conclusión
 assert.equal($('#revisar-tabla tbody').children.length,w.DEFENSA.senales.ranking.length,'ranking completo');
 assert(plots.has('serie-chart'),'serie del parque elegido');
 set('#revisar-usd',100);assert($('#revisar-tabla tbody td:last-child').textContent===(w.DEFENSA.senales.ranking[0].gwh_faltante*100/1000).toFixed(2).replace('.',','),'el precio recalcula la plata');set('#revisar-usd',w.DEFENSA.senales.usd_mwh);
+assert.equal(w.document.querySelectorAll('#revisar-tabla tbody tr:not([hidden])').length,5,'muestra los cinco principales');$('#revisar-mas').click();assert.equal(w.document.querySelectorAll('#revisar-tabla tbody tr:not([hidden])').length,w.DEFENSA.senales.ranking.length,'el botón abre todos');$('#revisar-mas').click();
 route('planta');
 assert(plots.has('planta-mapa')&&plots.has('planta-chart'),'mapa de calor y prueba');
 assert($('#planta-calidad').textContent.includes('copia del 04'),'avisa la copia del inversor');

@@ -376,12 +376,14 @@ function fijarSitio(pt){
 }
 /* Parques a revisar */
 const rango=(a,b)=>a.slice(0,7)===b.slice(0,7)?a.slice(0,7):`${a.slice(0,7)} – ${b.slice(0,7)}`;
+const VISIBLES=5;
 function revisar(){
   const s=D.senales,filas=s.ranking;
   $('#revisar-meta').textContent=`${s.resumen.sitios} sitios · ${s.resumen.marcados} de ${fmt(s.resumen.meses,0)} meses-parque`;
-  $('#revisar-tabla tbody').innerHTML=filas.map(r=>`<tr data-central="${esc(r.central)}" tabindex="0" aria-selected="${r.central===S.parque}"><td>${esc(titulo(r.nombre))}<br><small>${esc(provincia(r.provincia))}</small></td><td>${rango(r.desde,r.hasta)}</td><td class="number">${r.meses}</td><td class="number">${fmt(r.rinde_modelo*100,0)} %</td><td class="number">${fmt(r.rinde_vecinos*100,0)} %</td><td class="number">${fmt(r.gwh_faltante,1)}</td><td class="number">${fmt(r.gwh_faltante*S.usd/1000,2)}</td></tr>`).join('');
+  $('#revisar-tabla tbody').innerHTML=filas.map((r,k)=>`<tr data-central="${esc(r.central)}" tabindex="0" aria-selected="${r.central===S.parque}"${k>=VISIBLES&&!S.todos?' hidden':''}><td>${esc(titulo(r.nombre))}<br><small>${esc(provincia(r.provincia))}</small></td><td>${rango(r.desde,r.hasta)}</td><td class="number">${r.meses}</td><td class="number">${fmt(r.rinde_modelo*100,0)} %</td><td class="number">${fmt(r.rinde_vecinos*100,0)} %</td><td class="number">${fmt(r.gwh_faltante,1)}</td><td class="number">${fmt(r.gwh_faltante*S.usd/1000,2)}</td></tr>`).join('');
+  const mas=$('#revisar-mas');mas.hidden=filas.length<=VISIBLES;mas.setAttribute('aria-expanded',String(!!S.todos));mas.textContent=S.todos?`Ver los ${VISIBLES} principales`:`Ver los ${filas.length} sitios`;
   const e=s.resumen.estados,c=s.caidas.find(x=>x.caida===0.3),d=s.caidas.find(x=>x.caida===0.1);
-  $('#revisar-nota').textContent=`Señal: ${s.meses_seguidos} meses seguidos por debajo del ${fmt(s.umbral*100,0)} % del modelo y de los vecinos. La regla ve caídas grandes: si un parque cae 30 % la marca ${fmt(c.detectadas*100,0)} % de las veces; si cae 10 %, ${fmt(d.detectadas*100,0)} %. Sin saberlo no se afirma nada: ${fmt(e.sin_vecinos||0,0)} meses no tienen vecinos para comparar y ${fmt(e.arranque||0,0)} son arranques o ampliaciones.`;
+  $('#revisar-nota').textContent=`Señal: ${s.meses_seguidos} meses seguidos por debajo del ${fmt(s.umbral*100,0)} % del modelo y de los vecinos. La regla ve caídas grandes: si un parque cae 30 % la marca ${fmt(c.detectadas*100,0)} % de las veces; si cae 10 %, ${fmt(d.detectadas*100,0)} %. Sobre otros meses no se afirma nada: ${fmt(e.sin_vecinos||0,0)} no tienen vecinos para comparar y ${fmt(e.arranque||0,0)} son arranques o ampliaciones.`;
   $('#revisar-regla').innerHTML=[['Bajo','Bajo','Revisar ese parque'],['Bajo','Normal','Mirar la zona o la red'],['Normal','Normal','Sigue igual'],['—','Sin vecinos','No se sabe']].map(f=>`<tr>${f.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('');
   $('#revisar-usd-nota').textContent='Supuesto de orden de magnitud. Cambialo y se recalcula la plata en juego. No es un ahorro demostrado.';
   serie();
@@ -482,6 +484,7 @@ function iniciar(){
   const abrirFila=e=>{const tr=e.target.closest('tr[data-central]');if(!tr)return;S.parque=tr.dataset.central;serie();};
   $('#revisar-tabla tbody').addEventListener('click',abrirFila);
   $('#revisar-tabla tbody').addEventListener('keydown',e=>{if(e.key==='Enter')abrirFila(e);});
+  $('#revisar-mas').addEventListener('click',()=>{S.todos=!S.todos;revisar();});
   $('#revisar-usd').addEventListener('input',()=>{const v=parseFloat($('#revisar-usd').value);if(!(v>0))return;S.usd=v;barraEvidencia();revisar();});
   $('#planta-inv').innerHTML=D.maui.demo.inversores.map(c=>`<option value="${esc(c)}">${esc(nombreInv(c))}</option>`).join('');
   $('#planta-dia').max=new Set(D.maui.demo.horas.map(h=>h.slice(0,10))).size;
