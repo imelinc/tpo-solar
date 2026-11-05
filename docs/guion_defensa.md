@@ -4,6 +4,46 @@ Para los 10 minutos de exposición y los 5 de demo, usar [guion_presentacion_10m
 
 Equipo: Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio.
 
+## ¿Por qué Tocota III primero?
+
+Porque es el sitio con más energía faltante desde 2025: 99 GWh en 14 meses con señal. Rindió el 54 % del modelo y el 52 % de sus vecinos: las dos comparaciones coinciden. No sabemos la causa. Puede ser una falla, una restricción de la red, un contrato o una potencia mal informada.
+
+## ¿Por qué lo esperado sale de un modelo que no vio ese parque?
+
+Si lo hubiera visto, aprendería a esperar poco de un parque que rinde poco, y la señal se apagaría sola. Se entrenan cinco modelos hasta 2023, cada uno sin un grupo de parques, y se usa el que no vio al parque.
+
+## ¿Es plata que se pierde?
+
+No se afirma. Es energía faltante por un precio supuesto de USD 60/MWh: unos USD 12,0 M en total. Sirve para ordenar la prioridad y el precio se cambia en la app. No es un ahorro demostrado.
+
+## ¿Por qué 80 %?
+
+Es un umbral fijado por criterio, no optimizado. Entre 75 % y 85 % se mantienen 11 a 14 sitios y 191 a 216 GWh. Con caídas simuladas de 10/20/30/50 % detecta 1/10,5/61,5/82,5 %: ve problemas grandes, no chicos.
+
+## ¿Qué pasa si faltan vecinos?
+
+194 meses del test quedan en «sin vecinos»: no se sabe. No se los cuenta como normales.
+
+## ¿Por qué Hawái, si el trabajo es de Argentina?
+
+CAMMESA solo publica datos mensuales. Maui es una planta pública con datos por hora, y sirve para medir qué se ganaría. Es un zoom, no el caso principal. Los mismos umbrales dan los mismos tiempos en otras dos plantas de Estados Unidos.
+
+## ¿No entrenaron con fallas simuladas?
+
+No. El docente dijo «fuerte no» a entrenar con datos sintéticos. Las fallas inyectadas solo miden el tiempo de aviso. Por eso no hay clasificador de causas.
+
+## ¿Qué es lo del inversor 11?
+
+Es copia exacta del 04: 220.222 lecturas emparejadas, 99,98 % iguales en potencia, factor de potencia, voltaje y temperatura. Un par de control da menos del 1 %. Se cuenta una vez; contarlos por separado infla la pérdida.
+
+## ¿Por qué no usar DBSCAN para señalar?
+
+Apartó 127 meses, 91 de ellos con rendimiento alto, y solo 27 de las 109 señales quedaron afuera. Separa lo raro, no lo malo.
+
+## ¿Por qué no regresión logística?
+
+Es un clasificador y el target es un número. Además no hay fallas etiquetadas con las que entrenarla.
+
 ## ¿Puede estimar un parque que todavía no existe?
 
 Sí, si se dan tres cosas: el lugar (se elige con un clic en el mapa), el año y la potencia en MW, y el punto cae dentro del rectángulo de parques usados para entrenar (el train set). La aplicación no deja elegir un punto fuera de ese rectángulo.
@@ -22,8 +62,10 @@ Un punto fuera del rectángulo, como Ushuaia, la aplicación no lo deja elegir: 
 - El RMSE de los grupos por parque no eligió al modelo. Mide parques que no entraron a ese ajuste.
 - Un cero de generación se conserva. No es un mes sin reporte.
 - No hay etiquetas de fallas en CAMMESA, así que no hay matriz de confusión.
+- Una señal no es una falla confirmada y ninguna causa se verificó en campo.
+- Una suciedad pareja en toda una planta no se ve: la comparación con vecinos la cancela.
 - La energía estimada no es producción ya cobrada ni un ahorro.
 
 ## Recorrido de la demo
 
-Datos → Modelos → Sitio (2023, 2028, un clic fuera del recuadro) → Parque real (Chepes).
+A revisar (precio, Tocota III) → Por hora (mapa, prueba de falla) → Sitio nuevo (2023, 2028, un clic fuera del recuadro) → Modelos → Datos.
