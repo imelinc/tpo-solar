@@ -68,4 +68,4 @@ Un punto fuera del rectángulo, como Ushuaia, la aplicación no lo deja elegir: 
 
 ## Recorrido de la demo
 
-A revisar (precio, Tocota III) → Por hora (mapa, prueba de falla) → Sitio nuevo (2023, 2028, un clic fuera del recuadro) → Modelos → Datos.
+A revisar (precio, Tocota III) → Sitio nuevo (2023, 2028, un clic fuera del recuadro) → Modelos → Datos.
