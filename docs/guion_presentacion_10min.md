@@ -35,7 +35,7 @@ Las aclaraciones se dicen igual: una señal no es una falla confirmada, y la pla
 En la presentación se evitan. Si preguntan, se responde en una frase, con el ejemplo de la derecha.
 
 | Término | Qué decir (una frase) | Con qué número o ejemplo |
-|---|---|---|---|
+|---|---|---|
 | **Potencia (MW) y energía (GWh)** | La potencia es lo máximo que el parque puede entregar en un instante; la energía es lo que entregó en un período. 1 GWh = 1.000 MWh. | Un parque de 10 MW produce 22,44 GWh en un año. |
 | **Factor de capacidad** (*capacity factor*) | Qué parte de su potencia máxima entrega un parque en promedio. Saca el tamaño de la comparación: queda solo lo que depende del lugar y del clima. | Un parque típico entrega cerca de un cuarto de su máximo (mediana de 0,25). En enero 0,33 y en junio 0,17. |
 | **Cuenta de la energía** | La energía sale de multiplicar el factor por la potencia y por las horas. | 10 MW × 8.760 h × 25,6 % = 22,44 GWh. |
