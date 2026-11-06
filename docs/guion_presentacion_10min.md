@@ -2,7 +2,7 @@
 
 Defensa: 12/11/2026. Equipo: Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio. El reparto es de exposición. El trabajo es compartido.
 
-Diapositivas (14): artefacto Slides «Detector Solar», https://claude.ai/artifact/AEDgX4KSzRftquSmVdBWGJ (privado hasta compartirlo; se descarga como PPTX o PDF). Portada, 3 por integrante y «Muchas gracias». Cada diapositiva tiene notas con lo que se dice y con respuestas por si preguntan.
+Diapositivas (11): artefacto Slides «Detector Solar», https://claude.ai/artifact/AEDgX4KSzRftquSmVdBWGJ (privado hasta compartirlo; se descarga como PPTX o PDF). Portada, 3 por integrante y «Muchas gracias». Cada diapositiva tiene notas con lo que se dice y con respuestas por si preguntan.
 
 Las cifras salen de `data/processed/defensa_evidencia.json`. Si se reentrena, se actualizan las diapositivas antes de exponer.
 
@@ -13,21 +13,18 @@ Poco texto y palabras comunes. Decir «rendimiento» en vez de «factor de capac
 | N.º | Título | Duración | Acumulado | Expositor |
 |---|---|---:|---:|---|
 | 1 | Encontramos la energía que falta en los parques solares argentinos | 0:20 | 0:20 | Ignacio |
-| 2 | USD 12 M en juego, 87 % en tres parques | 0:50 | 1:10 | Ignacio |
-| 3 | Un mes bajo no dice nada. Comparado, sí. | 0:55 | 2:05 | Ignacio |
-| 4 | Un número para comparar parques | 0:45 | 2:50 | Ignacio |
-| 5 | Todo sale de datos públicos | 0:50 | 3:40 | Matias |
-| 6 | En junio se rinde la mitad que en enero | 0:40 | 4:20 | Matias |
-| 7 | Jujuy rinde casi el doble que Córdoba (K-Means) | 0:50 | 5:10 | Matias |
-| 8 | Probamos seis modelos: ganó XGBoost | 0:50 | 6:00 | Francisco |
-| 9 | Lo probamos con meses que no vio | 0:50 | 6:50 | Francisco |
-| 10 | Cuándo un parque entra en la lista | 0:45 | 7:35 | Francisco |
-| 11 | La lista de a quién llamar primero | 0:55 | 8:30 | Malena |
-| 12 | También sirve antes de construir | 0:40 | 9:10 | Malena |
-| 13 | Qué se lleva la gerencia, y paso a la demostración | 0:40 | 9:50 | Malena |
-| 14 | Muchas gracias | 0:10 | 10:00 | Malena |
+| 2 | Cuánto debería generar cada parque | 1:10 | 1:30 | Ignacio |
+| 3 | USD 12 M en juego, 87 % en tres parques | 1:00 | 2:30 | Ignacio |
+| 4 | En junio se rinde la mitad que en enero | 0:50 | 3:20 | Ignacio |
+| 5 | Cómo detectamos un rendimiento bajo | 1:10 | 4:30 | Matias |
+| 6 | Todo sale de datos públicos | 1:00 | 5:30 | Matias |
+| 7 | Jujuy rinde casi el doble que Córdoba (K-Means) | 1:00 | 6:30 | Francisco |
+| 8 | Probamos seis modelos: ganó XGBoost | 1:30 | 8:00 | Francisco |
+| 9 | Cuánto generaría un parque nuevo | 1:00 | 9:00 | Malena |
+| 10 | Qué se lleva la gerencia, y paso a la demostración | 0:50 | 9:50 | Malena |
+| 11 | Muchas gracias | 0:10 | 10:00 | Malena |
 
-Cambios de expositor en 2:50, 5:10 y 7:35. La demostración va entre la 13 y la 14.
+Cambios de expositor en 3:20, 5:30 y 8:00. La demostración va entre la 10 y la 11.
 
 Apertura: «Cuando un parque solar rinde menos de lo que debería, desde afuera nadie se entera. Este es Detector Solar».
 
@@ -81,6 +78,6 @@ Cierre: «Con datos públicos sabemos a quién llamar primero. Para saber por qu
 
 ## Ensayo
 
-1. Una pasada leyendo las notas y otra sin leerlas, con cronómetro. Practicar los cambios de expositor en 2:50, 5:10 y 7:35.
+1. Una pasada leyendo las notas y otra sin leerlas, con cronómetro. Practicar los cambios de expositor en 3:20, 5:30 y 8:00.
 2. Si la aplicación no responde en quince segundos, seguir con `docs/respaldo/index.html`.
 3. Preguntas esperables: en `guion_defensa.md`.
