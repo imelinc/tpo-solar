@@ -6,7 +6,7 @@ Qué parque solar argentino conviene mirar primero: cuánto debería generar cad
 
 ## Recorrido
 
-A revisar → Por hora → Sitio nuevo → Modelos → Datos. El target es el factor de capacidad. La energía sale de multiplicar por la potencia y por las horas de cada mes. Las métricas son MAE, RMSE y R².
+A revisar → Sitio nuevo → Modelos → Datos. El target es el factor de capacidad. La energía sale de multiplicar por la potencia y por las horas de cada mes. Las métricas son MAE, RMSE y R².
 
 [Alcance curricular y clases de Notion](docs/alineacion_materia.md) · [Protocolo](docs/plan_modelado.md) · [Guion](docs/guion_defensa.md).
 
@@ -18,7 +18,6 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python -m unittest discover -s tests -v
 python -m src.academico
-python -m src.maui   # opcional: requiere internet si faltan los crudos
 python app/build_dashboard.py
 ```
 
@@ -49,9 +48,9 @@ Por defecto los crudos se guardan en `data/raw/` y los procesados en `data/proce
 
 - `src/academico.py`: entrenamiento, selección, grilla de consulta y evidencia.
 - `src/senales.py`: parques a revisar, K-Means, PCA y DBSCAN.
-- `src/maui.py`: detector por hora en plantas públicas de NREL.
-- `data/processed/defensa_*` y `maui_evidencia.json`: resultados de la defensa.
-- `app/`: A revisar, Por hora, Sitio nuevo, Modelos y Datos, sin red.
+- `src/maui.py`: análisis aparte por hora en plantas públicas de NREL. La app, el informe y la presentación no lo usan.
+- `data/processed/defensa_*`: resultados de la defensa.
+- `app/`: A revisar, Sitio nuevo, Modelos y Datos, sin red.
 - `tests/`: métricas, señales, regla horaria y la consulta de un sitio.
 - `docs/`: alcance, protocolo y guion.
 

@@ -11,7 +11,6 @@ const C = {paper:'#f5f9f4',plate:'#ffffff',plate2:'#e4efe7',line:'#cfe0d4',lineS
 const SANS = 'Barlow, Helvetica Neue, Arial, sans-serif';
 const TITULOS = {
   revisar:['Qué parques solares rinden menos de lo esperado','Cada parque se compara con lo que debería haber generado según su clima y con sus vecinos de provincia. Una señal no es una falla confirmada: es el parque que conviene mirar primero.'],
-  planta:['Con datos por hora, el aviso llega en horas','Cada inversor se compara con sus vecinos a la misma hora: todos ven el mismo cielo. CAMMESA publica solo datos mensuales, así que esto se mide en una planta pública de Hawái.'],
   sitio:['Cuánto generaría un parque nuevo','Hacé clic en el mapa donde iría el parque. El modelo estima el factor con la ubicación, el clima y el mes; la energía sale de la potencia y las horas.'],
   modelos:['Qué modelo estima mejor','El menor RMSE de validation (2024) elige el modelo. El test es desde 2025 y es retrospectivo: esos meses ya se exploraron.'],
   atlas:['Los datos de los parques','Dónde están los 56 parques, cuánto rinden y qué muestra la exploración antes de modelar.']
@@ -208,12 +207,6 @@ function barraEvidencia(){
     $('#evidencia').innerHTML=celda('Sitios con señal',fmt(s.sitios,0))+celda('GWh faltantes',fmt(s.gwh_faltante,0))+celda('USD millones',fmt(s.gwh_faltante*S.usd/1000,1))+celda('De lo generado',fmt(s.pct,1)+' %')+celda('Modelo',esc(r.nombre),'modelo')+celda('Alcance',`Test retrospectivo ${s.desde.slice(0,7)} a ${s.hasta.slice(0,7)} · CAMMESA y Open-Meteo`,'alcance');
     return;
   }
-  if(S.vista==='planta'){
-    const a=D.maui.detector,f=D.maui.avisos_sin_falla;
-    $('#evidencia').innerHTML=celda('Se apaga',`${fmt(a.apagado.mediana_horas,0)} h de sol`)+celda('Cae 30 %',`${fmt(a.parcial_30.mediana_horas,0)} h de sol`)+celda('Cae 15 %',`detecta ${fmt(a.parcial_15.detectadas*100,0)} %`)+celda('Avisos por equipo y mes',fmt(f.por_inversor_mes,2))+celda('Alcance',`${esc(D.maui.fuente)} · regla sin modelo · fallas inyectadas en 2022–2023, solo para medir`,'alcance');
-    $('#evidencia').lastElementChild.style.gridColumn='1/-1';
-    return;
-  }
   $('#evidencia').innerHTML=celda('Modelo elegido',esc(r.nombre),'modelo')+celda('RMSE test',fmt(m.rmse,4))+celda('MAE test',fmt(m.mae,4))+celda('R² test',fmt(m.r2,3))+celda('RMSE new park',fmt(cv.rmse,4))+celda('Alcance','Factor de capacidad mensual · test retrospectivo desde 2025','alcance');
 }
 function mostrar(){
@@ -227,7 +220,7 @@ function mostrar(){
   $('#titulo').textContent=TITULOS[S.vista][0];
   $('#subtitulo').textContent=TITULOS[S.vista][1];
   barraEvidencia();
-  ({atlas,modelos,sitio,revisar,planta}[S.vista])();
+  ({atlas,modelos,sitio,revisar}[S.vista])();
   const vista=$('#vista-'+S.vista);vista.classList.remove('entra');void vista.offsetWidth;vista.classList.add('entra');
   requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll('.view:not([hidden]) .js-plotly-plot').forEach(el=>Plotly.Plots.resize(el))));
   if(enfocado?.matches?.('#navegacion a') && enfocado.hash==='#'+S.vista)enfocado.focus();
@@ -408,56 +401,6 @@ function serie(){
   ],{yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f',rangemode:'tozero'}),xaxis:eje(),shapes:fondo,
      annotations:corte?[{x:corte.fecha,xanchor:'left',yref:'paper',y:1,yanchor:'top',text:'test',showarrow:false,font:{color:C.blue,size:12},xshift:6}]:[]});
 }
-/* Planta por hora */
-const nombreInv=c=>'Inversor '+c.slice(3);
-function primerAviso(r){
-  const A=D.maui.reglas;let a=0,p=0;
-  for(let i=0;i<r.length;i++){const v=r[i];if(v==null)continue;a=v<A.apagado?a+1:0;p=v<A.parcial?p+1:0;if(a>=A.horas_apagado||p>=A.horas_parcial)return i;}
-  return null;
-}
-window.primerAvisoPrueba=primerAviso;
-function probarFalla(inv,factor,inicio){
-  const base=D.maui.demo.rinde[inv];
-  const r=base.map((v,i)=>v==null?null:i>=inicio?v*factor:v);
-  const previa=primerAviso(r.slice(0,inicio)),h=primerAviso(r.slice(inicio));
-  return {r,previa,horas:h==null?null:h+1};
-}
-function planta(){
-  const M=D.maui,m=M.mapa;
-  $('#planta-meta').textContent=`${M.desde.slice(0,7)} a ${M.hasta.slice(0,7)} · ${m.inversores.length} inversores`;
-  if(!S.dibujado.planta){
-    S.dibujado.planta=true;
-    plot('planta-mapa',[{type:'heatmap',x:m.semanas,y:m.inversores.map(nombreInv),z:m.z,zmin:.4,zmax:1.1,colorscale:[[0,C.ink],[.57,'#7f93e6'],[.86,'#ffffff'],[1,'#ffffff']],colorbar:{title:{text:'Rinde',font:{size:12}},thickness:12,tickformat:'.0%'},xgap:0,ygap:2,hoverongaps:false,hovertemplate:'%{y}<br>semana del %{x|%d/%m/%Y}<br>rinde %{z:.0%} de lo habitual<extra></extra>'}],
-      {xaxis:eje({showgrid:false}),yaxis:eje({autorange:'reversed',showgrid:false,tickfont:{size:12,color:C.ink,family:SANS}}),margin:{l:8,r:8,t:8,b:30}});
-    const q=M.calidad,cp=q.inv11_copia_de_inv04;
-    $('#planta-calidad').innerHTML=[
-      ['alerta',`El inversor 11 es una copia del 04: ${fmt(cp.lecturas,0)} lecturas con la misma potencia, factor de potencia, voltaje y temperatura. Son un solo equipo y se cuenta una vez.`],
-      ['',`El inversor 06 nunca generó: su máximo en cinco años es ${fmt(q.inv06_kw_max,2)} kW. Queda afuera de la comparación.`],
-      ['',`El sensor de radiación tiene el reloj corrido: su correlación con la generación pasa de ${fmt(q.sensor.sin_correr,2)} a ${fmt(q.sensor.mejor_corr,2)} al moverlo ${fmt(Math.abs(q.sensor.mejor_horas),0)} horas. Por eso la regla no lo usa.`]
-    ].map(([c,x])=>`<li class="${c}">${esc(x)}</li>`).join('');
-    const ep=M.episodios.slice(0,4);
-    $('#planta-ep-meta').textContent=`${fmt(M.faltante_kwh/1000,1)} MWh · ${fmt(M.faltante_kwh/M.energia_kwh*100,1)} % de la energía`;
-    $('#planta-ep tbody').innerHTML=ep.map(e=>`<tr><td>${nombreInv(e.inversor)}</td><td>${e.desde.slice(0,7)} – ${e.hasta.slice(0,7)}</td><td class="number">${fmt(e.rinde*100,0)} %</td><td class="number">${fmt(e.kwh_faltante/1000,1)}</td></tr>`).join('');
-    $('#planta-otras tbody').innerHTML=[{planta:'Maui, Hawái',equipos:m.inversores.length,detector:M.detector,avisos_sin_falla:M.avisos_sin_falla},...(M.otras_plantas||[])].map(o=>`<tr><td>${esc(o.planta)}</td><td class="number">${o.equipos}</td><td class="number">${fmt(o.detector.apagado.mediana_horas,0)} h</td><td class="number">${fmt(o.detector.parcial_30.mediana_horas,0)} h</td><td class="number">${fmt(o.avisos_sin_falla.por_inversor_mes,2)}</td></tr>`).join('');
-    $('#planta-mapa-nota').textContent=`Cada fila es un inversor y cada columna, una semana. Blanco: rinde como siempre. Oscuro: rinde menos que sus vecinos. Las causas no se verificaron en la planta.`;
-  }
-  dibujarPrueba();
-}
-function dibujarPrueba(){
-  const Dm=D.maui.demo,inv=$('#planta-inv').value,factor=parseFloat($('#planta-falla').value);
-  const horas=Dm.horas,dias=[...new Set(horas.map(h=>h.slice(0,10)))];
-  const dia=Math.max(1,Math.min(dias.length,parseInt($('#planta-dia').value,10)||1));
-  const inicio=horas.findIndex(h=>h.slice(0,10)===dias[dia-1]);
-  const t=probarFalla(inv,factor,inicio),res=$('#planta-resultado');
-  res.dataset.aviso=t.horas==null?'no':'si';
-  res.textContent=factor===1&&t.horas==null?'Sin falla no hay aviso.':t.horas==null?'En estas tres semanas no avisó: esa caída es muy chica para la regla.':t.horas===1?'Avisó en la primera hora de sol.':`Avisó a las ${t.horas} horas de sol.`;
-  const idx=horas.map((_,i)=>i),A=D.maui.reglas,alerta=t.horas==null?null:inicio+t.horas-1;
-  plot('planta-chart',[
-    {type:'scatter',mode:'lines',x:idx,y:t.r,connectgaps:false,line:{color:C.ink,width:1.8},customdata:horas,hovertemplate:'%{customdata}<br>rinde %{y:.0%}<extra></extra>'},
-    ...(alerta==null?[]:[{type:'scatter',mode:'markers',x:[alerta],y:[t.r[alerta]],marker:{symbol:'circle-open',size:18,line:{width:2.6},color:C.blue},hovertemplate:'aviso<extra></extra>'}])
-  ],{xaxis:eje({title:{text:'Horas de sol'},showgrid:false}),yaxis:eje({title:{text:'Rinde contra sus vecinos'},tickformat:'.0%',range:[0,1.3]}),margin:{l:8,r:12,t:8,b:40},
-    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:A.parcial,y1:A.parcial,line:{color:C.blue,width:1.4,dash:'dash'}},{type:'line',xref:'paper',x0:0,x1:1,y0:A.apagado,y1:A.apagado,line:{color:C.blue,width:1.4,dash:'dot'}},{type:'rect',xref:'x',yref:'paper',x0:inicio,x1:idx.at(-1),y0:0,y1:1,fillcolor:'rgba(31,63,191,.07)',line:{width:0}}]});
-}
 
 function iniciar(){
   if(!D||!window.Plotly)throw new Error('Faltan los archivos locales de datos o gráficos. Conservá la carpeta app completa y recargá la página.');
@@ -486,9 +429,6 @@ function iniciar(){
   $('#revisar-tabla tbody').addEventListener('keydown',e=>{if(e.key==='Enter')abrirFila(e);});
   $('#revisar-mas').addEventListener('click',()=>{S.todos=!S.todos;revisar();});
   $('#revisar-usd').addEventListener('input',()=>{const v=parseFloat($('#revisar-usd').value);if(!(v>0))return;S.usd=v;barraEvidencia();revisar();});
-  $('#planta-inv').innerHTML=D.maui.demo.inversores.map(c=>`<option value="${esc(c)}">${esc(nombreInv(c))}</option>`).join('');
-  $('#planta-dia').max=new Set(D.maui.demo.horas.map(h=>h.slice(0,10))).size;
-  $('#planta-form').addEventListener('input',dibujarPrueba);
   const grilla=on=>{document.body.classList.toggle('sin-grilla',!on);$('#grilla').setAttribute('aria-pressed',String(on));try{localStorage.setItem('grilla',on?'1':'0');}catch{}};
   try{if(localStorage.getItem('grilla')==='0')grilla(false);}catch{}
   $('#grilla').addEventListener('click',()=>grilla($('#grilla').getAttribute('aria-pressed')!=='true'));

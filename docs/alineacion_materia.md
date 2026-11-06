@@ -6,12 +6,12 @@ Defensa: **12/11/2026**. Equipo informado por el usuario: **4 integrantes**. La 
 
 ## Decisiones
 
-La defensa responde qué parque solar argentino conviene mirar primero. Un modelo estima el factor de capacidad con ubicación y clima; la energía es ese factor por la potencia instalada y por las horas del mes. Cada parque se compara con esa estimación y con sus vecinos de provincia. Una planta pública de Hawái muestra qué se gana con datos por hora. Cada vista identifica fuente, período, modelo y partición.
+La defensa responde qué parque solar argentino conviene mirar primero. Un modelo estima el factor de capacidad con ubicación y clima; la energía es ese factor por la potencia instalada y por las horas del mes. Cada parque se compara con esa estimación y con sus vecinos de provincia. Cada vista identifica fuente, período, modelo y partición.
 
 | Contenido aplicado | Evidencia en los apuntes | Uso en el proyecto |
 |---|---|---|
-| Pipelines, ETL, latencia y frecuencia | [Clase 2](https://www.notion.so/3bb096bfe0b280e59278f280f481a77a) | CAMMESA mensual, clima Open-Meteo y NREL PVDAQ por hora, hasta el dashboard local. La frecuencia define qué tan rápido se puede avisar. |
-| Calidad: completitud, consistencia y validez | [Clase 3](https://www.notion.so/3c9096bfe0b280f3bafef6695b024471) | Coordenadas, potencia ampliada y ceros. Un dato ausente no se trata como mes normal. En Maui: inversor 11 duplicado, inversor 06 sin generación y sensor con el reloj corrido. |
+| Pipelines, ETL, latencia y frecuencia | [Clase 2](https://www.notion.so/3bb096bfe0b280e59278f280f481a77a) | CAMMESA mensual, clima Open-Meteo, hasta el dashboard local. La frecuencia define qué tan rápido se puede avisar. |
+| Calidad: completitud, consistencia y validez | [Clase 3](https://www.notion.so/3c9096bfe0b280f3bafef6695b024471) | Coordenadas, potencia ampliada y ceros. Un dato ausente no se trata como mes normal. |
 | CRISP-DM y EDA | [Clase 4](https://www.notion.so/3c9096bfe0b28052a107eb1c1ebe53b7) | Pregunta, preparación, modelos, prueba y consulta de un sitio. |
 | Histograma, boxplot, dispersión, correlación y heatmap | [Clase 4](https://www.notion.so/3c9096bfe0b28052a107eb1c1ebe53b7) | Serie observado contra estimado y mapa de parques. |
 | Supervisado vs no supervisado | [Clase 5](https://www.notion.so/3d0096bfe0b280dd9808caf91e24708e) | Factor de capacidad medido como target de regresión. |
@@ -32,7 +32,7 @@ Pasar de factor de capacidad a MWh o GWh es una cuenta del dominio. Hace falta l
 
 ## Qué se tomó del Detector Solar
 
-Se toma la idea de comparar con los vecinos, el foco en plata y decisiones, Maui y las otras dos plantas de NREL, los umbrales de 20 % y 80 %, las preguntas probables y el checklist. Se recalculó todo con este código.
+Se toma la idea de comparar con los vecinos, el foco en plata y decisiones, el umbral de 80 %, las preguntas probables y el checklist. Se recalculó todo con este código.
 
 No se toman: el clasificador de causas y SHAP (entrenan con fallas inyectadas), los USD 7.900 por MW (cuentan dos veces el inversor 04), CUSUM, predicción conforme y RdTools (no están en los apuntes), la limpieza (usa una tasa de suciedad supuesta), las fotos, el asistente y Telegram (agregan riesgo técnico y dependen de red o de un modelo pesado).
 
@@ -43,7 +43,7 @@ No se toman: el clasificador de causas y SHAP (entrenan con fallas inyectadas), 
 - Los ceros operativos se conservan. Una ausencia de reporte y un cero no son equivalentes.
 - El clima de un sitio nuevo es el del parque más cercano. A más de 150 km la copia es débil.
 - Una señal no es una falla confirmada: una restricción de la red, un cambio de contrato o una potencia mal informada también bajan el número.
-- En Maui las causas no se verificaron en la planta. Una suciedad pareja en todos los equipos no se ve, porque la comparación con vecinos la cancela.
-- `revision_tpo.md` diagnostica la versión anterior. Las cifras de esta defensa salen de `defensa_evidencia.json` y `maui_evidencia.json`.
+- Las causas no se verificaron en los parques. Una suciedad pareja en todos los equipos no se ve, porque la comparación con vecinos la cancela.
+- `revision_tpo.md` diagnostica la versión anterior. Las cifras de esta defensa salen de `defensa_evidencia.json`.
 
 [Diagrama de arquitectura y contrato de ejecución](arquitectura.md)

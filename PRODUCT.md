@@ -20,11 +20,11 @@ Señalar qué parques solares argentinos rinden menos de lo esperado y cuánta p
 
 ## Operating Context
 
-Proyección en aula, computadora con datos locales. El recorrido es A revisar, Por hora, Sitio nuevo, Modelos y Datos. Argentina es el caso principal; Por hora usa una planta pública de Hawái porque CAMMESA solo publica datos mensuales.
+Proyección en aula, computadora con datos locales. El recorrido es A revisar, Sitio nuevo, Modelos y Datos.
 
 ## Capabilities and Constraints
 
-- Recorrido: A revisar → Por hora → Sitio nuevo → Modelos → Datos. Cinco vistas como máximo: la conclusión primero.
+- Recorrido: A revisar → Sitio nuevo → Modelos → Datos. Cuatro vistas: la conclusión primero.
 - Target: factor de capacidad mensual. La energía usa la potencia ingresada y las horas del mes.
 - Modelos de los apuntes: regresión simple/múltiple/polinómica, árbol, Random Forest y XGBoost.
 - La clase de matriz de confusión no se aplica: no hay fallas etiquetadas.

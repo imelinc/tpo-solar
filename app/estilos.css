@@ -177,7 +177,7 @@ h1{font:700 clamp(40px,4.4vw,64px)/.98 var(--cond);letter-spacing:-.005em;text-w
 .warnings li.alerta{border:2px solid var(--ink);padding:9px 11px;font-weight:600}
 .warnings li.alerta::before{background:var(--ink)}
 
-/* A revisar y planta por hora */
+/* A revisar */
 .grid-revisar{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(320px,1fr);gap:var(--gap);align-items:start}
 .data-table.compacta{font-size:15px;min-width:0}
 .data-table.compacta small{color:var(--ink-3);font-weight:400}

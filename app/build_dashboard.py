@@ -21,7 +21,6 @@ def main():
         raise ValueError("La evidencia no es la de Argentina")
     if len(datos["regresion"]["comparacion"]) != 6:
         raise ValueError("La comparación tiene que incluir los seis modelos")
-    datos["maui"] = json.loads((DATA_PROCESSED / "maui_evidencia.json").read_text())
     (APP / "datos.js").write_text("window.DEFENSA = " + json.dumps(datos, ensure_ascii=False, allow_nan=False, separators=(",", ":")) + ";\n")
     print(f"Empaquetado: {datos['regresion']['nombre']}; {len(datos['serie'])} meses-parque; {len(datos['parques'])} parques.")
     print(f"datos.js: {(APP / 'datos.js').stat().st_size / 1e6:.2f} MB. No requiere red.")

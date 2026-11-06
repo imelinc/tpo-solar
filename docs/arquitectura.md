@@ -13,23 +13,17 @@ flowchart LR
     PREP --> OOF[Modelo que no vio el parque]
     OOF --> SEN[Señales: modelo y vecinos]
     PREP --> NS[K-Means, PCA y DBSCAN]
-    PV[NREL PVDAQ por hora] --> CAL[Quita copias y equipos muertos]
-    CAL --> REGLA[Inversor contra vecinos]
-    REGLA --> INY[Fallas inyectadas: solo miden]
     MET --> JSON[defensa_evidencia.json]
     GRID --> JSON
     SEN --> JSON
     NS --> JSON
-    INY --> MJ[maui_evidencia.json]
     JSON --> APP[app/index.html]
-    MJ --> APP
 ```
 
 ## Contrato
 
 1. `python -m src.academico` entrena, arma la grilla y las señales, y escribe la evidencia argentina.
-2. `python -m src.maui` baja los crudos si faltan, mide el detector y escribe la evidencia horaria.
-3. `python app/build_dashboard.py` copia las dos evidencias a `app/datos.js`. No vuelve a entrenar.
-4. `app/index.html` muestra A revisar, Por hora, Sitio nuevo, Modelos y Datos. La consulta de un sitio lee la grilla. La prueba del detector aplica la misma regla de Python, y `tests/dashboard.cjs` verifica que dé lo mismo.
+2. `python app/build_dashboard.py` copia la evidencia a `app/datos.js`. No vuelve a entrenar.
+3. `app/index.html` muestra A revisar, Sitio nuevo, Modelos y Datos. La consulta de un sitio lee la grilla.
 
 El identificador del parque no es una entrada del modelo. La energía en GWh se calcula en la página a partir del factor, la potencia y las horas del mes.

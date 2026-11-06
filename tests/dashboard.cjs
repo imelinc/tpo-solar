@@ -23,10 +23,6 @@ assert.equal($('#revisar-tabla tbody').children.length,w.DEFENSA.senales.ranking
 assert(plots.has('serie-chart'),'serie del parque elegido');
 set('#revisar-usd',100);assert($('#revisar-tabla tbody td:last-child').textContent===(w.DEFENSA.senales.ranking[0].gwh_faltante*100/1000).toFixed(2).replace('.',','),'el precio recalcula la plata');set('#revisar-usd',w.DEFENSA.senales.usd_mwh);
 assert.equal(w.document.querySelectorAll('#revisar-tabla tbody tr:not([hidden])').length,5,'muestra los cinco principales');$('#revisar-mas').click();assert.equal(w.document.querySelectorAll('#revisar-tabla tbody tr:not([hidden])').length,w.DEFENSA.senales.ranking.length,'el botón abre todos');$('#revisar-mas').click();
-route('planta');
-assert(plots.has('planta-mapa')&&plots.has('planta-chart'),'mapa de calor y prueba');
-assert($('#planta-calidad').textContent.includes('copia del 04'),'avisa la copia del inversor');
-for(const c of w.DEFENSA.maui.demo.control){const r=w.DEFENSA.maui.demo.rinde[c.inversor].slice(c.inicio).map(v=>v==null?null:v*c.factor);const h=w.primerAvisoPrueba(r);assert.equal(h==null?null:h+1,c.horas,'misma regla que Python, factor '+c.factor);}
 route('atlas');
 assert(!w.document.body.dataset.pais,'sin selector de país');
 assert.equal($('#indice tbody').children.length,w.DEFENSA.parques.length,'índice con todos los parques');
@@ -37,7 +33,7 @@ assert($('#modelo-porque').textContent.includes(w.DEFENSA.regresion.nombre),'exp
 assert(!$('#modelos-chart')&&!$('#sitio-presets')&&!$('#sitio-lat[type=text],#sitio-lat[type=number]'),'sin gráfico de comparación, ejemplos ni campos de latitud');
 assert.equal($('#modelos-tabla tbody').children.length,6);
 assert($('#evidencia').textContent.includes('MAE'));
-for(const view of ['revisar','planta','sitio','modelos','atlas']){
+for(const view of ['revisar','sitio','modelos','atlas']){
  route(view);assert.equal(w.document.querySelectorAll('.view:not([hidden])').length,1);assert.equal($('.view:not([hidden])').id,'vista-'+view);
  assert($('#evidencia').children.length>3,'cada vista identifica su evidencia');
 }
@@ -79,5 +75,5 @@ assert.equal($('#sitio-rechazo').hidden,true,'un clic válido quita el aviso');
 svg.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));
 assert(Math.abs(+$('#sitio-lat').value-(pt.lat+0.2))<0.02,'las flechas mueven el sitio una celda');
 assert.equal(errors.length,0,errors.join('\n'));
-console.log('OK: a revisar, por hora, sitio, modelos y datos. El clic en el mapa fija el sitio. Hay ceros en la serie.');
+console.log('OK: a revisar, sitio, modelos y datos. El clic en el mapa fija el sitio. Hay ceros en la serie.');
 console.log('Alcance: DOM y datos de los gráficos; no valida render ni layout de un navegador real.');

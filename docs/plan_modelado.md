@@ -43,10 +43,6 @@ Se comparan regresión lineal simple, lineal múltiple, polinómica de grado 2, 
 5. Plata en juego: energía faltante × USD 60/MWh, un supuesto editable.
 6. Sensibilidad: umbrales de 75 %, 80 % y 85 %, y caídas inyectadas de 10 a 50 % en tres meses. Las caídas solo miden la regla.
 
-## Planta por hora
-
-Datos: NREL PVDAQ 2105 (Maui), 9 inversores tras excluir el 06 (sin generación) y el 11 (copia del 04). Rendimiento: inversor contra la mediana de sus vecinos a la misma hora, sobre su forma habitual de 2019–2021. Aviso: 2 horas de sol por debajo del 20 % o 4 por debajo del 80 %. Se inyectan 80 fallas por tipo en inversores sanos de 2022–2023 y se cuentan horas de sol. El mismo código corre en Arbuckle (California) y Kersey (Colorado).
-
 ## Límites
 
 La evaluación es retrospectiva. Un R² de la prueba temporal describe los mismos parques en años posteriores. El RMSE por parque describe lugares no vistos, con clima de la región que otros parques sí pudieron aportar. La energía estimada no es un ingreso ni una producción ya medida. La energía faltante es una diferencia con el modelo: no prueba una falla ni un ahorro.

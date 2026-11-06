@@ -65,9 +65,6 @@ En la presentación se evitan. Si preguntan, se responde en una frase, con el ej
 | **Lo esperado (fuera de muestra)** | Lo que estima para un parque un modelo que nunca lo vio. Si lo hubiera visto, aprendería a esperar poco de un parque que rinde poco. | Tocota III rinde el 54 % de lo esperado. |
 | **Plata en juego** | Energía faltante por un precio supuesto de USD 60/MWh. Se cambia en la app. No es un ahorro demostrado. | 200,5 GWh, unos USD 12,0 M. |
 | **K-Means, silueta, PCA y DBSCAN** | K-Means arma grupos; la silueta mide qué tan separados quedan; PCA reduce dimensiones para dibujar; DBSCAN aparta lo que queda fuera del grupo denso. | k = 2, silueta 0,41. DBSCAN: solo 27 de 109 señales afuera. |
-| **Inversor** | El equipo que convierte la energía de los paneles para entregarla a la red. Una planta tiene varios y se pueden comparar entre sí. | Maui: 9 inversores contados, 190 kW. |
-| **Hora de sol** | Una hora del día con generación apreciable. El aviso se cuenta en horas de sol, no de reloj. | Apagado: 2 h. Cae 30 %: 4 h. |
-| **Falla inyectada** | Una caída que se aplica a mano sobre un equipo sano, solo para medir cuánto tarda el aviso. No entrena nada. | 80 por tipo. |
 
 ## Demostración — 5:00
 

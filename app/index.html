@@ -19,7 +19,6 @@
   </a>
   <nav id="navegacion" aria-label="Vistas">
     <a href="#revisar">A revisar</a>
-    <a href="#planta">Por hora</a>
     <a href="#sitio">Sitio nuevo</a>
     <a href="#modelos">Modelos</a>
     <a href="#atlas">Datos</a>
@@ -65,34 +64,6 @@
       <div id="serie-chart" class="chart tall" role="img" aria-label="Factor de capacidad observado y esperado del parque"></div>
       <p class="chart-key"><span class="key-line"></span>Observado <span class="key-line dotted"></span>Esperado, con un modelo que no vio este parque <span class="key-zero"></span>Mes en cero <span class="key-bar mas"></span>Mes con señal · el fondo marca el test</p>
     </section>
-  </section>
-
-  <section id="vista-planta" class="view" aria-labelledby="titulo" hidden>
-    <section class="plate">
-      <div class="plate-head"><h2>Cinco años de una planta real, inversor por inversor</h2><span class="plate-meta" id="planta-meta"></span></div>
-      <div id="planta-mapa" class="chart" role="img" aria-label="Mapa de calor: rendimiento semanal de cada inversor contra sus vecinos"></div>
-      <p class="margin-note" id="planta-mapa-nota"></p>
-    </section>
-    <div class="grid-eda">
-      <section class="plate">
-        <div class="plate-head"><h2>Probá el detector</h2><span class="plate-meta">falla inyectada sobre datos reales</span></div>
-        <form id="planta-form" class="controls sin-marco" onsubmit="return false">
-          <label>Inversor <select id="planta-inv"></select></label>
-          <label>Falla <select id="planta-falla"><option value="0">Se apaga</option><option value="0.7" selected>Cae 30 %</option><option value="0.85">Cae 15 %</option><option value="1">Sin falla</option></select></label>
-          <label>Empieza el día <input id="planta-dia" type="number" min="1" step="1" value="5" required></label>
-        </form>
-        <p id="planta-resultado" class="resultado" role="status"></p>
-        <div id="planta-chart" class="chart" role="img" aria-label="Rendimiento del inversor contra sus vecinos, hora por hora"></div>
-      </section>
-      <section class="plate">
-        <div class="plate-head"><h2>Antes de medir, mirar los datos</h2></div>
-        <ul id="planta-calidad" class="warnings"></ul>
-        <div class="subtitulo-chart"><h3>Las caídas largas</h3><span class="plate-meta" id="planta-ep-meta"></span></div>
-        <div class="table-scroll"><table id="planta-ep" class="data-table compacta"><thead><tr><th scope="col">Inversor</th><th scope="col">Desde – hasta</th><th scope="col" class="number">Rinde</th><th scope="col" class="number">MWh faltantes</th></tr></thead><tbody></tbody></table></div>
-        <div class="subtitulo-chart"><h3>Mismos umbrales en otras plantas</h3><span class="plate-meta">horas de sol hasta el aviso</span></div>
-        <div class="table-scroll"><table id="planta-otras" class="data-table compacta"><thead><tr><th scope="col">Planta</th><th scope="col" class="number">Equipos</th><th scope="col" class="number">Apagado</th><th scope="col" class="number">Cae 30 %</th><th scope="col" class="number">Avisos por equipo y mes</th></tr></thead><tbody></tbody></table></div>
-      </section>
-    </div>
   </section>
 
   <section id="vista-atlas" class="view" aria-labelledby="titulo" hidden>

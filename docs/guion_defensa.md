@@ -24,17 +24,9 @@ Es un umbral fijado por criterio, no optimizado. Entre 75 % y 85 % se mantienen 
 
 194 meses del test quedan en «sin vecinos»: no se sabe. No se los cuenta como normales.
 
-## ¿Por qué Hawái, si el trabajo es de Argentina?
-
-CAMMESA solo publica datos mensuales. Maui es una planta pública con datos por hora, y sirve para medir qué se ganaría. Es un zoom, no el caso principal. Los mismos umbrales dan los mismos tiempos en otras dos plantas de Estados Unidos.
-
 ## ¿No entrenaron con fallas simuladas?
 
-No. El docente dijo «fuerte no» a entrenar con datos sintéticos. Las fallas inyectadas solo miden el tiempo de aviso. Por eso no hay clasificador de causas.
-
-## ¿Qué es lo del inversor 11?
-
-Es copia exacta del 04: 220.222 lecturas emparejadas, 99,98 % iguales en potencia, factor de potencia, voltaje y temperatura. Un par de control da menos del 1 %. Se cuenta una vez; contarlos por separado infla la pérdida.
+No. El docente dijo «fuerte no» a entrenar con datos sintéticos. Las caídas simuladas solo miden la sensibilidad de la regla. Por eso no hay clasificador de causas.
 
 ## ¿Por qué no usar DBSCAN para señalar?
 

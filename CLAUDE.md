@@ -8,18 +8,17 @@ Pregunta: ¿qué parque solar argentino conviene mirar primero? `src/academico.p
 
 `src/senales.py` marca un parque con dos meses seguidos por debajo del 80 % de lo esperado y de sus vecinos de provincia. Lo esperado sale de un modelo que no vio ese parque. Una señal no es una falla confirmada. También aporta K-Means, PCA y DBSCAN.
 
-`src/maui.py` mide el aviso con datos por hora en una planta pública de Hawái (NREL PVDAQ 2105), con una regla sin modelo: cada inversor contra sus vecinos. Argentina es el caso principal; Maui es un zoom porque CAMMESA solo publica datos mensuales.
+`src/maui.py` y el notebook 07 quedan como análisis aparte (planta por hora de NREL PVDAQ 2105). La app, el informe y la presentación no los usan.
 
 Un sitio nuevo copia el clima del parque más cercano. Si el año no está medido, usa el promedio anterior a 2024. La pantalla lee una grilla de 0,2° calculada con el modelo elegido. Fuera del rectángulo de entrenamiento el número es un caso límite.
 
-La app consume `defensa_evidencia.json` y `maui_evidencia.json` a través de `app/build_dashboard.py`. No debe mostrar cifras de otra versión. Cada vista identifica fuente, modelo, partición y métricas.
+La app consume `defensa_evidencia.json` a través de `app/build_dashboard.py`. No debe mostrar cifras de otra versión. Cada vista identifica fuente, modelo, partición y métricas.
 
 ## Comandos
 
 ```bash
 python -m unittest discover -s tests -v
 python -m src.academico
-python -m src.maui        # baja crudos de PVDAQ si faltan
 python app/build_dashboard.py
 python -m src.build_datasets
 ```
