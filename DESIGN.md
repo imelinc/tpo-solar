@@ -1,5 +1,5 @@
 ---
-name: Solar / Datos · Informe sobre papel milimetrado
+name: TPO Ciencia de Datos · Informe sobre papel milimetrado
 description: Hoja de informe de laboratorio sobre papel milimetrado, corregida con birome; la tinta dice qué es dato, qué es estimación y qué es alerta.
 colors:
   paper: "#f5f9f4"
@@ -45,7 +45,7 @@ spacing:
   page: "24px 28px"
 ---
 
-# Design System: Solar / Datos · Informe sobre papel milimetrado
+# Design System: TPO Ciencia de Datos · Informe sobre papel milimetrado
 
 ## Overview
 
@@ -67,7 +67,7 @@ spacing:
 
 Barra superior fija: marca, cuatro vistas como celdas (la activa en tinta llena), Grilla y Modo exposición. Debajo, el **cajetín**: título de la vista con su bajada a la izquierda y una grilla de celdas rotuladas a la derecha con el modelo elegido, RMSE, MAE y R² de prueba, RMSE de parque nuevo y el alcance (factor de capacidad mensual, prueba retrospectiva desde 2025).
 
-- **A revisar:** vista de inicio. Cifras de resumen, los cinco sitios con más energía faltante (un botón abre el resto), precio editable, serie del sitio elegido y estados de los meses.
+- **Parques:** vista de inicio. Una tarjeta por parque con la serie generado contra esperado en miniatura, a la misma escala. Los tres con más energía faltante van primero y resaltados; siguen los demás con señal y el resto. Tocar una tarjeta abre el parque en un diálogo con el gráfico completo. Precio editable.
 - **Datos** (antes Atlas): carta a la altura de la pantalla (600 × 887) e índice ordenable; cuatro figuras de exploración.
 - **Modelos:** partición temporal con ancho proporcional a los meses, la tabla de métricas de los seis modelos y, abajo, una explicación corta de por qué se eligió el modelo (generada desde la evidencia: validación 2024, prueba y límites).
 - **Sitio:** el sitio se elige solo haciendo clic en la carta (o con las flechas del teclado, de a una celda de 0,2°); no hay campos de latitud ni longitud. Quedan Año y Potencia. La carta marca la celda que usa el cálculo y la línea al parque real que presta el clima. A la derecha: sitio elegido, energía del año como resultado de un cálculo, avisos, energía de cada mes y el sol (irradiación) que usa el modelo.

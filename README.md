@@ -1,4 +1,4 @@
-# Solar / Datos · TPO Ciencia de Datos
+# TPO Ciencia de Datos
 
 Qué parque solar argentino conviene mirar primero: cuánto debería generar cada uno según su clima, cuáles rinden menos y cuánta plata está en juego. Ciencia de Datos de UADE, segundo cuatrimestre 2026.
 
@@ -6,7 +6,7 @@ Qué parque solar argentino conviene mirar primero: cuánto debería generar cad
 
 ## Recorrido
 
-A revisar → Sitio nuevo → Modelos → Datos. El target es el factor de capacidad. La energía sale de multiplicar por la potencia y por las horas de cada mes. Las métricas son MAE, RMSE y R².
+Parques → Sitio nuevo → Modelos → Datos. El target es el factor de capacidad. La energía sale de multiplicar por la potencia y por las horas de cada mes. Las métricas son MAE, RMSE y R².
 
 [Alcance curricular y clases de Notion](docs/alineacion_materia.md) · [Protocolo](docs/plan_modelado.md) · [Guion](docs/guion_defensa.md).
 
@@ -50,7 +50,7 @@ Por defecto los crudos se guardan en `data/raw/` y los procesados en `data/proce
 - `src/senales.py`: parques a revisar, K-Means, PCA y DBSCAN.
 - `src/maui.py`: análisis aparte por hora en plantas públicas de NREL. La app, el informe y la presentación no lo usan.
 - `data/processed/defensa_*`: resultados de la defensa.
-- `app/`: A revisar, Sitio nuevo, Modelos y Datos, sin red.
+- `app/`: Parques, Sitio nuevo, Modelos y Datos, sin red.
 - `tests/`: métricas, señales, regla horaria y la consulta de un sitio.
 - `docs/`: alcance, protocolo y guion.
 

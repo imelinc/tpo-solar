@@ -1,4 +1,4 @@
-/* Solar / Datos. Evidencia de src/academico.py. Sin red y sin enlaces externos. */
+/* TPO Ciencia de Datos. Evidencia de src/academico.py. Sin red y sin enlaces externos. */
 'use strict';
 const D = window.DEFENSA;
 const $ = s => document.querySelector(s);
@@ -10,7 +10,7 @@ const DIAS = [0,31,28,31,30,31,30,31,31,30,31,30,31];
 const C = {paper:'#f5f9f4',plate:'#ffffff',plate2:'#e4efe7',line:'#cfe0d4',lineStrong:'#7fa992',ink:'#111b16',muted:'#34463c',faint:'#53665b',blue:'#1f3fbf',grid:'#2e9c6a'};
 const SANS = 'Barlow, Helvetica Neue, Arial, sans-serif';
 const TITULOS = {
-  revisar:['Qué parques solares rinden menos de lo esperado','Cada parque se compara con lo que debería haber generado según su clima y con sus vecinos de provincia. Una señal no es una falla confirmada: es el parque que conviene mirar primero.'],
+  revisar:['Generado contra esperado, parque por parque','Cada tarjeta compara lo que generó el parque con lo que debería haber generado según su clima. Tocá una para abrirla. Una señal no es una falla confirmada: es el parque que conviene mirar primero.'],
   sitio:['Cuánto generaría un parque nuevo','Hacé clic en el mapa donde iría el parque. El modelo estima el factor con la ubicación, el clima y el mes; la energía sale de la potencia y las horas.'],
   modelos:['Qué modelo estima mejor','El menor RMSE de validation (2024) elige el modelo. El test es desde 2025 y es retrospectivo: esos meses ya se exploraron.'],
   atlas:['Los datos de los parques','Dónde están los 56 parques, cuánto rinden y qué muestra la exploración antes de modelar.']
@@ -23,8 +23,8 @@ const DESCRIPCION = {
   lineal_multiple:'Suma ubicación, clima y mes en una recta. Enero queda como referencia del mes.',
   lineal_simple:'Una recta que usa solo la irradiación. Es la línea de base.'
 };
-const S = {vista:'revisar',usd:60,foco:null,parque:null,orden:'mw',desc:true,dibujado:{}};
-const config = {responsive:true,displaylogo:false,displayModeBar:'hover',modeBarButtonsToRemove:['lasso2d','select2d','autoScale2d'],toImageButtonOptions:{format:'png',filename:'solar-datos',scale:2}};
+const S = {vista:'revisar',usd:60,parque:null,orden:'mw',desc:true,dibujado:{}};
+const config = {responsive:true,displaylogo:false,displayModeBar:'hover',modeBarButtonsToRemove:['lasso2d','select2d','autoScale2d'],toImageButtonOptions:{format:'png',filename:'tpo-ciencia-de-datos',scale:2}};
 
 /* Gráficos */
 function eje(extra={}){return {gridcolor:C.line,linecolor:C.lineStrong,zeroline:false,tickfont:{size:12,color:C.muted,family:SANS},title:{font:{size:12,color:C.faint,family:SANS}},automargin:true,...extra};}
@@ -76,6 +76,7 @@ function preparar(){
   D._obs=new Map(D.clima.map(r=>[r.i+'|'+r.anio+'|'+r.mes,r]));
   D._tip=new Map(D.tipico.map(r=>[r.i+'|'+r.mes,r]));
   D._idx=new Map(D.parques.map(p=>[p.central,p]));
+  D._ranking=new Map(D.senales.ranking.map(r=>[r.central,r]));
   const por=new Map();
   for(const r of D.serie){if(!por.has(r.central))por.set(r.central,[]);por.get(r.central).push(r);}
   for(const rows of por.values())rows.sort((a,b)=>a.fecha.localeCompare(b.fecha));
@@ -211,6 +212,7 @@ function barraEvidencia(){
 }
 function mostrar(){
   const enfocado=document.activeElement;
+  if($('#parque-dialog').open)$('#parque-dialog').close();
   const pedido=(location.hash||'#revisar').slice(1);
   const cambio=S.vista!==pedido&&S._iniciado;
   S.vista=Object.hasOwn(TITULOS,pedido)?pedido:'revisar';S._iniciado=true;
@@ -243,11 +245,11 @@ function indice(){
   document.querySelectorAll('#indice th button').forEach(b=>{if(b.dataset.orden===k)b.setAttribute('aria-sort',S.desc?'descending':'ascending');else b.removeAttribute('aria-sort');});
   const fuera=D.parques.filter(p=>!dentroRango(p)).length;
   $('#indice-meta').textContent=`${D.parques.length} parques`;
-  $('#indice-nota').textContent=`${fuera} parques quedan fuera del rectángulo del train set: entraron después de 2023. Clic en una fila o en una estrella para marcarla; doble clic abre su serie en A revisar.`;
+  $('#indice-nota').textContent=`${fuera} parques quedan fuera del rectángulo del train set: entraron después de 2023. Clic en una fila o en una estrella para marcarla; doble clic abre su gráfico en Parques.`;
 }
 function seleccionarParque(id,abrir){
   S.parque=id;
-  if(abrir){location.hash='#revisar';return;}
+  if(abrir){S.abrir=id;location.hash='#revisar';return;}
   dibujarCarta($('#atlas-carta'),MARCOS.carta,{campo:true,rotulos:true,seleccion:S.parque});
   document.querySelectorAll('#indice tbody tr').forEach(tr=>tr.setAttribute('aria-selected',String(tr.dataset.central===id)));
   document.querySelector(`#indice tr[data-central="${CSS.escape(id)}"]`)?.scrollIntoView({block:'nearest'});
@@ -367,34 +369,70 @@ function fijarSitio(pt){
   $('#sitio-lon').value=Math.min(LIMITES.lon[1],Math.max(LIMITES.lon[0],pt.lon));
   sitio();
 }
-/* Parques a revisar */
+/* Parques: una tarjeta por parque, con su serie en miniatura */
 const rango=(a,b)=>a.slice(0,7)===b.slice(0,7)?a.slice(0,7):`${a.slice(0,7)} – ${b.slice(0,7)}`;
-const VISIBLES=5;
+const ESCALA=0.45; // el factor válido llega hasta 0,45: todas las tarjetas se comparan con la misma escala
+const mesNum=f=>+f.slice(0,4)*12+ +f.slice(5,7);
+const conSenal=rows=>rows.filter(r=>r.senal&&r.particion==='prueba');
+function miniSerie(rows){
+  const W=240,H=64,t0=mesNum(rows[0].fecha),n=Math.max(1,mesNum(rows.at(-1).fecha)-t0);
+  const x=r=>(mesNum(r.fecha)-t0)/n*W,y=v=>H-Math.min(v,ESCALA)/ESCALA*H;
+  const linea=(k,attrs)=>`<polyline points="${rows.filter(r=>r[k]!=null).map(r=>x(r).toFixed(1)+','+y(r[k]).toFixed(1)).join(' ')}" fill="none" vector-effect="non-scaling-stroke" ${attrs}/>`;
+  const bandas=conSenal(rows).map(r=>`<rect x="${(x(r)-W/n/2).toFixed(1)}" width="${(W/n).toFixed(1)}" y="0" height="${H}" fill="${C.ink}" fill-opacity=".16"/>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${bandas}${linea('pred_oof',`stroke="${C.blue}" stroke-width="1.6" stroke-dasharray="3 3"`)}${linea('factor_capacidad',`stroke="${C.ink}" stroke-width="1.6"`)}</svg>`;
+}
+/* Sin señal no es normal: si casi no hay con quién comparar, se dice que no se sabe */
+function estadoParque(rows){
+  const prueba=rows.filter(r=>r.particion==='prueba'),cuenta=e=>prueba.filter(r=>r.estado===e).length;
+  if(!prueba.length)return ['sin-dato','Sin meses de test'];
+  if(cuenta('sin_vecinos')*2>=prueba.length)return ['sin-dato','No se sabe: sin vecinos'];
+  if(cuenta('arranque')*2>=prueba.length)return ['sin-dato','En arranque'];
+  return ['sin-senal','Sin señal'];
+}
+function tarjeta(id,puesto){
+  const rows=D._serie.get(id),p=D._idx.get(id),r=D._ranking.get(id),[clase,txt]=estadoParque(rows);
+  const nombre=titulo(p.nombre),anios=`${rows[0].fecha.slice(0,4)}–${rows.at(-1).fecha.slice(0,4)}`;
+  const estado=r?`Señal · ${fmt(r.gwh_faltante,1)} GWh`:txt;
+  const cifras=puesto?`<span class="t-cifras"><span class="t-gwh">${fmt(r.gwh_faltante,0)} GWh</span><span class="t-usd">USD ${fmt(r.gwh_faltante*S.usd/1000,1)} M</span></span>`:'';
+  return `<button class="tarjeta${r?' con-senal':''}${puesto?' destacada':''}" type="button" data-central="${esc(id)}" aria-label="${esc(nombre)}, ${esc(provincia(p.provincia))}. ${esc(estado)}. Abrir gráfico.">`+
+    `<span class="t-nombre">${puesto?`<i>${puesto}.º</i> `:''}${esc(nombre)}</span><span class="t-sub">${esc(provincia(p.provincia))} · ${fmt(p.potencia_mw,1)} MW · ${anios}</span>`+
+    cifras+miniSerie(rows)+`<span class="t-estado" data-estado="${r?'senal':clase}">${esc(puesto?`Señal en ${r.meses} meses`:estado)}</span></button>`;
+}
 function revisar(){
-  const s=D.senales,filas=s.ranking;
-  $('#revisar-meta').textContent=`${s.resumen.sitios} sitios · ${s.resumen.marcados} de ${fmt(s.resumen.meses,0)} meses-parque`;
-  $('#revisar-tabla tbody').innerHTML=filas.map((r,k)=>`<tr data-central="${esc(r.central)}" tabindex="0" aria-selected="${r.central===S.parque}"${k>=VISIBLES&&!S.todos?' hidden':''}><td>${esc(titulo(r.nombre))}<br><small>${esc(provincia(r.provincia))}</small></td><td>${rango(r.desde,r.hasta)}</td><td class="number">${r.meses}</td><td class="number">${fmt(r.rinde_modelo*100,0)} %</td><td class="number">${fmt(r.rinde_vecinos*100,0)} %</td><td class="number">${fmt(r.gwh_faltante,1)}</td><td class="number">${fmt(r.gwh_faltante*S.usd/1000,2)}</td></tr>`).join('');
-  const mas=$('#revisar-mas');mas.hidden=filas.length<=VISIBLES;mas.setAttribute('aria-expanded',String(!!S.todos));mas.textContent=S.todos?`Ver los ${VISIBLES} principales`:`Ver los ${filas.length} sitios`;
+  const s=D.senales,top=s.ranking.slice(0,3),ids=new Set(top.map(r=>r.central));
+  const parte=top.reduce((a,r)=>a+r.gwh_faltante,0)/s.resumen.gwh_faltante;
+  $('#top-titulo').textContent=`Tres parques concentran el ${fmt(parte*100,0)} % de la energía faltante`;
+  $('#revisar-meta').textContent=`${s.resumen.sitios} sitios con señal · ${s.resumen.marcados} de ${fmt(s.resumen.meses,0)} meses-parque`;
+  $('#parques-top').innerHTML=top.map((r,k)=>tarjeta(r.central,k+1)).join('');
+  const orden=id=>D._ranking.get(id)?.gwh_faltante||0;
+  const resto=[...D._serie.keys()].filter(id=>!ids.has(id)).sort((a,b)=>orden(b)-orden(a)||titulo(D._idx.get(a).nombre).localeCompare(titulo(D._idx.get(b).nombre),'es'));
+  $('#resto-titulo').textContent=`Los otros ${resto.length} parques`;
+  $('#parques-resto').innerHTML=resto.map(id=>tarjeta(id)).join('');
   const e=s.resumen.estados,c=s.caidas.find(x=>x.caida===0.3),d=s.caidas.find(x=>x.caida===0.1);
   $('#revisar-nota').textContent=`Señal: ${s.meses_seguidos} meses seguidos por debajo del ${fmt(s.umbral*100,0)} % del modelo y de los vecinos. La regla ve caídas grandes: si un parque cae 30 % la marca ${fmt(c.detectadas*100,0)} % de las veces; si cae 10 %, ${fmt(d.detectadas*100,0)} %. Sobre otros meses no se afirma nada: ${fmt(e.sin_vecinos||0,0)} no tienen vecinos para comparar y ${fmt(e.arranque||0,0)} son arranques o ampliaciones.`;
-  $('#revisar-regla').innerHTML=[['Bajo','Bajo','Revisar ese parque'],['Bajo','Normal','Mirar la zona o la red'],['Normal','Normal','Sigue igual'],['—','Sin vecinos','No se sabe']].map(f=>`<tr>${f.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('');
   $('#revisar-usd-nota').textContent='Supuesto de orden de magnitud. Cambialo y se recalcula la plata en juego. No es un ahorro demostrado.';
+  if(S.abrir){const id=S.abrir;S.abrir=null;abrirParque(id);}
+}
+function abrirParque(id){
+  S.parque=id;
+  const dlg=$('#parque-dialog');
+  if(!dlg.open)dlg.showModal();
   serie();
+  requestAnimationFrame(()=>Plotly.Plots.resize($('#serie-chart')));
 }
 function serie(){
   const id=S.parque;$('#serie-parque').value=id;
   const rows=D._serie.get(id)||[];
   if(!rows.length){$('#serie-lectura').innerHTML='<p class="empty">Ese parque no tiene meses comparables.</p>';return;}
-  document.querySelectorAll('#revisar-tabla tbody tr').forEach(tr=>tr.setAttribute('aria-selected',String(tr.dataset.central===id)));
-  const p=D._idx.get(id),st=D._stats.get(id),ultimo=rows.at(-1),marcados=rows.filter(r=>r.senal);
-  $('#serie-lectura').innerHTML=`<div><h2>${esc(titulo(ultimo.nombre))}</h2><p class="coords">${esc(provincia(ultimo.provincia))} · ${coords(p.lat,p.lon)}${dentroRango(p)?'':' · fuera del rango del train set'}</p></div>`+
-    `<dl><div><dt>Potencia</dt><dd>${fmt(ultimo.potencia_mw,1)} MW</dd></div><div><dt>Meses</dt><dd>${fmt(st.n,0)}</dd></div><div><dt>Factor medio</dt><dd>${fmt(st.media,3)}</dd></div><div><dt>Meses con señal</dt><dd>${fmt(marcados.length,0)}</dd></div><div><dt>Meses en cero</dt><dd>${fmt(st.ceros,0)}</dd></div></dl>`;
+  const p=D._idx.get(id),st=D._stats.get(id),ultimo=rows.at(-1),marcados=conSenal(rows),r=D._ranking.get(id),[,estado]=estadoParque(rows);
+  $('#serie-lectura').innerHTML=`<div><h2 id="serie-nombre">${esc(titulo(ultimo.nombre))}</h2><p class="coords">${esc(provincia(ultimo.provincia))} · ${coords(p.lat,p.lon)}${dentroRango(p)?'':' · fuera del rango del train set'}</p></div>`+
+    `<dl><div><dt>Potencia</dt><dd>${fmt(ultimo.potencia_mw,1)} MW</dd></div><div><dt>Meses</dt><dd>${fmt(st.n,0)}</dd></div><div><dt>Factor medio</dt><dd>${fmt(st.media,3)}</dd></div><div><dt>Meses en cero</dt><dd>${fmt(st.ceros,0)}</dd></div>`+(r?`<div><dt>Meses con señal</dt><dd>${fmt(r.meses,0)}</dd></div><div><dt>Energía faltante</dt><dd>${fmt(r.gwh_faltante,1)} GWh</dd></div><div><dt>Plata en juego</dt><dd>USD ${fmt(r.gwh_faltante*S.usd/1000,2)} M</dd></div><div><dt>Contra el modelo</dt><dd>${fmt(r.rinde_modelo*100,0)} %</dd></div><div><dt>Contra vecinos</dt><dd>${fmt(r.rinde_vecinos*100,0)} %</dd></div>`:`<div><dt>Test</dt><dd>${esc(estado)}</dd></div>`)+`</dl>`;
   const prueba=rows.filter(r=>r.particion==='prueba');
   $('#serie-alcance').textContent=`${rows[0].fecha.slice(0,7)} a ${ultimo.fecha.slice(0,7)} · ${prueba.length} meses en test`;
   const corte=prueba[0],x=rows.map(r=>r.fecha),ceros=rows.filter(r=>r.factor_capacidad===0);
   const fondo=corte?[{type:'rect',xref:'x',x0:corte.fecha,x1:ultimo.fecha,yref:'paper',y0:0,y1:1,fillcolor:'rgba(31,63,191,.07)',line:{width:0}}]:[];
   plot('serie-chart',[
-    {type:'scatter',mode:'lines+markers',name:'Observado',x,y:rows.map(r=>r.factor_capacidad),line:{color:C.ink,width:2},marker:{size:4,color:C.ink},hovertemplate:'%{x|%b %Y}<br>observado %{y:.3f}<extra></extra>'},
+    {type:'scatter',mode:'lines+markers',name:'Generado',x,y:rows.map(r=>r.factor_capacidad),line:{color:C.ink,width:2},marker:{size:4,color:C.ink},hovertemplate:'%{x|%b %Y}<br>generado %{y:.3f}<extra></extra>'},
     {type:'scatter',mode:'lines',name:'Esperado',x,y:rows.map(r=>r.pred_oof),line:{color:C.blue,width:2.4,dash:'dot'},hovertemplate:'%{x|%b %Y}<br>esperado %{y:.3f}<extra></extra>'},
     {type:'scatter',mode:'markers',name:'Cero',x:ceros.map(r=>r.fecha),y:ceros.map(()=>0),marker:{symbol:'circle-open',size:16,line:{width:2.6},color:C.ink},hovertemplate:'%{x|%b %Y}: cero operativo<extra></extra>'},
     {type:'scatter',mode:'markers',name:'Señal',x:marcados.map(r=>r.fecha),y:marcados.map(r=>r.factor_capacidad),marker:{symbol:'square',size:9,color:C.ink},hovertemplate:'%{x|%b %Y}: señal<extra></extra>'}
@@ -424,10 +462,11 @@ function iniciar(){
   $('#sitio-carta').addEventListener('keydown',e=>{const d={ArrowUp:[1,0],ArrowDown:[-1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}[e.key];if(!d)return;e.preventDefault();const v=valoresSitio(),p=D.grilla.paso;fijarSitio({lat:+(v.lat+d[0]*p).toFixed(2),lon:+(v.lon+d[1]*p).toFixed(2)});});
   leyendaSitio();
   $('#serie-parque').addEventListener('change',()=>{S.parque=$('#serie-parque').value;serie();});
-  const abrirFila=e=>{const tr=e.target.closest('tr[data-central]');if(!tr)return;S.parque=tr.dataset.central;serie();};
-  $('#revisar-tabla tbody').addEventListener('click',abrirFila);
-  $('#revisar-tabla tbody').addEventListener('keydown',e=>{if(e.key==='Enter')abrirFila(e);});
-  $('#revisar-mas').addEventListener('click',()=>{S.todos=!S.todos;revisar();});
+  const abrirTarjeta=e=>{const b=e.target.closest('[data-central]');if(b)abrirParque(b.dataset.central);};
+  $('#parques-top').addEventListener('click',abrirTarjeta);
+  $('#parques-resto').addEventListener('click',abrirTarjeta);
+  $('#parque-cerrar').addEventListener('click',()=>$('#parque-dialog').close());
+  $('#parque-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.close();});
   $('#revisar-usd').addEventListener('input',()=>{const v=parseFloat($('#revisar-usd').value);if(!(v>0))return;S.usd=v;barraEvidencia();revisar();});
   const grilla=on=>{document.body.classList.toggle('sin-grilla',!on);$('#grilla').setAttribute('aria-pressed',String(on));try{localStorage.setItem('grilla',on?'1':'0');}catch{}};
   try{if(localStorage.getItem('grilla')==='0')grilla(false);}catch{}

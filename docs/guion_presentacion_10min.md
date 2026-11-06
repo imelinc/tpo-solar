@@ -65,11 +65,11 @@ En la presentación se evitan. Si preguntan, se responde en una frase, con el ej
 
 ## Demostración — 5:00
 
-Abrir `app/index.html`; arranca en A revisar. Una persona maneja la máquina. «Modo exposición» agranda el texto para el proyector.
+Abrir `app/index.html`; arranca en Parques. Una persona maneja la máquina. «Modo exposición» agranda el texto para el proyector.
 
 | Tiempo | Vista y acción | Qué decir |
 |---|---|---|
-| 0:00–2:00 | A revisar → cambiar el precio; abrir Tocota III | El ranking ordena a quién llamar primero. Cambiar los USD/MWh recalcula la plata, porque es un supuesto. La serie de Tocota III muestra lo que generó contra lo esperado por un modelo que no lo vio. Botón para ver los otros sitios. |
+| 0:00–2:00 | Parques → cambiar el precio; tocar la tarjeta de Tocota III | Las tarjetas ordenan a quién llamar primero. Cambiar los USD/MWh recalcula la plata, porque es un supuesto. La serie de Tocota III muestra lo que generó contra lo esperado por un modelo que no lo vio. Botón para ver los otros sitios. |
 | 2:00–3:30 | Sitio nuevo → clic dentro del recuadro, Año 2023 y luego 2028; clic fuera | La cuenta: MW × horas × rendimiento = GWh. 2028 usa el clima promedio. Fuera del recuadro la app no estima. |
 | 3:30–4:30 | Modelos | La tabla de los seis modelos. XGBoost elegido; la polinómica se dispara en la prueba. |
 | 4:30–5:00 | Datos | De dónde sale todo: los parques y la exploración. |

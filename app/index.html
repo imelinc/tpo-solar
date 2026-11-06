@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f9f4">
-<title>Solar / Datos · Parques a revisar</title>
+<title>TPO Ciencia de Datos · Parques</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f5f9f4'/%3E%3Cpath d='M0 8h32M0 16h32M0 24h32M8 0v32M16 0v32M24 0v32' stroke='%232e9c6a' stroke-opacity='.35'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%231f3fbf'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="estilos.css">
 </head>
@@ -12,13 +12,13 @@
 <noscript><p class="error">Sin JavaScript no hay carta ni gráficos. Abrí el <a href="../docs/respaldo/index.html">respaldo de la defensa</a>: funciona sin JavaScript ni internet.</p></noscript>
 <a class="skip" href="#contenido">Ir al contenido</a>
 <header class="topbar">
-  <a class="brand" href="#revisar" aria-label="Solar Datos, inicio">
+  <a class="brand" href="#revisar" aria-label="TPO Ciencia de Datos, inicio">
     <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x=".75" y=".75" width="30.5" height="30.5"/><path class="ticks" d="M8 .75v4M16 .75v6M24 .75v4M.75 8h4M.75 16h6M.75 24h4"/><circle cx="17" cy="15" r="6.5"/></svg>
-    <span class="brand-name">Solar<span>/</span>Datos</span>
+    <span class="brand-name">TPO<span>/</span>Ciencia de Datos</span>
     <span class="brand-meta">Argentina · generación mensual</span>
   </a>
   <nav id="navegacion" aria-label="Vistas">
-    <a href="#revisar">A revisar</a>
+    <a href="#revisar">Parques</a>
     <a href="#sitio">Sitio nuevo</a>
     <a href="#modelos">Modelos</a>
     <a href="#atlas">Datos</a>
@@ -32,39 +32,41 @@
   <div id="error" class="error" role="alert" hidden></div>
   <section class="cajetin" aria-label="Rótulo de la hoja">
     <div class="cajetin-titulo">
-      <h1 id="titulo">Qué parques solares rinden menos de lo esperado</h1>
+      <h1 id="titulo">Generado contra esperado, parque por parque</h1>
       <p id="subtitulo"></p>
     </div>
     <div id="evidencia" class="cajetin-celdas" aria-live="polite" aria-label="Modelo elegido y métricas de test"></div>
   </section>
 
   <section id="vista-revisar" class="view" aria-labelledby="titulo">
-    <div class="grid-revisar">
-      <section class="plate">
-        <div class="plate-head"><h2>Los parques a mirar primero</h2><span class="plate-meta" id="revisar-meta"></span></div>
-        <div class="table-scroll"><table id="revisar-tabla" class="data-table compacta"><thead><tr><th scope="col">Parque</th><th scope="col">Desde – hasta</th><th scope="col" class="number">Meses</th><th scope="col" class="number">Contra el modelo</th><th scope="col" class="number">Contra vecinos</th><th scope="col" class="number">GWh faltantes</th><th scope="col" class="number">USD millones</th></tr></thead><tbody></tbody></table></div>
-        <button id="revisar-mas" class="ghost-button mas" type="button" aria-controls="revisar-tabla" aria-expanded="false"></button>
-        <p class="margin-note" id="revisar-nota"></p>
-      </section>
-      <aside class="site-side">
-        <section class="plate">
-          <div class="plate-head"><h2>Cómo se lee una señal</h2></div>
-          <table class="lectura"><thead><tr><th scope="col">Contra el modelo</th><th scope="col">Contra vecinos</th><th scope="col">Lectura</th></tr></thead><tbody id="revisar-regla"></tbody></table>
-        </section>
-        <form class="plate controls" onsubmit="return false">
-          <label>Precio de la energía (USD/MWh) <input id="revisar-usd" type="number" min="1" step="1" required></label>
-          <p class="margin-note" id="revisar-usd-nota"></p>
-        </form>
-      </aside>
+    <section aria-labelledby="top-titulo">
+      <div class="plate-head"><h2 id="top-titulo"></h2><span class="plate-meta" id="revisar-meta"></span></div>
+      <div id="parques-top" class="tarjetas top"></div>
+    </section>
+    <form class="plate controls precio" onsubmit="return false">
+      <label>Precio de la energía (USD/MWh) <input id="revisar-usd" type="number" min="1" step="1" required></label>
+      <p class="margin-note" id="revisar-usd-nota"></p>
+    </form>
+    <section aria-labelledby="resto-titulo">
+      <div class="plate-head"><h2 id="resto-titulo"></h2></div>
+      <p class="chart-key"><span class="key-line"></span>Generado <span class="key-line dotted"></span>Esperado, con un modelo que no vio el parque <span class="key-bar banda"></span>Mes con señal · misma escala en todas</p>
+      <div id="parques-resto" class="tarjetas"></div>
+    </section>
+    <p class="margin-note" id="revisar-nota"></p>
+  </section>
+
+  <dialog id="parque-dialog" aria-labelledby="serie-nombre">
+    <div class="dialog-barra">
+      <div class="controls"><label>Parque <select id="serie-parque"></select></label></div>
+      <button id="parque-cerrar" class="ghost-button" type="button">Cerrar</button>
     </div>
-    <div class="controls"><label>Parque <select id="serie-parque"></select></label></div>
     <div id="serie-lectura" class="park-head"></div>
     <section class="plate">
       <div class="plate-head"><h2>Lo que generó y lo que debería haber generado</h2><span class="plate-meta" id="serie-alcance"></span></div>
-      <div id="serie-chart" class="chart tall" role="img" aria-label="Factor de capacidad observado y esperado del parque"></div>
-      <p class="chart-key"><span class="key-line"></span>Observado <span class="key-line dotted"></span>Esperado, con un modelo que no vio este parque <span class="key-zero"></span>Mes en cero <span class="key-bar mas"></span>Mes con señal · el fondo marca el test</p>
+      <div id="serie-chart" class="chart tall" role="img" aria-label="Factor de capacidad generado y esperado del parque"></div>
+      <p class="chart-key"><span class="key-line"></span>Generado <span class="key-line dotted"></span>Esperado, con un modelo que no vio este parque <span class="key-zero"></span>Mes en cero <span class="key-bar mas"></span>Mes con señal · el fondo marca el test</p>
     </section>
-  </section>
+  </dialog>
 
   <section id="vista-atlas" class="view" aria-labelledby="titulo" hidden>
     <div class="grid-atlas">
