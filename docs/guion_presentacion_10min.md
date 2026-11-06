@@ -65,7 +65,7 @@ En la presentación se evitan. Si preguntan, se responde en una frase, con el ej
 
 ## Demostración — 5:00
 
-Abrir `app/index.html`; arranca en Parques. Una persona maneja la máquina. «Modo exposición» agranda el texto para el proyector.
+Abrir https://tpo-ciencia-de-datos.netlify.app; arranca en Parques. Si falla la conexión, abrir la copia local (`app/index.html`). Una persona maneja la máquina. «Modo exposición» agranda el texto para el proyector.
 
 | Tiempo | Vista y acción | Qué decir |
 |---|---|---|
