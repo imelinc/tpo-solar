@@ -55,16 +55,20 @@
     <p class="margin-note" id="revisar-nota"></p>
   </section>
 
-  <dialog id="parque-dialog" aria-labelledby="serie-nombre">
+  <dialog id="parque-dialog" aria-labelledby="serie-nombre" tabindex="-1">
     <div class="dialog-barra">
-      <div class="controls"><label>Parque <select id="serie-parque"></select></label></div>
+      <div class="parque-nav">
+        <button id="parque-ant" class="ghost-button" type="button" aria-label="Parque anterior">←</button>
+        <select id="serie-parque" aria-label="Elegir parque"></select>
+        <button id="parque-sig" class="ghost-button" type="button" aria-label="Parque siguiente">→</button>
+      </div>
       <button id="parque-cerrar" class="ghost-button" type="button">Cerrar</button>
     </div>
     <div id="serie-lectura" class="park-head"></div>
     <section class="plate">
       <div class="plate-head"><h2>Lo que generó y lo que debería haber generado</h2><span class="plate-meta" id="serie-alcance"></span></div>
       <div id="serie-chart" class="chart tall" role="img" aria-label="Factor de capacidad generado y esperado del parque"></div>
-      <p class="chart-key"><span class="key-line"></span>Generado <span class="key-line dotted"></span>Esperado, con un modelo que no vio este parque <span class="key-zero"></span>Mes en cero <span class="key-bar mas"></span>Mes con señal · el fondo marca el test</p>
+      <p class="chart-key"><span class="key-line"></span>Generado <span class="key-line dotted"></span>Esperado, con un modelo que no vio este parque <span class="key-zero"></span>Mes en cero <span class="key-bar mas"></span>Mes con señal <span class="key-bar banda"></span>Lo que faltó en esos meses · el fondo marca el test</p>
     </section>
   </dialog>
 

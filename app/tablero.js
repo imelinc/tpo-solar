@@ -24,11 +24,11 @@ const DESCRIPCION = {
   lineal_simple:'Una recta que usa solo la irradiación. Es la línea de base.'
 };
 const S = {vista:'revisar',usd:60,parque:null,orden:'mw',desc:true,dibujado:{}};
-const config = {responsive:true,displaylogo:false,displayModeBar:'hover',modeBarButtonsToRemove:['lasso2d','select2d','autoScale2d'],toImageButtonOptions:{format:'png',filename:'tpo-ciencia-de-datos',scale:2}};
+const config = {responsive:true,displayModeBar:false,displaylogo:false,scrollZoom:false,doubleClick:false};
 
 /* Gráficos */
-function eje(extra={}){return {gridcolor:C.line,linecolor:C.lineStrong,zeroline:false,tickfont:{size:12,color:C.muted,family:SANS},title:{font:{size:12,color:C.faint,family:SANS}},automargin:true,...extra};}
-function layout(extra={}){return {font:{family:SANS,size:13,color:C.ink},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',margin:{l:8,r:12,t:10,b:34},showlegend:false,hoverlabel:{bgcolor:'#fff',bordercolor:C.ink,font:{color:C.ink,size:13,family:SANS}},...extra};}
+function eje(extra={}){return {fixedrange:true,gridcolor:C.line,linecolor:C.lineStrong,zeroline:false,tickfont:{size:12,color:C.muted,family:SANS},title:{font:{size:12,color:C.faint,family:SANS}},automargin:true,...extra};}
+function layout(extra={}){return {dragmode:false,font:{family:SANS,size:13,color:C.ink},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',margin:{l:8,r:12,t:10,b:34},showlegend:false,hoverlabel:{bgcolor:'#fff',bordercolor:C.ink,font:{color:C.ink,size:13,family:SANS}},...extra};}
 function plot(id,traces,extra={}){
   const el=document.getElementById(id);if(!el)return;
   const done=Plotly.react(el,traces,layout(extra),config);
@@ -416,7 +416,7 @@ function revisar(){
 function abrirParque(id){
   S.parque=id;
   const dlg=$('#parque-dialog');
-  if(!dlg.open)dlg.showModal();
+  if(!dlg.open){dlg.showModal();dlg.focus();}
   serie();
   requestAnimationFrame(()=>Plotly.Plots.resize($('#serie-chart')));
 }
@@ -431,12 +431,18 @@ function serie(){
   $('#serie-alcance').textContent=`${rows[0].fecha.slice(0,7)} a ${ultimo.fecha.slice(0,7)} · ${prueba.length} meses en test`;
   const corte=prueba[0],x=rows.map(r=>r.fecha),ceros=rows.filter(r=>r.factor_capacidad===0);
   const fondo=corte?[{type:'rect',xref:'x',x0:corte.fecha,x1:ultimo.fecha,yref:'paper',y0:0,y1:1,fillcolor:'rgba(31,63,191,.07)',line:{width:0}}]:[];
+  // Sombra entre esperado y generado en cada tramo de meses con señal: lo que faltó
+  const tramos=[];
+  for(const r of marcados){const u=tramos.at(-1);if(u&&mesNum(r.fecha)-mesNum(u.at(-1).fecha)===1)u.push(r);else tramos.push([r]);}
+  const sombras=tramos.map(u=>({type:'scatter',mode:'none',x:[...u.map(r=>r.fecha),...u.map(r=>r.fecha).reverse()],y:[...u.map(r=>r.factor_capacidad),...u.map(r=>r.pred_oof).reverse()],fill:'toself',fillcolor:'rgba(17,27,22,.13)',hoverinfo:'skip'}));
+  const nota=rows.map(r=>r.factor_capacidad===0?'<br><b>Mes en cero</b>':marcados.includes(r)?`<br><b>Señal</b>: ${fmt(r.factor_capacidad/r.pred_oof*100,0)} % de lo esperado`:'');
   plot('serie-chart',[
-    {type:'scatter',mode:'lines+markers',name:'Generado',x,y:rows.map(r=>r.factor_capacidad),line:{color:C.ink,width:2},marker:{size:4,color:C.ink},hovertemplate:'%{x|%b %Y}<br>generado %{y:.3f}<extra></extra>'},
-    {type:'scatter',mode:'lines',name:'Esperado',x,y:rows.map(r=>r.pred_oof),line:{color:C.blue,width:2.4,dash:'dot'},hovertemplate:'%{x|%b %Y}<br>esperado %{y:.3f}<extra></extra>'},
-    {type:'scatter',mode:'markers',name:'Cero',x:ceros.map(r=>r.fecha),y:ceros.map(()=>0),marker:{symbol:'circle-open',size:16,line:{width:2.6},color:C.ink},hovertemplate:'%{x|%b %Y}: cero operativo<extra></extra>'},
-    {type:'scatter',mode:'markers',name:'Señal',x:marcados.map(r=>r.fecha),y:marcados.map(r=>r.factor_capacidad),marker:{symbol:'square',size:9,color:C.ink},hovertemplate:'%{x|%b %Y}: señal<extra></extra>'}
-  ],{yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f',rangemode:'tozero'}),xaxis:eje(),shapes:fondo,
+    {type:'scatter',mode:'lines',name:'Generado',x,y:rows.map(r=>r.factor_capacidad),customdata:nota,line:{color:C.ink,width:2.4},hovertemplate:'Generado %{y:.3f}%{customdata}<extra></extra>'},
+    {type:'scatter',mode:'lines',name:'Esperado',x,y:rows.map(r=>r.pred_oof),line:{color:C.blue,width:2.4,dash:'dot'},hovertemplate:'Esperado %{y:.3f}<extra></extra>'},
+    {type:'scatter',mode:'markers',name:'Cero',x:ceros.map(r=>r.fecha),y:ceros.map(()=>0),marker:{symbol:'circle-open',size:14,line:{width:2.4},color:C.ink},hoverinfo:'skip'},
+    {type:'scatter',mode:'markers',name:'Señal',x:marcados.map(r=>r.fecha),y:marcados.map(r=>r.factor_capacidad),marker:{symbol:'square',size:7,color:C.ink},hoverinfo:'skip'},
+    ...sombras
+  ],{hovermode:'x unified',hoverlabel:{bgcolor:'#fff',bordercolor:C.ink,align:'left',font:{color:C.ink,size:14,family:SANS}},yaxis:eje({title:{text:'Factor de capacidad'},tickformat:'.2f',rangemode:'tozero'}),xaxis:eje({hoverformat:'%B %Y',showspikes:true,spikemode:'across',spikesnap:'cursor',spikethickness:1,spikecolor:C.lineStrong,spikedash:'solid'}),shapes:fondo,
      annotations:corte?[{x:corte.fecha,xanchor:'left',yref:'paper',y:1,yanchor:'top',text:'test',showarrow:false,font:{color:C.blue,size:12},xshift:6}]:[]});
 }
 
@@ -446,8 +452,9 @@ function iniciar(){
   S.parque=(D.senales.ranking[0]||{}).central||D.ejemplo_parque;S.usd=D.senales.usd_mwh;$('#revisar-usd').value=S.usd;
   const base=D.presets[0];
   $('#sitio-lat').value=base.lat.toFixed(4);$('#sitio-lon').value=base.lon.toFixed(4);$('#sitio-anio').value=base.anio;$('#sitio-mw').value=base.potencia_mw;
-  const parques=[...D._serie.keys()].map(id=>[id,titulo(D._idx.get(id).nombre),provincia(D._idx.get(id).provincia)]).sort((a,b)=>a[1].localeCompare(b[1],'es'));
-  $('#serie-parque').innerHTML=parques.map(([id,n,pv])=>`<option value="${esc(id)}">${esc(n)} · ${esc(pv)}</option>`).join('');
+  const grupos=new Map();
+  for(const id of D._serie.keys()){const pv=provincia(D._idx.get(id).provincia);if(!grupos.has(pv))grupos.set(pv,[]);grupos.get(pv).push(id);}
+  $('#serie-parque').innerHTML=[...grupos].sort((a,b)=>a[0].localeCompare(b[0],'es')).map(([pv,ids])=>`<optgroup label="${esc(pv)}">`+ids.map(id=>[id,titulo(D._idx.get(id).nombre)]).sort((a,b)=>a[1].localeCompare(b[1],'es')).map(([id,n])=>`<option value="${esc(id)}">${esc(n)}${D._ranking.has(id)?' · con señal':''}</option>`).join('')+'</optgroup>').join('');
   $('#serie-parque').value=S.parque;
   $('#indice thead').addEventListener('click',e=>{const b=e.target.closest('[data-orden]');if(!b)return;S.desc=S.orden===b.dataset.orden?!S.desc:b.dataset.orden!=='nombre'&&b.dataset.orden!=='provincia';S.orden=b.dataset.orden;indice();});
   $('#indice tbody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-central]');if(tr)seleccionarParque(tr.dataset.central);});
@@ -465,6 +472,9 @@ function iniciar(){
   const abrirTarjeta=e=>{const b=e.target.closest('[data-central]');if(b)abrirParque(b.dataset.central);};
   $('#parques-top').addEventListener('click',abrirTarjeta);
   $('#parques-resto').addEventListener('click',abrirTarjeta);
+  const mover=d=>{const s=$('#serie-parque'),n=s.options.length;s.selectedIndex=(s.selectedIndex+d+n)%n;S.parque=s.value;serie();};
+  $('#parque-ant').addEventListener('click',()=>mover(-1));
+  $('#parque-sig').addEventListener('click',()=>mover(1));
   $('#parque-cerrar').addEventListener('click',()=>$('#parque-dialog').close());
   $('#parque-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.close();});
   $('#revisar-usd').addEventListener('input',()=>{const v=parseFloat($('#revisar-usd').value);if(!(v>0))return;S.usd=v;barraEvidencia();revisar();});
