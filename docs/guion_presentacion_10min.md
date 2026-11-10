@@ -2,11 +2,11 @@
 
 Defensa: 12/11/2026. Equipo: Ignacio Melinc, Matias Young, Francisco Fabrello y Malena Garcia Moraglio. El reparto es de exposición. El trabajo es compartido.
 
-Diapositivas (11): artefacto Slides «Detector Solar», https://claude.ai/artifact/AEDgX4KSzRftquSmVdBWGJ (privado hasta compartirlo; se descarga como PPTX o PDF). Portada, 3 por integrante y «Muchas gracias». Cada diapositiva tiene notas con lo que se dice y con respuestas por si preguntan.
+Diapositivas (13): artefacto Slides «Detector Solar», https://claude.ai/artifact/AEDgX4KSzRftquSmVdBWGJ (privado hasta compartirlo; se descarga como PPTX o PDF). Portada, 3 por integrante (4 para Francisco, con las 2 del gemelo) y «Muchas gracias». Cada diapositiva tiene notas con lo que se dice y con respuestas por si preguntan.
 
 Las cifras salen de `data/processed/defensa_evidencia.json`. Si se reentrena, se actualizan las diapositivas antes de exponer.
 
-## Diapositivas — 10:00
+## Diapositivas — 11:30
 
 Poco texto y palabras comunes. Decir «rendimiento» en vez de «factor de capacidad», y «error» en vez de RMSE o MAE. Lo técnico se dice si preguntan.
 
@@ -20,11 +20,13 @@ Poco texto y palabras comunes. Decir «rendimiento» en vez de «factor de capac
 | 6 | Todo sale de datos públicos | 1:00 | 5:30 | Matias |
 | 7 | Jujuy rinde casi el doble que Córdoba (K-Means) | 1:00 | 6:30 | Francisco |
 | 8 | Probamos seis modelos: ganó XGBoost | 1:30 | 8:00 | Francisco |
-| 9 | Cuánto generaría un parque nuevo | 1:00 | 9:00 | Malena |
-| 10 | Qué se lleva la gerencia, y paso a la demostración | 0:50 | 9:50 | Malena |
-| 11 | Muchas gracias | 0:10 | 10:00 | Malena |
+| 9 | Con datos por hora, el aviso llega en una hora (gemelo digital) | 0:50 | 8:50 | Francisco |
+| 10 | Sin nadie mirando: el aviso llega al celular | 0:40 | 9:30 | Francisco |
+| 11 | Cuánto generaría un parque nuevo | 1:00 | 10:30 | Malena |
+| 12 | Qué se lleva la gerencia, y paso a la demostración | 0:50 | 11:20 | Malena |
+| 13 | Muchas gracias | 0:10 | 11:30 | Malena |
 
-Cambios de expositor en 3:20, 5:30 y 8:00. La demostración va entre la 10 y la 11.
+Cambios de expositor en 3:20, 5:30 y 9:30. La demostración va entre la 12 y la 13.
 
 Apertura: «Cuando un parque solar rinde menos de lo que debería, desde afuera nadie se entera. Este es Detector Solar».
 
@@ -80,6 +82,6 @@ Cierre: «Con datos públicos sabemos a quién llamar primero. Para saber por qu
 
 ## Ensayo
 
-1. Una pasada leyendo las notas y otra sin leerlas, con cronómetro. Practicar los cambios de expositor en 3:20, 5:30 y 8:00.
+1. Una pasada leyendo las notas y otra sin leerlas, con cronómetro. Practicar los cambios de expositor en 3:20, 5:30 y 9:30.
 2. Si la aplicación no responde en quince segundos, seguir con `docs/respaldo/index.html`.
 3. Preguntas esperables: en `guion_defensa.md`.
