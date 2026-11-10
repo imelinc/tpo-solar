@@ -17,7 +17,7 @@ Poco texto y palabras comunes. Decir «rendimiento» en vez de «factor de capac
 | 3 | USD 12 M en juego, 87 % en tres parques | 1:00 | 2:30 | Ignacio |
 | 4 | En junio se rinde la mitad que en enero | 0:50 | 3:20 | Ignacio |
 | 5 | Cómo detectamos un rendimiento bajo | 1:10 | 4:30 | Matias |
-| 6 | Todo sale de datos públicos | 1:00 | 5:30 | Matias |
+| 6 | De los datos públicos al tablero (arquitectura) | 1:00 | 5:30 | Matias |
 | 7 | Jujuy rinde casi el doble que Córdoba (K-Means) | 1:00 | 6:30 | Francisco |
 | 8 | Probamos seis modelos: ganó XGBoost | 1:30 | 8:00 | Francisco |
 | 9 | Con datos por hora, el aviso llega en una hora (gemelo digital) | 0:50 | 8:50 | Francisco |

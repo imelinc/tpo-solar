@@ -58,7 +58,7 @@ Ojo: mientras el gemelo escucha, **no corras `python -m src.bot_telegram` con el
 - `rinde_vecinos` = `rinde_modelo` ÷ la mediana de `rinde_modelo` de su provincia ese mes (mín. 3 vecinos). Si toda la zona rinde menos, es clima o zona, no el parque.
 - **Señal** = ambos por debajo de 0,8 durante **dos meses seguidos**. Los primeros 6 meses de un parque (o tras ampliar potencia) son «arranque» y no cuentan.
 - **Energía faltante** = (esperado − observado) × potencia × horas. **Plata** = GWh × 1.000 × 60 US$/MWh (precio supuesto, ajustable).
-- Resultado: 109 meses marcados en 14 sitios, 200 GWh faltantes (3,3 % de lo generado), unos US$ 12 millones. Tocota III, Ullúm 4 y Sierras del Ullúm concentran el 87 %.
+- Resultado: 109 meses marcados en 14 sitios, 200 GWh faltantes (3,3 % de lo generado), unos US$ 12 millones. Tocota III, Ullum 4 y Sierras del Ullum concentran el 87 %.
 - Un modelo mensual **no ve caídas chicas**: ante una caída inyectada del 10 % detecta 1 %, del 30 % detecta 61 %, del 50 % detecta 83 %. Esto es lo que justifica el gemelo.
 
 ### 3. El gemelo: «qué pasaría con datos por hora» (`gemelo_base.html`)

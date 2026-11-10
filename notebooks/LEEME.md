@@ -16,3 +16,17 @@ El recorrido de la exposición es `src/academico.py`, `src/senales.py` y `app/in
 | `07_maui` | Análisis aparte, no se usa en la defensa. Planta por hora: calidad de los datos, mapa de calor, tiempo de aviso y otras plantas. |
 
 No se guardan salidas en los notebooks versionados.
+
+## Correr en vivo
+
+Desde la carpeta del proyecto, sin red (los procesados ya están en `data/processed`):
+
+```bash
+.venv/bin/jupyter lab notebooks
+```
+
+Abrir `02_eda`, `03_modelos` o `06_senales` y correr todo. Tardan segundos. JupyterLab no está en `requirements.txt`: se instala aparte con `.venv/bin/python -m pip install jupyterlab`. VS Code con el intérprete `.venv` también sirve.
+
+Si la carpeta del proyecto se mueve, los scripts del `.venv` quedan apuntando a la ruta vieja: recrearlo o usar `.venv/bin/python -m jupyter lab`.
+
+En Colab, la primera celda clona el repositorio de GitHub, que es privado: sin hacerlo público, hay que subir la carpeta a mano.
