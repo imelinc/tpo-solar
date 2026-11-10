@@ -31,7 +31,9 @@ Si la carpeta del proyecto se mueve, los scripts del `.venv` quedan apuntando a 
 
 En Colab, la primera celda clona el repositorio público e instala `requirements.txt`; los procesados vienen en el repositorio. Si Colab pide reiniciar la sesión después de instalar, se reinicia y se vuelve a correr todo.
 
+- [01 · Descarga y calidad](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/01_descarga.ipynb)
 - [02 · Análisis exploratorio](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/02_eda.ipynb)
 - [03 · Modelos](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/03_modelos.ipynb)
 - [04 · Sitio nuevo](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/04_sitio.ipynb)
+- [05 · Casos](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/05_casos.ipynb)
 - [06 · Señales](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/06_senales.ipynb)
