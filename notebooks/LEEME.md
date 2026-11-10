@@ -29,4 +29,9 @@ Abrir `02_eda`, `03_modelos` o `06_senales` y correr todo. Tardan segundos. Jupy
 
 Si la carpeta del proyecto se mueve, los scripts del `.venv` quedan apuntando a la ruta vieja: recrearlo o usar `.venv/bin/python -m jupyter lab`.
 
-En Colab, la primera celda clona el repositorio de GitHub, que es privado: sin hacerlo público, hay que subir la carpeta a mano.
+En Colab, la primera celda clona el repositorio público e instala `requirements.txt`; los procesados vienen en el repositorio. Si Colab pide reiniciar la sesión después de instalar, se reinicia y se vuelve a correr todo.
+
+- [02 · Análisis exploratorio](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/02_eda.ipynb)
+- [03 · Modelos](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/03_modelos.ipynb)
+- [04 · Sitio nuevo](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/04_sitio.ipynb)
+- [06 · Señales](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/06_senales.ipynb)
