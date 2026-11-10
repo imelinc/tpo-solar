@@ -34,7 +34,9 @@ Pasar de factor de capacidad a MWh o GWh es una cuenta del dominio. Hace falta l
 
 Se toma la idea de comparar con los vecinos, el foco en plata y decisiones, el umbral de 80 %, las preguntas probables y el checklist. Se recalculó todo con este código.
 
-No se toman: el clasificador de causas y SHAP (entrenan con fallas inyectadas), los USD 7.900 por MW (cuentan dos veces el inversor 04), CUSUM, predicción conforme y RdTools (no están en los apuntes), la limpieza (usa una tasa de suciedad supuesta), las fotos, el asistente y Telegram (agregan riesgo técnico y dependen de red o de un modelo pesado).
+No se toman: el clasificador de causas y SHAP (entrenan con fallas inyectadas), los USD 7.900 por MW (cuentan dos veces el inversor 04), CUSUM, predicción conforme y RdTools (no están en los apuntes), la limpieza (usa una tasa de suciedad supuesta), las fotos y el asistente (agregan riesgo técnico y dependen de red o de un modelo pesado).
+
+Se suma como **demostración aparte** el gemelo digital del Detector Solar (sección «Gemelo» del tablero, `app/gemelo.html`) con avisos por Telegram. No entrena ni cambia ninguna cifra del modelo: usa los parques y el esperado de `defensa_evidencia.json`, simula una planta por hora con un modelo físico y mide cuánto tarda en avisar una falla **inyectada**. Las fallas simuladas solo miden el tiempo de aviso (no entrenan nada); el diagnóstico de la causa del gemelo viene de un árbol entrenado con fallas simuladas y se muestra rotulado como hipótesis no validada. Telegram es opcional: sin red, la demo sigue con «Simular técnico».
 
 ## Reglas de honestidad
 

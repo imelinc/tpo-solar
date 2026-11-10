@@ -19,6 +19,7 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -v
 python -m src.academico
 python app/build_dashboard.py
+python gemelo/build_gemelo.py   # sección Gemelo del tablero
 ```
 
 Publicada en https://tpo-ciencia-de-datos.netlify.app (subida a mano a Netlify: al cambiar la app hay que volver a subirla). También se puede abrir `app/index.html` en un navegador. La aplicación usa datos, biblioteca y tipografía locales. No consulta APIs durante la defensa.
@@ -50,7 +51,9 @@ Por defecto los crudos se guardan en `data/raw/` y los procesados en `data/proce
 - `src/senales.py`: parques a revisar, K-Means, PCA y DBSCAN.
 - `src/maui.py`: análisis aparte por hora en plantas públicas de NREL. La app, el informe y la presentación no lo usan.
 - `data/processed/defensa_*`: resultados de la defensa.
-- `app/`: Parques, Sitio nuevo, Modelos y Datos, sin red.
+- `app/`: Parques, Sitio nuevo, Modelos, Datos y Gemelo, sin red (Telegram es opcional).
+- `gemelo/`: piezas del gemelo digital; `python gemelo/build_gemelo.py` arma `app/gemelo.html`. Guía en [docs/gemelo_y_bot.md](docs/gemelo_y_bot.md).
+- `src/bot_telegram.py`: bot de consultas sobre la evidencia (`/revisar`, `/parque`, `/sitio`).
 - `tests/`: métricas, señales, regla horaria y la consulta de un sitio.
 - `docs/`: alcance, protocolo y guion.
 

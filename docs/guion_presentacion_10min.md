@@ -71,8 +71,10 @@ Abrir https://tpo-ciencia-de-datos.netlify.app; arranca en Parques. Si falla la 
 |---|---|---|
 | 0:00–2:00 | Parques → cambiar el precio; tocar la tarjeta de Tocota III | Las tarjetas ordenan a quién llamar primero. Cambiar los USD/MWh recalcula la plata, porque es un supuesto. La serie de Tocota III muestra lo que generó contra lo esperado por un modelo que no lo vio. Botón para ver los otros sitios. |
 | 2:00–3:30 | Sitio nuevo → clic dentro del recuadro, Año 2023 y luego 2028; clic fuera | La cuenta: MW × horas × rendimiento = GWh. 2028 usa el clima promedio. Fuera del recuadro la app no estima. |
-| 3:30–4:30 | Modelos | La tabla de los seis modelos. XGBoost elegido; la polinómica se dispara en la prueba. |
-| 4:30–5:00 | Datos | De dónde sale todo: los parques y la exploración. |
+| 3:30–4:00 | Modelos | La tabla de los seis modelos. XGBoost elegido; la polinómica se dispara en la prueba. |
+| 4:00–5:00 | Gemelo → «Presentar», pasos 3 a 5 | El gemelo es una planta simulada por hora con el clima real de San Juan. Se apaga el inversor B y el detector avisa en ~1 h (contra los 2 meses de la señal mensual). En autónomo, el aviso llega al celular y el técnico toca «Reparado». Las fallas son simuladas: miden el tiempo de aviso, no entrenan nada. |
+
+Si sobra tiempo, Datos: de dónde sale todo. Si Telegram no conecta, el paso 5 muestra «Simular técnico». Detalle de los seis pasos en `docs/gemelo_y_bot.md`.
 
 Cierre: «Con datos públicos sabemos a quién llamar primero. Para saber por qué bajó hacen falta los datos del parque.»
 

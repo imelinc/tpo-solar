@@ -12,6 +12,8 @@ Pregunta: ¿qué parque solar argentino conviene mirar primero? `src/academico.p
 
 Un sitio nuevo copia el clima del parque más cercano. Si el año no está medido, usa el promedio anterior a 2024. La pantalla lee una grilla de 0,2° calculada con el modelo elegido. Fuera del rectángulo de entrenamiento el número es un caso límite.
 
+El gemelo digital (`gemelo/`, publicado como `app/gemelo.html` con `python gemelo/build_gemelo.py`) simula una planta por hora y mide el tiempo de aviso de fallas inyectadas. No entrena nada. Los avisos y la confirmación del técnico van por Telegram; el token se carga desde la página y queda solo en el navegador, nunca en el repo. `src/bot_telegram.py` responde consultas sobre la evidencia.
+
 La app consume `defensa_evidencia.json` a través de `app/build_dashboard.py`. No debe mostrar cifras de otra versión. Cada vista identifica fuente, modelo, partición y métricas.
 
 ## Comandos
@@ -20,6 +22,7 @@ La app consume `defensa_evidencia.json` a través de `app/build_dashboard.py`. N
 python -m unittest discover -s tests -v
 python -m src.academico
 python app/build_dashboard.py
+python gemelo/build_gemelo.py
 python -m src.build_datasets
 ```
 
