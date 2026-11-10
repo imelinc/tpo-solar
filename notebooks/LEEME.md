@@ -29,7 +29,7 @@ Abrir `02_eda`, `03_modelos` o `06_senales` y correr todo. Tardan segundos. Jupy
 
 Si la carpeta del proyecto se mueve, los scripts del `.venv` quedan apuntando a la ruta vieja: recrearlo o usar `.venv/bin/python -m jupyter lab`.
 
-En Colab, la primera celda clona el repositorio público e instala `requirements.txt`; los procesados vienen en el repositorio. Si Colab pide reiniciar la sesión después de instalar, se reinicia y se vuelve a correr todo.
+En Colab, la primera celda clona el repositorio público; los procesados vienen en él. No instala `requirements.txt`: Colab ya trae numpy, pandas, scikit-learn, xgboost y plotly, y reinstalar las versiones fijas rompe numpy en memoria (`_no_nep50_warning`). Solo suma `py7zr` y `openpyxl`, que usa la descarga. Probado con Python 3.13, numpy 2.5, pandas 3.1, scikit-learn 1.9 y xgboost 3.4. Si un entorno quedó roto, usar «Entorno de ejecución › Desconectar y borrar el entorno de ejecución» y volver a correr.
 
 - [01 · Descarga y calidad](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/01_descarga.ipynb)
 - [02 · Análisis exploratorio](https://colab.research.google.com/github/imelinc/tpo-solar/blob/main/notebooks/02_eda.ipynb)
