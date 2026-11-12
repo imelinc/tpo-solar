@@ -1,0 +1,8 @@
+# Deploy del tablero con la función de Telegram del gemelo.
+# Arrastrar la carpeta app/ a Netlify sigue funcionando, pero no sube la función:
+# para que el bot quede cargado para todos los dispositivos hay que publicar con la CLI
+#   npx netlify-cli deploy --prod
+# y cargar TELEGRAM_TOKEN y TELEGRAM_CHAT_ID en las variables de entorno del sitio.
+[build]
+  publish = "app"
+  functions = "netlify/functions"

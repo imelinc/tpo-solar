@@ -1959,7 +1959,22 @@ const PUEDE_TG = true;
 const TG = (() => { try { return JSON.parse(localStorage.getItem("gemeloTG") || "{}"); } catch (e) { return {}; } })();
 let tgOffset = null, tgTimer = null;
 function tgEstado(t, ok) { const el = document.getElementById("tgEstado"); if (el) { el.textContent = t; el.dataset.ok = ok ? "1" : "0"; } TG.ult = { t, ok }; }
+// Modo «servidor»: si Netlify tiene el token guardado (función netlify/functions/telegram.mjs), el gemelo
+// habla con Telegram a través de ella y no hace falta cargar nada en ningún dispositivo.
+// Modo «navegador»: el de siempre, con el token pegado en este navegador.
+const TG_SERVIDOR = "/.netlify/functions/telegram";
+let TG_MODO = "navegador";
+async function tgDetectarServidor() {
+  if (location.protocol === "file:") return null;
+  try {
+    const r = await fetch(TG_SERVIDOR, { method: "GET", cache: "no-store" });
+    if (!r.ok || !(r.headers.get("content-type") || "").includes("json")) return null;
+    const j = await r.json(); return j && j.configurado && j.chat ? String(j.chat) : null;
+  } catch (e) { return null; }
+}
 function tgLlamar(metodo, p) {
+  if (TG_MODO === "servidor")
+    return fetch(TG_SERVIDOR, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ metodo, params: p }) }).then(r => r.json());
   return fetch(`https://api.telegram.org/bot${TG.tok}/${metodo}`, { method: "POST", body: new URLSearchParams(p) }).then(r => r.json());
 }
 function tgEnviar(texto, extra = {}) {
@@ -2555,7 +2570,8 @@ function iniciarEscenarios() {
   b.addEventListener("click", () => (pop.hidden = !pop.hidden));
   // Con solo el token alcanza: el chat se detecta con el último mensaje que le escribieron al bot.
   const leer = async () => {
-    TG.tok = document.getElementById("tgTok").value.trim(); TG.chat = document.getElementById("tgChat").value.trim(); TG.on = document.getElementById("tgOn").checked;
+    if (TG_MODO === "servidor") { TG.on = document.getElementById("tgOn").checked; return true; }
+    TG.tok =document.getElementById("tgTok").value.trim(); TG.chat = document.getElementById("tgChat").value.trim(); TG.on = document.getElementById("tgOn").checked;
     if (TG.tok && TG.chat) {       // un chat viejo o inventado no sirve: si Telegram no lo conoce, se busca de nuevo
       try { const r = await tgLlamar("getChat", { chat_id: TG.chat }); if (!r.ok && /chat not found/i.test(r.description || "")) { TG.chat = ""; document.getElementById("tgChat").value = ""; } } catch (e) {}
     }
@@ -2585,7 +2601,16 @@ function iniciarEscenarios() {
     if (!(await leer())) return;
     telegram({ sev: "info", title: "Prueba de conexión", body: "Las alertas del gemelo van a llegar acá. Para probar el aviso al técnico, elegí el escenario Autónomo." }, true); tgIniciar();
   });
-  tgIniciar();
+  // Si Netlify tiene el bot guardado, sirve para todos los dispositivos: se oculta el campo y no se guarda nada acá.
+  tgDetectarServidor().then(chat => {
+    if (chat) {
+      TG_MODO = "servidor"; TG.tok = "servidor"; TG.chat = chat; TG.on = document.getElementById("tgOn").checked = true;
+      b.textContent = "Telegram ✓";
+      pop.querySelectorAll("#tgTok, #tgSave, #tgBorrar").forEach(el => (el.hidden = true));
+      const nota = pop.querySelector("small"); if (nota) nota.textContent = "El bot está guardado en el servidor: funciona igual en cualquier celu o compu, no hace falta cargar nada.";
+    }
+    tgIniciar(); renderEscenario();
+  });
 }
 
 // =============================== Modo presentación guiado ===============================

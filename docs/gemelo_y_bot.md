@@ -33,7 +33,25 @@ El token va solo en la variable de entorno. No lo pegues en el código ni en git
 
 Comandos del técnico en Telegram: el botón del aviso, `/reparado [grupo]` (sin letra sirve si hay una sola falla abierta), `/estado` y `/ayuda`. El gemelo solo escucha al chat configurado.
 
-### Cómo dejarlo andando
+### Que el bot quede cargado para todos los dispositivos (recomendado)
+
+El token se guarda **una sola vez en Netlify** como variable secreta y sirve en cualquier celu o compu. El gemelo lo detecta solo: el botón dice «Telegram ✓» y no pide nada. El token nunca llega al navegador (lo usa la función `netlify/functions/telegram.mjs`, que solo deja mandar mensajes al chat configurado).
+
+1. En Netlify: **Site configuration → Environment variables → Add a variable**:
+   - `TELEGRAM_TOKEN` = el código de @BotFather
+   - `TELEGRAM_CHAT_ID` = el chat que recibe los avisos (el del celular del técnico, por ejemplo `1624865224`, o el de un grupo con el profe)
+2. Publicar **con la CLI** desde la raíz del repo (arrastrar la carpeta `app/` no sube la función):
+   ```bash
+   npx netlify-cli login
+   npx netlify-cli link        # elegir el sitio tpo-ciencia-de-datos
+   npx netlify-cli deploy --prod
+   ```
+   `netlify.toml` ya dice que se publica `app/` con la función.
+3. Abrir la sección Gemelo: tiene que decir **«Telegram ✓»** sin cargar nada.
+
+Si se publica arrastrando `app/` como siempre, el gemelo sigue funcionando igual que antes: hay que pegar el token en cada navegador.
+
+### Cómo dejarlo andando en un solo navegador (sin la función)
 
 1. Mandarle un mensaje cualquiera al bot desde el celular (así el gemelo detecta tu chat).
 2. Abrir `gemelo/index.html` (doble clic o la página publicada) → botón **Telegram** → pegar **solo el token** → **Guardar**. El chat se completa solo. Queda guardado en ese navegador; con **Olvidar** se borra.

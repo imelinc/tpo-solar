@@ -9,7 +9,22 @@ const PUEDE_TG = true;
 const TG = (() => { try { return JSON.parse(localStorage.getItem("gemeloTG") || "{}"); } catch (e) { return {}; } })();
 let tgOffset = null, tgTimer = null;
 function tgEstado(t, ok) { const el = document.getElementById("tgEstado"); if (el) { el.textContent = t; el.dataset.ok = ok ? "1" : "0"; } TG.ult = { t, ok }; }
+// Modo «servidor»: si Netlify tiene el token guardado (función netlify/functions/telegram.mjs), el gemelo
+// habla con Telegram a través de ella y no hace falta cargar nada en ningún dispositivo.
+// Modo «navegador»: el de siempre, con el token pegado en este navegador.
+const TG_SERVIDOR = "/.netlify/functions/telegram";
+let TG_MODO = "navegador";
+async function tgDetectarServidor() {
+  if (location.protocol === "file:") return null;
+  try {
+    const r = await fetch(TG_SERVIDOR, { method: "GET", cache: "no-store" });
+    if (!r.ok || !(r.headers.get("content-type") || "").includes("json")) return null;
+    const j = await r.json(); return j && j.configurado && j.chat ? String(j.chat) : null;
+  } catch (e) { return null; }
+}
 function tgLlamar(metodo, p) {
+  if (TG_MODO === "servidor")
+    return fetch(TG_SERVIDOR, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ metodo, params: p }) }).then(r => r.json());
   return fetch(`https://api.telegram.org/bot${TG.tok}/${metodo}`, { method: "POST", body: new URLSearchParams(p) }).then(r => r.json());
 }
 function tgEnviar(texto, extra = {}) {

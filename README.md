@@ -22,7 +22,7 @@ python app/build_dashboard.py
 python gemelo/build_gemelo.py   # sección Gemelo del tablero
 ```
 
-Publicada en https://tpo-ciencia-de-datos.netlify.app (subida a mano a Netlify: al cambiar la app hay que volver a subirla). También se puede abrir `app/index.html` en un navegador. La aplicación usa datos, biblioteca y tipografía locales. No consulta APIs durante la defensa.
+Publicada en https://tpo-ciencia-de-datos.netlify.app (subida a mano a Netlify: al cambiar la app hay que volver a subirla). Para que el bot de Telegram del gemelo quede cargado para todos los dispositivos, publicar con `npx netlify-cli deploy --prod` y cargar `TELEGRAM_TOKEN` y `TELEGRAM_CHAT_ID` en Netlify (ver [docs/gemelo_y_bot.md](docs/gemelo_y_bot.md)). También se puede abrir `app/index.html` en un navegador. La aplicación usa datos, biblioteca y tipografía locales. No consulta APIs durante la defensa.
 
 Los notebooks construyen y revisan los archivos. La defensa usa el comando de arriba y `app/index.html`. Ver `notebooks/LEEME.md`.
 

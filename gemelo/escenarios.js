@@ -62,7 +62,8 @@ function iniciarEscenarios() {
   b.addEventListener("click", () => (pop.hidden = !pop.hidden));
   // Con solo el token alcanza: el chat se detecta con el último mensaje que le escribieron al bot.
   const leer = async () => {
-    TG.tok = document.getElementById("tgTok").value.trim(); TG.chat = document.getElementById("tgChat").value.trim(); TG.on = document.getElementById("tgOn").checked;
+    if (TG_MODO === "servidor") { TG.on = document.getElementById("tgOn").checked; return true; }
+    TG.tok =document.getElementById("tgTok").value.trim(); TG.chat = document.getElementById("tgChat").value.trim(); TG.on = document.getElementById("tgOn").checked;
     if (TG.tok && TG.chat) {       // un chat viejo o inventado no sirve: si Telegram no lo conoce, se busca de nuevo
       try { const r = await tgLlamar("getChat", { chat_id: TG.chat }); if (!r.ok && /chat not found/i.test(r.description || "")) { TG.chat = ""; document.getElementById("tgChat").value = ""; } } catch (e) {}
     }
@@ -92,5 +93,14 @@ function iniciarEscenarios() {
     if (!(await leer())) return;
     telegram({ sev: "info", title: "Prueba de conexión", body: "Las alertas del gemelo van a llegar acá. Para probar el aviso al técnico, elegí el escenario Autónomo." }, true); tgIniciar();
   });
-  tgIniciar();
+  // Si Netlify tiene el bot guardado, sirve para todos los dispositivos: se oculta el campo y no se guarda nada acá.
+  tgDetectarServidor().then(chat => {
+    if (chat) {
+      TG_MODO = "servidor"; TG.tok = "servidor"; TG.chat = chat; TG.on = document.getElementById("tgOn").checked = true;
+      b.textContent = "Telegram ✓";
+      pop.querySelectorAll("#tgTok, #tgSave, #tgBorrar").forEach(el => (el.hidden = true));
+      const nota = pop.querySelector("small"); if (nota) nota.textContent = "El bot está guardado en el servidor: funciona igual en cualquier celu o compu, no hace falta cargar nada.";
+    }
+    tgIniciar(); renderEscenario();
+  });
 }
