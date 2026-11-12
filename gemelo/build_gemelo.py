@@ -82,7 +82,7 @@ PRES_HTML = ('<div class="pres" id="pres" hidden aria-live="polite"><div class="
              '<div class="pres-b"><button class="btn pres-prev">← Anterior</button><button class="btn pres-a" hidden></button>'
              '<button class="btn primary pres-next">Siguiente →</button></div></div>')
 NAV_TABLERO = ('<nav class="tablero-nav" aria-label="Vistas del tablero"><a href="__TABLERO__#revisar">Parques</a><a href="__TABLERO__#sitio">Sitio nuevo</a>'
-               '<a href="__TABLERO__#modelos">Modelos</a><a href="__TABLERO__#atlas">Datos</a><a aria-current="page">Gemelo</a></nav>')
+               '<a href="__TABLERO__#modelos">Modelos</a><a href="__TABLERO__#atlas">Datos</a><a aria-current="page">Gemelo</a><a href="__PRESENTACION__">Presentación</a></nav>')
 REDUCED = "@media (prefers-reduced-motion: reduce){.toast,.lbl .dot.bad{animation:none}}"
 MARCA_CONTROLES = "// =============================== controles ==============================="
 
@@ -176,9 +176,9 @@ def construir() -> Path:
     if html.count("__TABLERO__") != 4:
         raise SystemExit("El menú del tablero no quedó armado")
     destino = AQUI / "index.html"
-    destino.write_text(html.replace("__TABLERO__", "../app/index.html"), encoding="utf-8")
+    destino.write_text(html.replace("__TABLERO__", "../app/index.html").replace("__PRESENTACION__", "../app/presentacion.html"), encoding="utf-8")
     seccion = RAIZ / "app" / "gemelo.html"            # la sección «Gemelo» del tablero publicado
-    seccion.write_text(html.replace("__TABLERO__", "index.html"), encoding="utf-8")
+    seccion.write_text(html.replace("__TABLERO__", "index.html").replace("__PRESENTACION__", "presentacion.html"), encoding="utf-8")
     return destino
 
 
